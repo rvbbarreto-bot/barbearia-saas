@@ -1,0 +1,39 @@
+# ─────────────────────────────────────────────────────────────
+#  .dockerignore — apps/api
+#  Contexto de build da imagem Docker da API
+# ─────────────────────────────────────────────────────────────
+
+# ── Segredos ─────────────────────────────────────────────────
+.env
+.env.*
+*.pem
+*.key
+secrets/
+
+# ── Dependências (instaladas no build via npm ci) ────────────
+node_modules/
+
+# ── Artefatos de build (gerados no estágio de compilação) ────
+dist/
+coverage/
+
+# ── Logs ─────────────────────────────────────────────────────
+*.log
+logs/
+
+# ── Testes e desenvolvimento ─────────────────────────────────
+**/*.test.ts
+**/*.spec.ts
+vitest.config.ts
+
+# ── Editores e SO ─────────────────────────────────────────────
+.DS_Store
+.idea/
+.vscode/
+*.sw?
+
+# ── Temporários ──────────────────────────────────────────────
+.cache/
+.tmp/
+*.tmp
+*.tsbuildinfo

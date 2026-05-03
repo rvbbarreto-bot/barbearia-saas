@@ -1,0 +1,57 @@
+@import "tailwindcss";
+
+@theme {
+  /* ── Backgrounds ─────────────────────────────────────────────────────────── */
+  /* #101827 */
+  --color-background:            oklch(0.15 0.04 248);
+  /* #0B1F3B */
+  --color-card:                  oklch(0.18 0.06 245);
+  --color-card-foreground:       oklch(1 0 0);
+  --color-popover:               oklch(0.18 0.06 245);
+  --color-popover-foreground:    oklch(1 0 0);
+
+  /* ── Foregrounds ─────────────────────────────────────────────────────────── */
+  --color-foreground:            oklch(1 0 0);
+
+  /* ── Primary — Teal #2DD4BF ──────────────────────────────────────────────── */
+  --color-primary:               oklch(0.79 0.12 183);
+  /* Dark text on teal button #071426 */
+  --color-primary-foreground:    oklch(0.12 0.05 248);
+
+  /* ── Secondary & Muted ───────────────────────────────────────────────────── */
+  --color-secondary:             oklch(0.22 0.05 245);
+  /* #D1D5DB */
+  --color-secondary-foreground:  oklch(0.87 0 0);
+  --color-muted:                 oklch(0.22 0.04 245);
+  /* #9CA3AF */
+  --color-muted-foreground:      oklch(0.72 0 0);
+
+  /* ── Accent (hover states) ───────────────────────────────────────────────── */
+  --color-accent:                oklch(0.22 0.05 245);
+  --color-accent-foreground:     oklch(0.87 0 0);
+
+  /* ── Destructive — kept unchanged ────────────────────────────────────────── */
+  --color-destructive:           oklch(0.577 0.245 27.325);
+
+  /* ── Borders & Inputs ────────────────────────────────────────────────────── */
+  --color-border:                oklch(0.28 0.04 248);
+  --color-input:                 oklch(0.22 0.04 245);
+
+  /* ── Focus ring — Teal ───────────────────────────────────────────────────── */
+  --color-ring:                  oklch(0.79 0.12 183);
+
+  --radius: 0.625rem;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply text-foreground;
+    background: linear-gradient(135deg, #071426, #0B1F3B, #14243A);
+    background-attachment: fixed;
+    min-height: 100vh;
+  }
+}

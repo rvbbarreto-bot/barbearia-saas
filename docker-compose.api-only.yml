@@ -1,0 +1,69 @@
+# docker-compose.api-only.yml
+# Sobe apenas a API + suas dependências de infraestrutura (sem n8n nem web).
+# Útil para desenvolvimento do backend isolado.
+#
+# Uso: docker compose -f docker-compose.api-only.yml up -d
+
+services:
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: barbearia-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-barbearia_saas}
+      POSTGRES_USER: ${POSTGRES_USER:-barbearia}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data_api_only:/var/lib/postgresql/data
+      - ./database/migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-barbearia} -d ${POSTGRES_DB:-barbearia_saas}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  redis:
+    image: redis:7-alpine
+    container_name: barbearia-redis
+    command: >
+      redis-server
+      --appendonly yes
+      --requirepass ${REDIS_PASSWORD:-barbearia_redis_dev}
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data_api_only:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-barbearia_redis_dev}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    container_name: barbearia-api
+    env_file: .env
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/health/ready || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 25s
+    restart: unless-stopped
+
+volumes:
+  postgres_data_api_only:
+  redis_data_api_only:

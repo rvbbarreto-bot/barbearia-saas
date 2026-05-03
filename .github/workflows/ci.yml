@@ -1,0 +1,199 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+# ──────────────────────────────────────────────────────────────────────────────
+# JOB 1 — API: typecheck · lint · test:unit · test (integração) · build
+# ──────────────────────────────────────────────────────────────────────────────
+jobs:
+  api:
+    name: "API — typecheck · lint · test · build"
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: barbearia_saas_test
+          POSTGRES_USER: barbearia
+          POSTGRES_PASSWORD: barbearia_test_password
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U barbearia -d barbearia_saas_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    defaults:
+      run:
+        working-directory: apps/api
+
+    env:
+      NODE_ENV: test
+      PORT: 3000
+      DATABASE_URL: postgres://barbearia:barbearia_test_password@localhost:5432/barbearia_saas_test
+      JWT_SECRET: ci-test-secret-32-chars-minimum-abcd
+      JWT_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 7d
+      AUTH_RATE_LIMIT_WINDOW: 1 minute
+      AUTH_LOGIN_RATE_LIMIT_MAX: 100
+      AUTH_REFRESH_RATE_LIMIT_MAX: 200
+      AUTH_LOGOUT_RATE_LIMIT_MAX: 300
+      REDIS_URL: redis://localhost:6379
+      OUTBOX_POLL_INTERVAL_MS: 60000
+      OUTBOX_CONCURRENCY: 2
+      CORS_ORIGIN: '*'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/api/package-lock.json
+
+      # Instala dependências. Se o lock file divergir do package.json após
+      # adição das novas deps (eslint, typescript-eslint), execute
+      # `npm install` localmente e comite o package-lock.json atualizado.
+      - name: Install dependencies
+        run: npm install
+
+      - name: TypeScript — typecheck
+        run: npm run typecheck
+
+      - name: ESLint — lint
+        run: npm run lint
+
+      - name: Apply migrations (lex order — 020a antes de 021)
+        working-directory: .
+        run: |
+          export PGPASSWORD=barbearia_test_password
+          ls database/migrations/*.sql | sort | tee /tmp/migration_order.txt
+          echo "=== migration order (head) ==="
+          head -n 30 /tmp/migration_order.txt
+          for f in $(cat /tmp/migration_order.txt); do
+            echo "Applying $f …"
+            psql -v ON_ERROR_STOP=1 -h localhost -U barbearia -d barbearia_saas_test -f "$f"
+          done
+
+      - name: Apply seed
+        working-directory: .
+        run: |
+          export PGPASSWORD=barbearia_test_password
+          psql -h localhost -U barbearia -d barbearia_saas_test \
+            -f database/seeds/001_demo.sql
+
+      - name: Test — unit (sem banco)
+        run: npm run test:unit
+
+      - name: Test — integração (com banco)
+        run: npm test -- --coverage
+
+      - name: Build
+        run: npm run build
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: api-coverage
+          path: apps/api/coverage/
+
+# ──────────────────────────────────────────────────────────────────────────────
+# JOB 2 — Web: lint · typecheck · test · build
+# ──────────────────────────────────────────────────────────────────────────────
+  web:
+    name: "Web — lint · typecheck · test · build"
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: apps/web
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      # vitest e @vitest/coverage-v8 foram adicionados ao package.json.
+      # Execute `npm install` em apps/web localmente e comite o lock atualizado.
+      - name: Install dependencies
+        run: npm install
+
+      - name: ESLint — lint
+        run: npm run lint
+
+      - name: TypeScript — typecheck
+        run: npm run typecheck
+
+      - name: Test — smoke (utils)
+        run: npm test
+
+      - name: Build (Vite)
+        run: npm run build
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: web-dist
+          path: apps/web/dist/
+          retention-days: 7
+
+# ──────────────────────────────────────────────────────────────────────────────
+# JOB 3 — Security: npm audit em ambos os pacotes
+# ──────────────────────────────────────────────────────────────────────────────
+  security:
+    name: "Security — npm audit"
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Audit API
+        working-directory: apps/api
+        run: npm install && npm audit --audit-level=high
+
+      - name: Audit Web
+        working-directory: apps/web
+        run: npm install && npm audit --audit-level=high
+
+  # ──────────────────────────────────────────────────────────────────────────────
+  # JOB 4 — Secret scan (Gitleaks)
+  # ──────────────────────────────────────────────────────────────────────────────
+  gitleaks:
+    name: "Security — Gitleaks"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Tag fixa da action (sem :latest em imagens auxiliares); o binário Gitleaks embutido segue o release da action.
+      - uses: gitleaks/gitleaks-action@v2.3.9
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

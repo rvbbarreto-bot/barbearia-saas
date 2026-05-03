@@ -1,0 +1,110 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: barbearia-postgres-staging
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data_staging:/var/lib/postgresql/data
+    networks: [barbearia]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: barbearia-redis-staging
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_data_staging:/data
+    networks: [barbearia]
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # API_IMAGE obrigatório: tag semver (ex. ghcr.io/org/barbearia-api:0.4.2). Não usar :latest em staging.
+  api:
+    image: ${API_IMAGE:?Set API_IMAGE to a versioned container image (semver tag). Silent :latest fallback is not allowed for staging.}
+    container_name: barbearia-api-staging
+    restart: unless-stopped
+    env_file: .env.staging
+    networks: [barbearia]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:3000/health/ready || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.api.rule=Host(`${API_HOST}`)"
+      - "traefik.http.routers.api.tls=true"
+      - "traefik.http.routers.api.tls.certresolver=letsencrypt"
+
+  n8n:
+    image: n8nio/n8n:1.91.3
+    container_name: barbearia-n8n-staging
+    restart: unless-stopped
+    networks: [barbearia]
+    environment:
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: postgres
+      DB_POSTGRESDB_PORT: 5432
+      DB_POSTGRESDB_DATABASE: ${N8N_DB:-n8n_staging}
+      DB_POSTGRESDB_USER: ${POSTGRES_USER}
+      DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD}
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY}
+      N8N_BASIC_AUTH_ACTIVE: "true"
+      N8N_BASIC_AUTH_USER: ${N8N_BASIC_AUTH_USER}
+      N8N_BASIC_AUTH_PASSWORD: ${N8N_BASIC_AUTH_PASSWORD}
+      WEBHOOK_URL: ${N8N_WEBHOOK_URL}
+      GENERIC_TIMEZONE: America/Sao_Paulo
+    volumes:
+      - n8n_data_staging:/home/node/.n8n
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  backup:
+    image: postgres:16-alpine
+    container_name: barbearia-backup-staging
+    restart: unless-stopped
+    networks: [barbearia]
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_HOST: postgres
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      BACKUP_DIR: /backups
+      RETENTION_DAYS: "30"
+    volumes:
+      - ./ops/backup/backup.sh:/backup.sh:ro
+      - backup_data_staging:/backups
+    entrypoint: ["/bin/sh", "-c", "chmod +x /backup.sh && crond -f -d 8"]
+    command: []
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+networks:
+  barbearia:
+    driver: bridge
+
+volumes:
+  postgres_data_staging:
+  redis_data_staging:
+  n8n_data_staging:
+  backup_data_staging:

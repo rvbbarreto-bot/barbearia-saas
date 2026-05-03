@@ -1,0 +1,7 @@
+title = "Barbearia SaaS V4"
+
+[allowlist]
+description = "Seed de demonstração com hash bcrypt fictício (não é credencial de produção)."
+paths = [
+  "database/seeds/001_demo.sql",
+]

@@ -1,0 +1,104 @@
+# ─────────────────────────────────────────────
+#  .gitignore — Barbearia SaaS V4
+#  NUNCA versione segredos, builds ou módulos.
+# ─────────────────────────────────────────────
+
+# ── Segredos e variáveis de ambiente ────────
+.env
+.env.local
+.env.*.local
+.env.staging
+.env.production
+.env.prod
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+credentials/
+
+# ── Dependências ─────────────────────────────
+node_modules/
+**/node_modules/
+
+# ── Builds e artefatos ────────────────────────
+dist/
+**/dist/
+dist-ssr/
+build/
+out/
+.output/
+
+# ── Cobertura de testes ───────────────────────
+coverage/
+**/coverage/
+*.lcov
+
+# ── Logs ─────────────────────────────────────
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ── Cache e temporários ───────────────────────
+.cache/
+.temp/
+.tmp/
+*.tmp
+.turbo/
+.next/
+.nuxt/
+.svelte-kit/
+
+# ── Vite / TypeScript / bundlers ─────────────
+.vite/
+*.tsbuildinfo
+vite.config.ts.timestamp-*
+
+# ── n8n ───────────────────────────────────────
+n8n/.n8n/
+n8n/data/
+
+# ── Banco de dados / dumps ────────────────────
+*.sql.gz
+*.dump
+*.bak
+pgdata/
+postgres_data/
+redis_data/
+
+# ── Docker volumes locais ─────────────────────
+docker/volumes/
+
+# ── Sistema operacional ───────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ── Editores ─────────────────────────────────
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.swp
+*~
+
+# ── Relatórios de auditoria ───────────────────
+npm-audit.json
+audit-report.json
+
+# ── Evidências geradas localmente (anexar ao PR manualmente) ──
+artifacts/

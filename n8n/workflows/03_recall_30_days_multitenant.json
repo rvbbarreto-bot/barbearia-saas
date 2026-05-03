@@ -1,0 +1,12 @@
+{
+  "name": "SaaS Barbearia - 03 Recall 30 Dias Multi-Tenant",
+  "active": false,
+  "nodes": [
+    {"parameters":{"rule":{"interval":[{"field":"hours","hoursInterval":6}]}},"id":"schedule","name":"A cada 6 horas","type":"n8n-nodes-base.scheduleTrigger","typeVersion":1.2,"position":[0,0]},
+    {"parameters":{"operation":"executeQuery","query":"SELECT * FROM v_recall_candidates WHERE due_at <= now() LIMIT 200"},"id":"query","name":"Buscar Candidatos Recall","type":"n8n-nodes-base.postgres","typeVersion":2.5,"position":[260,0]},
+    {"parameters":{"batchSize":1,"options":{}},"id":"batch","name":"Loop Clientes","type":"n8n-nodes-base.splitInBatches","typeVersion":3,"position":[520,0]},
+    {"parameters":{"method":"POST","url":"={{$env.EVOLUTION_API_URL}}/message/sendText/{{$json.tenant_slug}}","sendBody":true,"specifyBody":"json","jsonBody":"={\"number\": $json.phone, \"text\": $json.message}"},"id":"send","name":"Enviar Recall","type":"n8n-nodes-base.httpRequest","typeVersion":4,"position":[780,0]},
+    {"parameters":{"method":"POST","url":"={{$env.API_BASE_URL}}/api/v1/audit/recall-sent","sendBody":true,"specifyBody":"json","jsonBody":"={{$json}}"},"id":"audit","name":"Auditar Envio","type":"n8n-nodes-base.httpRequest","typeVersion":4,"position":[1040,0]}
+  ],
+  "connections":{"A cada 6 horas":{"main":[[{"node":"Buscar Candidatos Recall","type":"main","index":0}]]},"Buscar Candidatos Recall":{"main":[[{"node":"Loop Clientes","type":"main","index":0}]]},"Loop Clientes":{"main":[[{"node":"Enviar Recall","type":"main","index":0}]]},"Enviar Recall":{"main":[[{"node":"Auditar Envio","type":"main","index":0}]]},"Auditar Envio":{"main":[[{"node":"Loop Clientes","type":"main","index":0}]]}}
+}

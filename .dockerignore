@@ -1,0 +1,69 @@
+# ─────────────────────────────────────────────────────────────
+#  .dockerignore — Barbearia SaaS V4 (raiz do monorepo)
+#  Evita enviar segredos, módulos e artefatos ao contexto Docker
+# ─────────────────────────────────────────────────────────────
+
+# ── Segredos e variáveis de ambiente ────────────────────────
+.env
+.env.*
+!.env.example
+!.env.staging.example
+*.pem
+*.key
+secrets/
+credentials/
+
+# ── Dependências ─────────────────────────────────────────────
+node_modules/
+**/node_modules/
+
+# ── Builds e artefatos ────────────────────────────────────────
+dist/
+**/dist/
+build/
+out/
+coverage/
+**/coverage/
+
+# ── Logs ─────────────────────────────────────────────────────
+*.log
+logs/
+npm-debug.log*
+
+# ── Git e CI ─────────────────────────────────────────────────
+.git/
+.github/
+.gitignore
+
+# ── Editores e sistema operacional ───────────────────────────
+.DS_Store
+.idea/
+.vscode/
+*.suo
+*.sw?
+Thumbs.db
+
+# ── Dumps e backups de banco ─────────────────────────────────
+*.sql.gz
+*.dump
+*.bak
+pgdata/
+postgres_data/
+redis_data/
+
+# ── Temporários e cache ──────────────────────────────────────
+.cache/
+.temp/
+.tmp/
+*.tmp
+.turbo/
+*.tsbuildinfo
+
+# ── n8n dados locais ─────────────────────────────────────────
+n8n/.n8n/
+n8n/data/
+
+# ── Documentação que não vai para imagem ─────────────────────
+docs/
+README.md
+*.md

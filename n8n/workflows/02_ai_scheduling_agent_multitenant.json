@@ -1,0 +1,13 @@
+{
+  "name": "SaaS Barbearia - 02 Agente Agenda Multi-Tenant",
+  "active": false,
+  "nodes": [
+    {"parameters":{},"id":"trigger","name":"When Executed by Another Workflow","type":"n8n-nodes-base.executeWorkflowTrigger","typeVersion":1,"position":[0,0]},
+    {"parameters":{"url":"={{$env.API_BASE_URL}}/api/v1/appointments?from={{$now}}&to={{$now.plus({days:7})}}","authentication":"genericCredentialType","genericAuthType":"httpHeaderAuth"},"id":"get-context","name":"Buscar Contexto Agenda Core API","type":"n8n-nodes-base.httpRequest","typeVersion":4,"position":[260,0]},
+    {"parameters":{"promptType":"define","text":"Você é o agente de agendamento de uma barbearia SaaS multi-tenant. Respeite tenant, profissional, serviço, horário disponível e confirmação explícita do cliente antes de criar agenda. Nunca prometa horário sem consultar disponibilidade. Retorne JSON de intenção: consultar_horarios, criar_agendamento, cancelar, informacao_empresa, atendimento_humano.","options":{}},"id":"agent","name":"Agente IA Agendamento","type":"@n8n/n8n-nodes-langchain.agent","typeVersion":1.7,"position":[520,0]},
+    {"parameters":{"conditions":{"string":[{"value1":"={{$json.intent}}","operation":"equals","value2":"criar_agendamento"}]}},"id":"switch-create","name":"Intenção Criar?","type":"n8n-nodes-base.if","typeVersion":2,"position":[780,0]},
+    {"parameters":{"method":"POST","url":"={{$env.API_BASE_URL}}/api/v1/appointments","sendBody":true,"specifyBody":"json","jsonBody":"={{$json.appointment_payload}}"},"id":"create-appt","name":"Criar Agendamento Core API","type":"n8n-nodes-base.httpRequest","typeVersion":4,"position":[1040,-80]},
+    {"parameters":{"method":"POST","url":"={{$env.EVOLUTION_API_URL}}/message/sendText/{{$json.tenant_slug}}","sendBody":true,"specifyBody":"json","jsonBody":"={\"number\": $json.phone, \"text\": $json.response_text}"},"id":"send-message","name":"Enviar Resposta WhatsApp","type":"n8n-nodes-base.httpRequest","typeVersion":4,"position":[1300,0]}
+  ],
+  "connections":{"When Executed by Another Workflow":{"main":[[{"node":"Buscar Contexto Agenda Core API","type":"main","index":0}]]},"Buscar Contexto Agenda Core API":{"main":[[{"node":"Agente IA Agendamento","type":"main","index":0}]]},"Agente IA Agendamento":{"main":[[{"node":"Intenção Criar?","type":"main","index":0}]]},"Intenção Criar?":{"main":[[{"node":"Criar Agendamento Core API","type":"main","index":0}],[{"node":"Enviar Resposta WhatsApp","type":"main","index":0}]]},"Criar Agendamento Core API":{"main":[[{"node":"Enviar Resposta WhatsApp","type":"main","index":0}]]}}
+}

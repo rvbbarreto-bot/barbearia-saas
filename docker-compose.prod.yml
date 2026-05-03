@@ -1,0 +1,136 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: barbearia-postgres-prod
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data_prod:/var/lib/postgresql/data
+    networks: [barbearia-internal]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  redis:
+    image: redis:7-alpine
+    container_name: barbearia-redis-prod
+    restart: always
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD} --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data_prod:/data
+    networks: [barbearia-internal]
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "3"
+
+  api:
+    image: ${API_IMAGE}
+    container_name: barbearia-api-prod
+    restart: always
+    env_file: .env.prod
+    networks: [barbearia-internal, traefik-public]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/health/ready || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 25s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik-public"
+      - "traefik.http.routers.barbearia-api.rule=Host(`${API_HOST}`)"
+      - "traefik.http.routers.barbearia-api.tls=true"
+      - "traefik.http.routers.barbearia-api.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.barbearia-api.middlewares=security-headers"
+      - "traefik.http.middlewares.security-headers.headers.stsSeconds=31536000"
+    logging:
+      driver: json-file
+      options:
+        max-size: "100m"
+        max-file: "10"
+
+  n8n:
+    image: n8nio/n8n:1.91.3
+    container_name: barbearia-n8n-prod
+    restart: always
+    networks: [barbearia-internal, traefik-public]
+    environment:
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: postgres
+      DB_POSTGRESDB_PORT: 5432
+      DB_POSTGRESDB_DATABASE: ${N8N_DB}
+      DB_POSTGRESDB_USER: ${POSTGRES_USER}
+      DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD}
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY}
+      N8N_BASIC_AUTH_ACTIVE: "true"
+      N8N_BASIC_AUTH_USER: ${N8N_BASIC_AUTH_USER}
+      N8N_BASIC_AUTH_PASSWORD: ${N8N_BASIC_AUTH_PASSWORD}
+      WEBHOOK_URL: ${N8N_WEBHOOK_URL}
+      GENERIC_TIMEZONE: America/Sao_Paulo
+      N8N_LOG_LEVEL: warn
+    volumes:
+      - n8n_data_prod:/home/node/.n8n
+    depends_on:
+      postgres:
+        condition: service_healthy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik-public"
+      - "traefik.http.routers.barbearia-n8n.rule=Host(`${N8N_HOST}`)"
+      - "traefik.http.routers.barbearia-n8n.tls=true"
+      - "traefik.http.routers.barbearia-n8n.tls.certresolver=letsencrypt"
+
+  backup:
+    image: postgres:16-alpine
+    container_name: barbearia-backup-prod
+    restart: always
+    networks: [barbearia-internal]
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_HOST: postgres
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      BACKUP_DIR: /backups
+      RETENTION_DAYS: "60"
+    volumes:
+      - ./ops/backup/backup.sh:/backup.sh:ro
+      - backup_data_prod:/backups
+    entrypoint: ["/bin/sh", "-c", "chmod +x /backup.sh && crond -f -d 8"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+networks:
+  barbearia-internal:
+    driver: bridge
+    internal: true
+  traefik-public:
+    external: true
+
+volumes:
+  postgres_data_prod:
+  redis_data_prod:
+  n8n_data_prod:
+  backup_data_prod:
