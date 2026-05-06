@@ -38,5 +38,6 @@ Get-ChildItem -Path $wfDir -Filter '*.json' | ForEach-Object {
   }
 }
 Write-Host "`n=== Note ==="
-Write-Host "Matches are expected for blocked flows (02/03) until remediation."
+Write-Host "Workflows 02 e 03 (export JSON): nao deve aparecer [MATCH] para Postgres direto, executeQuery, Evolution/sendText, SELECT * FROM."
+Write-Host "Workflow 03 consuma apenas Core API (GET recall/candidates, POST recall/send); manter active=false ate QA."
 Write-Host "Workflows 02/03 must remain Active=OFF in the running n8n instance (UI evidence)."

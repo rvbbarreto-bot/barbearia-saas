@@ -5,10 +5,17 @@ import {
   applyAppointmentFinancialDiscount,
   getAppointmentFinancial,
   getDailyFinanceReport,
+  listAppointmentFinancials,
   settleAppointmentFinancial,
 } from './service.js';
 
 export async function financeRoutes(app: FastifyInstance) {
+  app.get(
+    '/finance/appointments',
+    { preHandler: requirePermission('finance', 'readAppointment') },
+    async (request: any) => listAppointmentFinancials(request.tenantId, request.query as Record<string, unknown>),
+  );
+
   app.get(
     '/finance/appointments/:appointmentId',
     { preHandler: requirePermission('finance', 'readAppointment') },

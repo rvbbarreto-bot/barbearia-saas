@@ -253,3 +253,69 @@ export interface AvailabilitySlot {
   professional_id: string;
   available: boolean;
 }
+
+// ─── Audit log ────────────────────────────────────────────────────────────────
+
+export interface AuditLogRow {
+  id: string;
+  tenant_id?: string;
+  actor_user_id: string | null;
+  actor_name?: string | null;
+  action: string;
+  entity: string;
+  entity_id: string | null;
+  before: unknown;
+  after: unknown;
+  ip: string | null;
+  created_at: string;
+}
+
+// ─── Waitlist ─────────────────────────────────────────────────────────────────
+
+export interface WaitlistEntry {
+  id: string;
+  tenant_id: string;
+  customer_id: string;
+  service_id: string;
+  professional_id: string | null;
+  preferred_date_from: string;
+  preferred_date_to: string;
+  shift_preference: string;
+  deposit_priority: boolean;
+  status: string;
+  metadata?: unknown;
+  created_at: string;
+  updated_at?: string;
+  customer_name?: string | null;
+  customer_phone?: string | null;
+  customer_is_vip?: boolean | null;
+}
+
+// ─── Finance (read-only UI) ───────────────────────────────────────────────────
+
+export interface AppointmentFinancialListRow {
+  appointment_id: string;
+  appointment_status: string;
+  professional_id: string;
+  starts_at: string;
+  financial: Record<string, unknown> | null;
+  balance_due_cents: number | null;
+}
+
+// ─── Commission (read-only UI) ───────────────────────────────────────────────
+
+export interface CommissionEntryRow {
+  id: string;
+  tenant_id: string;
+  appointment_id: string;
+  professional_id: string;
+  branch_id: string | null;
+  service_id: string | null;
+  commission_rule_id: string | null;
+  base_amount_cents: number;
+  commission_cents: number;
+  status: string;
+  created_at: string;
+  updated_at?: string;
+  completed_at?: string | null;
+}

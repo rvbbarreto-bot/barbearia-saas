@@ -15,6 +15,12 @@ const ServicosPage       = lazy(() => import('@/features/servicos/ServicosPage')
 const ProfissionaisPage  = lazy(() => import('@/features/profissionais/ProfissionaisPage').then((m) => ({ default: m.ProfissionaisPage })));
 const ConfiguracoesPage  = lazy(() => import('@/features/configuracoes/ConfiguracoesPage').then((m) => ({ default: m.ConfiguracoesPage })));
 const ConversasPage      = lazy(() => import('@/features/atendimento/ConversasPage').then((m) => ({ default: m.ConversasPage })));
+const AuditLogsPage      = lazy(() => import('@/features/auditoria/AuditLogsPage').then((m) => ({ default: m.AuditLogsPage })));
+const WaitlistPage       = lazy(() => import('@/features/lista-espera/WaitlistPage').then((m) => ({ default: m.WaitlistPage })));
+const FinanceiroPage = lazy(() =>
+  import('@/features/financeiro/FinanceiroPage').then((m) => ({ default: m.FinanceiroPage })),
+);
+const ComissaoPage = lazy(() => import('@/features/comissao/ComissaoPage').then((m) => ({ default: m.ComissaoPage })));
 
 function PageSuspense({ children }: { children: React.ReactNode }) {
   return (
@@ -116,6 +122,46 @@ export function AppRouter() {
                 <PageSuspense>
                   <RoleGuard minRole="manager">
                     <ConfiguracoesPage />
+                  </RoleGuard>
+                </PageSuspense>
+              }
+            />
+            <Route
+              path="/lista-espera"
+              element={
+                <PageSuspense>
+                  <RoleGuard minRole="attendant">
+                    <WaitlistPage />
+                  </RoleGuard>
+                </PageSuspense>
+              }
+            />
+            <Route
+              path="/operacao/financeiro"
+              element={
+                <PageSuspense>
+                  <RoleGuard minRole="manager">
+                    <FinanceiroPage />
+                  </RoleGuard>
+                </PageSuspense>
+              }
+            />
+            <Route
+              path="/operacao/comissao"
+              element={
+                <PageSuspense>
+                  <RoleGuard minRole="manager">
+                    <ComissaoPage />
+                  </RoleGuard>
+                </PageSuspense>
+              }
+            />
+            <Route
+              path="/auditoria"
+              element={
+                <PageSuspense>
+                  <RoleGuard minRole="tenant_admin">
+                    <AuditLogsPage />
                   </RoleGuard>
                 </PageSuspense>
               }

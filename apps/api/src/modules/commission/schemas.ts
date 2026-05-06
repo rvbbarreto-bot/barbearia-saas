@@ -2,7 +2,8 @@ import { z } from 'zod';
 
 export const commissionRuleKindSchema = z.enum(['percent', 'fixed_cents']);
 
-export const createCommissionRuleSchema = z.object({
+/** Objeto base sem refinamento — Zod v4 não permite `.partial()` em schemas com `.superRefine()`. */
+const commissionRuleBaseSchema = z.object({
   branch_id: z.string().uuid().nullable().optional(),
   professional_id: z.string().uuid().nullable().optional(),
   service_id: z.string().uuid().nullable().optional(),
@@ -11,7 +12,12 @@ export const createCommissionRuleSchema = z.object({
   fixed_cents: z.number().int().min(0).nullable().optional(),
   priority: z.number().int().default(0),
   active: z.boolean().optional().default(true),
-}).superRefine((data, ctx) => {
+});
+
+function refineCommissionRuleKindConsistency(
+  data: z.infer<typeof commissionRuleBaseSchema>,
+  ctx: z.RefinementCtx,
+): void {
   if (data.rule_kind === 'percent') {
     if (data.percent_basis_points == null) {
       ctx.addIssue({
@@ -43,9 +49,27 @@ export const createCommissionRuleSchema = z.object({
       });
     }
   }
-});
+}
 
-export const patchCommissionRuleSchema = createCommissionRuleSchema.partial();
+export const createCommissionRuleSchema = commissionRuleBaseSchema.superRefine(refineCommissionRuleKindConsistency);
+
+/** PATCH parcial: refinamento só quando `rule_kind` está presente no payload. */
+export const patchCommissionRuleSchema = commissionRuleBaseSchema.partial().superRefine((data, ctx) => {
+  if (data.rule_kind === undefined) return;
+  refineCommissionRuleKindConsistency(
+    {
+      branch_id: data.branch_id ?? null,
+      professional_id: data.professional_id ?? null,
+      service_id: data.service_id ?? null,
+      rule_kind: data.rule_kind,
+      percent_basis_points: data.percent_basis_points ?? null,
+      fixed_cents: data.fixed_cents ?? null,
+      priority: data.priority ?? 0,
+      active: data.active ?? true,
+    },
+    ctx,
+  );
+});
 
 export const commissionEntryStatusSchema = z.enum(['pending', 'approved', 'paid', 'cancelled']);
 

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { PoolClient } from 'pg';
 import { withTenant } from '../../infra/db/pool.js';
+import { parsePagination, type PaginatedResult } from '../../shared/pagination.js';
 import { AppError } from '../../shared/errors.js';
 import { writeAuditLog } from '../../shared/audit.js';
 import { loadTenantTimeZone } from '../notificationJobs/schedule.js';
@@ -113,6 +114,92 @@ function expectedBalanceDueCents(row: {
   discount_cents: number;
 }): number {
   return Math.max(0, row.service_price_cents - row.deposit_paid_cents - row.discount_cents);
+}
+
+export type AppointmentFinancialListRow = {
+  appointment_id: string;
+  appointment_status: string;
+  professional_id: string;
+  starts_at: string;
+  financial: Record<string, unknown>;
+  balance_due_cents: number | null;
+};
+
+/** Lista `appointment_financials` com janela temporal sobre `appointments.starts_at` (inclusivo/exclusivo). */
+export async function listAppointmentFinancials(
+  tenantId: string,
+  query: Record<string, unknown>,
+): Promise<PaginatedResult<AppointmentFinancialListRow>> {
+  const { limit, offset, page } = parsePagination(query);
+  const from = query.from != null && String(query.from).trim() ? String(query.from) : null;
+  const to = query.to != null && String(query.to).trim() ? String(query.to) : null;
+  const professionalId = query.professional_id ? String(query.professional_id) : null;
+  const rawFs = query.financial_status ? String(query.financial_status) : null;
+  const financialStatus =
+    rawFs === 'open' || rawFs === 'settled' || rawFs === 'all' ? rawFs : null;
+
+  return withTenant(tenantId, async (client) => {
+    const countRes = await client.query<{ total: string }>(
+      `SELECT COUNT(*)::text AS total
+         FROM appointment_financials f
+         INNER JOIN appointments a ON a.tenant_id = f.tenant_id AND a.id = f.appointment_id
+        WHERE f.tenant_id = $1
+          AND ($2::timestamptz IS NULL OR a.starts_at >= $2::timestamptz)
+          AND ($3::timestamptz IS NULL OR a.starts_at < $3::timestamptz)
+          AND ($4::uuid IS NULL OR a.professional_id = $4)
+          AND ($5::text IS NULL OR $5 = 'all'
+               OR ($5 = 'open' AND f.settled_at IS NULL)
+               OR ($5 = 'settled' AND f.settled_at IS NOT NULL))`,
+      [tenantId, from, to, professionalId, financialStatus],
+    );
+    const total = Number(countRes.rows[0]?.total ?? 0);
+
+    const rows = await client.query<{
+      appointment_id: string;
+      appointment_status: string;
+      professional_id: string;
+      starts_at: string;
+      financial: Record<string, unknown>;
+    }>(
+      `SELECT
+         a.id::text AS appointment_id,
+         a.status::text AS appointment_status,
+         a.professional_id::text AS professional_id,
+         a.starts_at::text AS starts_at,
+         row_to_json(f.*)::jsonb AS financial
+         FROM appointment_financials f
+         INNER JOIN appointments a ON a.tenant_id = f.tenant_id AND a.id = f.appointment_id
+        WHERE f.tenant_id = $1
+          AND ($2::timestamptz IS NULL OR a.starts_at >= $2::timestamptz)
+          AND ($3::timestamptz IS NULL OR a.starts_at < $3::timestamptz)
+          AND ($4::uuid IS NULL OR a.professional_id = $4)
+          AND ($5::text IS NULL OR $5 = 'all'
+               OR ($5 = 'open' AND f.settled_at IS NULL)
+               OR ($5 = 'settled' AND f.settled_at IS NOT NULL))
+        ORDER BY a.starts_at DESC
+        LIMIT $6 OFFSET $7`,
+      [tenantId, from, to, professionalId, financialStatus, limit, offset],
+    );
+
+    const data: AppointmentFinancialListRow[] = rows.rows.map((r) => {
+      const fin = r.financial as Record<string, unknown>;
+      const base = {
+        service_price_cents: Number(fin.service_price_cents),
+        deposit_paid_cents: Number(fin.deposit_paid_cents),
+        discount_cents: Number(fin.discount_cents ?? 0),
+      };
+      return {
+        appointment_id: r.appointment_id,
+        appointment_status: r.appointment_status,
+        professional_id: r.professional_id,
+        starts_at: r.starts_at,
+        financial: fin,
+        balance_due_cents: expectedBalanceDueCents(base),
+      };
+    });
+
+    return { data, total, page, limit };
+  });
 }
 
 export async function getAppointmentFinancial(client: PoolClient, tenantId: string, appointmentId: string) {

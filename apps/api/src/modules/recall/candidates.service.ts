@@ -136,3 +136,24 @@ export async function listRecallCandidates(
   const now = options.now ?? new Date();
   return withTenant(tenantId, async (client) => listRecallCandidatesWithClient(client, tenantId, now));
 }
+
+/**
+ * Lista candidatos com paginação e filtro (para GET /recall/candidates e n8n).
+ */
+export async function listRecallCandidatesForApi(
+  tenantId: string,
+  raw: Record<string, unknown>,
+): Promise<{ candidates: RecallCandidateRow[]; total: number; limit: number; offset: number }> {
+  const limit = Math.min(Math.max(Number(raw.limit ?? 50) || 50, 1), 200);
+  const offset = Math.max(Number(raw.offset ?? 0) || 0, 0);
+  const onlySendable = String(raw.only_sendable ?? 'false').toLowerCase() === 'true';
+  const now = new Date();
+
+  return withTenant(tenantId, async (client) => {
+    const all = await listRecallCandidatesWithClient(client, tenantId, now);
+    let rows = onlySendable ? all.filter((r) => r.can_send_promotional) : all;
+    const total = rows.length;
+    rows = rows.slice(offset, offset + limit);
+    return { candidates: rows, total, limit, offset };
+  });
+}

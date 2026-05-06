@@ -33,6 +33,20 @@ describe('canAccessPath (RBAC painel V4)', () => {
     expect(canAccessPath('/servicos', 'platform_admin')).toBe(true);
   });
 
+  it('lista de espera: attendant+; auditoria: tenant_admin+; financeiro e comissões: manager+', () => {
+    expect(canAccessPath('/lista-espera', 'viewer')).toBe(false);
+    expect(canAccessPath('/lista-espera', 'attendant')).toBe(true);
+    expect(canAccessPath('/auditoria', 'manager')).toBe(false);
+    expect(canAccessPath('/auditoria', 'tenant_admin')).toBe(true);
+    expect(canAccessPath('/operacao/financeiro', 'attendant')).toBe(false);
+    expect(canAccessPath('/operacao/financeiro', 'manager')).toBe(true);
+    expect(canAccessPath('/operacao/comissao', 'viewer')).toBe(false);
+    expect(canAccessPath('/operacao/comissao', 'attendant')).toBe(false);
+    expect(canAccessPath('/operacao/comissao', 'manager')).toBe(true);
+    expect(canAccessPath('/operacao/comissao', 'tenant_admin')).toBe(true);
+    expect(canAccessPath('/operacao/comissao', 'tenant_owner')).toBe(true);
+  });
+
   it('matriz: não há regressão entre perfis V4', () => {
     const matrix: Record<string, Record<string, boolean>> = {
       '/dashboard': {

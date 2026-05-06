@@ -1,12 +1,140 @@
 {
   "name": "SaaS Barbearia - 03 Recall 30 Dias Multi-Tenant",
   "active": false,
+  "meta": {
+    "description": "Remediação DEV/QA: sem Postgres direto nem Evolution. Usa GET /api/v1/recall/candidates e POST /api/v1/recall/send (outbox). Manter active=false. RECALL_ENABLED=true no ambiente só após QA. Credencial HTTP: Bearer + x-tenant-id."
+  },
   "nodes": [
-    {"parameters":{"rule":{"interval":[{"field":"hours","hoursInterval":6}]}},"id":"schedule","name":"A cada 6 horas","type":"n8n-nodes-base.scheduleTrigger","typeVersion":1.2,"position":[0,0]},
-    {"parameters":{"operation":"executeQuery","query":"SELECT * FROM v_recall_candidates WHERE due_at <= now() LIMIT 200"},"id":"query","name":"Buscar Candidatos Recall","type":"n8n-nodes-base.postgres","typeVersion":2.5,"position":[260,0]},
-    {"parameters":{"batchSize":1,"options":{}},"id":"batch","name":"Loop Clientes","type":"n8n-nodes-base.splitInBatches","typeVersion":3,"position":[520,0]},
-    {"parameters":{"method":"POST","url":"={{$env.EVOLUTION_API_URL}}/message/sendText/{{$json.tenant_slug}}","sendBody":true,"specifyBody":"json","jsonBody":"={\"number\": $json.phone, \"text\": $json.message}"},"id":"send","name":"Enviar Recall","type":"n8n-nodes-base.httpRequest","typeVersion":4,"position":[780,0]},
-    {"parameters":{"method":"POST","url":"={{$env.API_BASE_URL}}/api/v1/audit/recall-sent","sendBody":true,"specifyBody":"json","jsonBody":"={{$json}}"},"id":"audit","name":"Auditar Envio","type":"n8n-nodes-base.httpRequest","typeVersion":4,"position":[1040,0]}
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "hours", "hoursInterval": 6 }]
+        }
+      },
+      "id": "schedule",
+      "name": "A cada 6 horas",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0],
+      "notes": "Workflow exportado com active=false. Não ativar no n8n até QA e RECALL_ENABLED na API."
+    },
+    {
+      "parameters": {
+        "url": "={{$env.API_BASE_URL}}/api/v1/recall/candidates?limit=50&offset=0&only_sendable=true",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "http-candidates",
+      "name": "GET candidatos Core API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [260, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ String($env.RECALL_ENABLED || '').toLowerCase() }}",
+              "operation": "equals",
+              "value2": "true"
+            }
+          ]
+        }
+      },
+      "id": "if-recall-flag",
+      "name": "RECALL_ENABLED API",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [520, 0],
+      "notes": "Alinhar variável de ambiente n8n com RECALL_ENABLED da Core API."
+    },
+    {
+      "parameters": {
+        "jsCode": "const root = $input.first().json || {};\nconst list = Array.isArray(root.candidates) ? root.candidates : [];\nconst max = 30;\nconst out = [];\nfor (let i = 0; i < Math.min(list.length, max); i++) {\n  out.push({ json: list[i] });\n}\nreturn out.length ? out : [{ json: {} }];"
+      },
+      "id": "code-expand",
+      "name": "Expandir candidatos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [780, -80]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ String($json.source_appointment_id ?? '').trim() }}",
+              "operation": "notEquals",
+              "value2": ""
+            }
+          ]
+        }
+      },
+      "id": "if-has-rows",
+      "name": "Tem candidatos",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1000, -80]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.API_BASE_URL}}/api/v1/recall/send",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ source_appointment_id: $json.source_appointment_id, customer_id: $json.customer_id, service_id: $json.service_id, template_key: $json.template_key }) }}",
+        "options": {}
+      },
+      "id": "http-send",
+      "name": "POST recall send Core API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1240, -160],
+      "notes": "Enfileira message_outbox via API. Idempotência no serviço."
+    },
+    {
+      "parameters": {},
+      "id": "noop-disabled",
+      "name": "Recall API desligado",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [780, 120],
+      "notes": "RECALL_ENABLED!=true na API — não enviar."
+    },
+    {
+      "parameters": {},
+      "id": "noop-empty",
+      "name": "Sem candidatos sendable",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1240, 40]
+    }
   ],
-  "connections":{"A cada 6 horas":{"main":[[{"node":"Buscar Candidatos Recall","type":"main","index":0}]]},"Buscar Candidatos Recall":{"main":[[{"node":"Loop Clientes","type":"main","index":0}]]},"Loop Clientes":{"main":[[{"node":"Enviar Recall","type":"main","index":0}]]},"Enviar Recall":{"main":[[{"node":"Auditar Envio","type":"main","index":0}]]},"Auditar Envio":{"main":[[{"node":"Loop Clientes","type":"main","index":0}]]}}
+  "connections": {
+    "A cada 6 horas": {
+      "main": [[{ "node": "GET candidatos Core API", "type": "main", "index": 0 }]]
+    },
+    "GET candidatos Core API": {
+      "main": [[{ "node": "RECALL_ENABLED API", "type": "main", "index": 0 }]]
+    },
+    "RECALL_ENABLED API": {
+      "main": [
+        [{ "node": "Expandir candidatos", "type": "main", "index": 0 }],
+        [{ "node": "Recall API desligado", "type": "main", "index": 0 }]
+      ]
+    },
+    "Expandir candidatos": {
+      "main": [[{ "node": "Tem candidatos", "type": "main", "index": 0 }]]
+    },
+    "Tem candidatos": {
+      "main": [
+        [{ "node": "POST recall send Core API", "type": "main", "index": 0 }],
+        [{ "node": "Sem candidatos sendable", "type": "main", "index": 0 }]
+      ]
+    }
+  }
 }

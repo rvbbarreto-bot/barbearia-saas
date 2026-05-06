@@ -56,6 +56,10 @@ jobs:
       OUTBOX_POLL_INTERVAL_MS: 60000
       OUTBOX_CONCURRENCY: 2
       CORS_ORIGIN: '*'
+      WAITLIST_SLOT_NOTIFY_ENABLED: 'false'
+      WAITLIST_SWEEP_ENABLED: 'false'
+      RECALL_ENABLED: 'false'
+      PIX_REAL_PROVIDER_ENABLED: 'false'
 
     steps:
       - uses: actions/checkout@v4

@@ -5,6 +5,7 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import pg from 'pg';
+import { withTenant } from '../../infra/db/pool.js';
 
 const run =
   Boolean(process.env.DATABASE_URL) &&
@@ -27,21 +28,29 @@ describe.skipIf(!run)('finance service integration (migration 020)', () => {
   const prof2 = randomUUID();
   const serviceId = randomUUID();
 
-  let withTenant: typeof import('../../infra/db/pool.js').withTenant;
   let getAppointmentFinancial: typeof import('./service.js').getAppointmentFinancial;
   let settleAppointmentFinancial: typeof import('./service.js').settleAppointmentFinancial;
   let applyAppointmentFinancialDiscount: typeof import('./service.js').applyAppointmentFinancialDiscount;
   let getDailyFinanceReport: typeof import('./service.js').getDailyFinanceReport;
   let ensureFinancialOnServiceCompleted: typeof import('./service.js').ensureFinancialOnServiceCompleted;
+  let listAppointmentFinancials: typeof import('./service.js').listAppointmentFinancials;
+
+  async function tenantSql(tenantId: string, text: string, params?: unknown[]) {
+    await withTenant(tenantId, async (c) => {
+      await c.query(text, params);
+    });
+  }
 
   async function purgeTenant(tenantId: string) {
-    await pool.query(`DELETE FROM appointment_financials WHERE tenant_id = $1`, [tenantId]);
-    await pool.query(`DELETE FROM appointments WHERE tenant_id = $1`, [tenantId]);
-    await pool.query(`DELETE FROM services WHERE tenant_id = $1`, [tenantId]);
-    await pool.query(`DELETE FROM customers WHERE tenant_id = $1`, [tenantId]);
-    await pool.query(`DELETE FROM professionals WHERE tenant_id = $1`, [tenantId]);
-    await pool.query(`DELETE FROM users WHERE tenant_id = $1`, [tenantId]);
-    await pool.query(`DELETE FROM tenants WHERE id = $1`, [tenantId]);
+    await withTenant(tenantId, async (c) => {
+      await c.query(`DELETE FROM appointment_financials WHERE tenant_id = $1`, [tenantId]);
+      await c.query(`DELETE FROM appointments WHERE tenant_id = $1`, [tenantId]);
+      await c.query(`DELETE FROM services WHERE tenant_id = $1`, [tenantId]);
+      await c.query(`DELETE FROM customers WHERE tenant_id = $1`, [tenantId]);
+      await c.query(`DELETE FROM professionals WHERE tenant_id = $1`, [tenantId]);
+      await c.query(`DELETE FROM users WHERE tenant_id = $1`, [tenantId]);
+      await c.query(`DELETE FROM tenants WHERE id = $1`, [tenantId]);
+    });
   }
 
   beforeAll(async () => {
@@ -56,13 +65,12 @@ describe.skipIf(!run)('finance service integration (migration 020)', () => {
     }
 
     const mod = await import('./service.js');
-    const poolMod = await import('../../infra/db/pool.js');
-    withTenant = poolMod.withTenant;
     getAppointmentFinancial = mod.getAppointmentFinancial;
     settleAppointmentFinancial = mod.settleAppointmentFinancial;
     applyAppointmentFinancialDiscount = mod.applyAppointmentFinancialDiscount;
     getDailyFinanceReport = mod.getDailyFinanceReport;
     ensureFinancialOnServiceCompleted = mod.ensureFinancialOnServiceCompleted;
+    listAppointmentFinancials = mod.listAppointmentFinancials;
 
     await purgeTenant(tenantA);
     await purgeTenant(tenantB);
@@ -76,28 +84,30 @@ describe.skipIf(!run)('finance service integration (migration 020)', () => {
       [tenantA, slugA, tenantB, slugB],
     );
 
-    await pool.query(
-      `INSERT INTO users (id, tenant_id, name, email, password_hash, role)
-       VALUES ($1,$2,'Gestor Fin','finmgr_${managerUserId.slice(0, 8)}@example.test','unused','manager')`,
-      [managerUserId, tenantA],
-    );
+    await withTenant(tenantA, async (c) => {
+      await c.query(
+        `INSERT INTO users (id, tenant_id, name, email, password_hash, role)
+         VALUES ($1,$2,'Gestor Fin','finmgr_${managerUserId.slice(0, 8)}@example.test','unused','manager')`,
+        [managerUserId, tenantA],
+      );
 
-    await pool.query(
-      `INSERT INTO professionals (id, tenant_id, name, slug, active) VALUES
-       ($1,$2,'P1',$3,true),
-       ($4,$2,'P2',$5,true)`,
-      [prof1, tenantA, `pf1-${prof1.slice(0, 6)}`, prof2, `pf2-${prof2.slice(0, 6)}`],
-    );
+      await c.query(
+        `INSERT INTO professionals (id, tenant_id, name, slug, active) VALUES
+         ($1,$2,'P1',$3,true),
+         ($4,$2,'P2',$5,true)`,
+        [prof1, tenantA, `pf1-${prof1.slice(0, 6)}`, prof2, `pf2-${prof2.slice(0, 6)}`],
+      );
 
-    await pool.query(
-      `INSERT INTO customers (id, tenant_id, name, phone, whatsapp_opt_in) VALUES ($1,$2,'Cliente Fin',$3,true)`,
-      [customerId, tenantA, `5511${customerId.slice(0, 8)}999`],
-    );
+      await c.query(
+        `INSERT INTO customers (id, tenant_id, name, phone, whatsapp_opt_in) VALUES ($1,$2,'Cliente Fin',$3,true)`,
+        [customerId, tenantA, `5511${customerId.slice(0, 8)}999`],
+      );
 
-    await pool.query(
-      `INSERT INTO services (id, tenant_id, name, duration_minutes, price_cents, active) VALUES ($1,$2,'Corte',30,10000,true)`,
-      [serviceId, tenantA],
-    );
+      await c.query(
+        `INSERT INTO services (id, tenant_id, name, duration_minutes, price_cents, active) VALUES ($1,$2,'Corte',30,10000,true)`,
+        [serviceId, tenantA],
+      );
+    });
   });
 
   afterAll(async () => {
@@ -108,7 +118,7 @@ describe.skipIf(!run)('finance service integration (migration 020)', () => {
 
   it('saldo pendente: preço - sinal - desconto', async () => {
     const apptId = randomUUID();
-    await pool.query(
+    await tenantSql(tenantA,
       `INSERT INTO appointments (
          id, tenant_id, customer_id, professional_id, service_id, starts_at, ends_at,
          status, source, idempotency_key, completed_at
@@ -119,7 +129,7 @@ describe.skipIf(!run)('finance service integration (migration 020)', () => {
        )`,
       [apptId, tenantA, customerId, prof1, serviceId, randomUUID()],
     );
-    await pool.query(
+    await tenantSql(tenantA,
       `INSERT INTO appointment_financials (
          tenant_id, appointment_id, service_price_cents, deposit_paid_cents, discount_cents
        ) VALUES ($1,$2,10000,2500,500)`,
@@ -129,16 +139,16 @@ describe.skipIf(!run)('finance service integration (migration 020)', () => {
     const row = await withTenant(tenantA, async (c) => getAppointmentFinancial(c, tenantA, apptId));
     expect(row.balance_due_cents).toBe(7000);
 
-    await pool.query(`DELETE FROM appointment_financials WHERE tenant_id = $1 AND appointment_id = $2`, [
+    await tenantSql(tenantA,`DELETE FROM appointment_financials WHERE tenant_id = $1 AND appointment_id = $2`, [
       tenantA,
       apptId,
     ]);
-    await pool.query(`DELETE FROM appointments WHERE id = $1`, [apptId]);
+    await tenantSql(tenantA,`DELETE FROM appointments WHERE id = $1`, [apptId]);
   });
 
   it('liquidação: rejeita valor abaixo do saldo (parcial)', async () => {
     const apptId = randomUUID();
-    await pool.query(
+    await tenantSql(tenantA,
       `INSERT INTO appointments (
          id, tenant_id, customer_id, professional_id, service_id, starts_at, ends_at,
          status, source, idempotency_key, completed_at
@@ -149,7 +159,7 @@ describe.skipIf(!run)('finance service integration (migration 020)', () => {
        )`,
       [apptId, tenantA, customerId, prof1, serviceId, randomUUID()],
     );
-    await pool.query(
+    await tenantSql(tenantA,
       `INSERT INTO appointment_financials (tenant_id, appointment_id, service_price_cents, deposit_paid_cents)
        VALUES ($1,$2,8000,0)`,
       [tenantA, apptId],
@@ -166,16 +176,16 @@ describe.skipIf(!run)('finance service integration (migration 020)', () => {
       code: 'FINANCE_BALANCE_MISMATCH',
     });
 
-    await pool.query(`DELETE FROM appointment_financials WHERE tenant_id = $1 AND appointment_id = $2`, [
+    await tenantSql(tenantA,`DELETE FROM appointment_financials WHERE tenant_id = $1 AND appointment_id = $2`, [
       tenantA,
       apptId,
     ]);
-    await pool.query(`DELETE FROM appointments WHERE id = $1`, [apptId]);
+    await tenantSql(tenantA,`DELETE FROM appointments WHERE id = $1`, [apptId]);
   });
 
   it('liquidação: rejeita valor acima do saldo', async () => {
     const apptId = randomUUID();
-    await pool.query(
+    await tenantSql(tenantA,
       `INSERT INTO appointments (
          id, tenant_id, customer_id, professional_id, service_id, starts_at, ends_at,
          status, source, idempotency_key, completed_at
@@ -186,7 +196,7 @@ describe.skipIf(!run)('finance service integration (migration 020)', () => {
        )`,
       [apptId, tenantA, customerId, prof1, serviceId, randomUUID()],
     );
-    await pool.query(
+    await tenantSql(tenantA,
       `INSERT INTO appointment_financials (tenant_id, appointment_id, service_price_cents, deposit_paid_cents)
        VALUES ($1,$2,8000,0)`,
       [tenantA, apptId],
@@ -201,16 +211,16 @@ describe.skipIf(!run)('finance service integration (migration 020)', () => {
       ),
     ).rejects.toMatchObject({ code: 'FINANCE_BALANCE_MISMATCH' });
 
-    await pool.query(`DELETE FROM appointment_financials WHERE tenant_id = $1 AND appointment_id = $2`, [
+    await tenantSql(tenantA,`DELETE FROM appointment_financials WHERE tenant_id = $1 AND appointment_id = $2`, [
       tenantA,
       apptId,
     ]);
-    await pool.query(`DELETE FROM appointments WHERE id = $1`, [apptId]);
+    await tenantSql(tenantA,`DELETE FROM appointments WHERE id = $1`, [apptId]);
   });
 
   it('liquidação: sucesso com valor total implícito', async () => {
     const apptId = randomUUID();
-    await pool.query(
+    await tenantSql(tenantA,
       `INSERT INTO appointments (
          id, tenant_id, customer_id, professional_id, service_id, starts_at, ends_at,
          status, source, idempotency_key, completed_at
@@ -221,7 +231,7 @@ describe.skipIf(!run)('finance service integration (migration 020)', () => {
        )`,
       [apptId, tenantA, customerId, prof1, serviceId, randomUUID()],
     );
-    await pool.query(
+    await tenantSql(tenantA,
       `INSERT INTO appointment_financials (tenant_id, appointment_id, service_price_cents, deposit_paid_cents)
        VALUES ($1,$2,6000,1000)`,
       [tenantA, apptId],
@@ -232,16 +242,16 @@ describe.skipIf(!run)('finance service integration (migration 020)', () => {
     expect((settled as { balance_payment_method: string }).balance_payment_method).toBe('debit');
     expect((settled as { settled_at: unknown }).settled_at).toBeTruthy();
 
-    await pool.query(`DELETE FROM appointment_financials WHERE tenant_id = $1 AND appointment_id = $2`, [
+    await tenantSql(tenantA,`DELETE FROM appointment_financials WHERE tenant_id = $1 AND appointment_id = $2`, [
       tenantA,
       apptId,
     ]);
-    await pool.query(`DELETE FROM appointments WHERE id = $1`, [apptId]);
+    await tenantSql(tenantA,`DELETE FROM appointments WHERE id = $1`, [apptId]);
   });
 
   it('liquidação: bloqueada se appointment não está completed', async () => {
     const apptId = randomUUID();
-    await pool.query(
+    await tenantSql(tenantA,
       `INSERT INTO appointments (
          id, tenant_id, customer_id, professional_id, service_id, starts_at, ends_at,
          status, source, idempotency_key
@@ -252,7 +262,7 @@ describe.skipIf(!run)('finance service integration (migration 020)', () => {
        )`,
       [apptId, tenantA, customerId, prof1, serviceId, randomUUID()],
     );
-    await pool.query(
+    await tenantSql(tenantA,
       `INSERT INTO appointment_financials (tenant_id, appointment_id, service_price_cents, deposit_paid_cents)
        VALUES ($1,$2,3000,0)`,
       [tenantA, apptId],
@@ -262,16 +272,51 @@ describe.skipIf(!run)('finance service integration (migration 020)', () => {
       settleAppointmentFinancial(tenantA, apptId, { balance_payment_method: 'cash' }, managerUserId),
     ).rejects.toMatchObject({ code: 'FINANCE_SETTLE_REQUIRES_COMPLETED', statusCode: 409 });
 
-    await pool.query(`DELETE FROM appointment_financials WHERE tenant_id = $1 AND appointment_id = $2`, [
+    await tenantSql(tenantA,`DELETE FROM appointment_financials WHERE tenant_id = $1 AND appointment_id = $2`, [
       tenantA,
       apptId,
     ]);
-    await pool.query(`DELETE FROM appointments WHERE id = $1`, [apptId]);
+    await tenantSql(tenantA,`DELETE FROM appointments WHERE id = $1`, [apptId]);
+  });
+
+  it('desconto: Zod rejeita motivo curto quando há desconto', async () => {
+    const apptId = randomUUID();
+    await tenantSql(tenantA,
+      `INSERT INTO appointments (
+         id, tenant_id, customer_id, professional_id, service_id, starts_at, ends_at,
+         status, source, idempotency_key, completed_at
+       ) VALUES (
+         $1,$2,$3,$4,$5,
+         '2029-10-30T14:00:00Z','2029-10-30T15:00:00Z',
+         'completed','api',$6,'2029-10-30T15:05:00Z'
+       )`,
+      [apptId, tenantA, customerId, prof1, serviceId, randomUUID()],
+    );
+    await tenantSql(tenantA,
+      `INSERT INTO appointment_financials (tenant_id, appointment_id, service_price_cents, deposit_paid_cents)
+       VALUES ($1,$2,5000,0)`,
+      [tenantA, apptId],
+    );
+
+    await expect(
+      applyAppointmentFinancialDiscount(
+        tenantA,
+        apptId,
+        { discount_cents: 100, discount_reason: 'curto' },
+        { sub: managerUserId, role: 'manager' },
+      ),
+    ).rejects.toBeTruthy();
+
+    await tenantSql(tenantA,`DELETE FROM appointment_financials WHERE tenant_id = $1 AND appointment_id = $2`, [
+      tenantA,
+      apptId,
+    ]);
+    await tenantSql(tenantA,`DELETE FROM appointments WHERE id = $1`, [apptId]);
   });
 
   it('desconto: professional é bloqueado na camada de serviço', async () => {
     const apptId = randomUUID();
-    await pool.query(
+    await tenantSql(tenantA,
       `INSERT INTO appointments (
          id, tenant_id, customer_id, professional_id, service_id, starts_at, ends_at,
          status, source, idempotency_key, completed_at
@@ -282,7 +327,7 @@ describe.skipIf(!run)('finance service integration (migration 020)', () => {
        )`,
       [apptId, tenantA, customerId, prof1, serviceId, randomUUID()],
     );
-    await pool.query(
+    await tenantSql(tenantA,
       `INSERT INTO appointment_financials (tenant_id, appointment_id, service_price_cents, deposit_paid_cents)
        VALUES ($1,$2,5000,0)`,
       [tenantA, apptId],
@@ -297,16 +342,16 @@ describe.skipIf(!run)('finance service integration (migration 020)', () => {
       ),
     ).rejects.toMatchObject({ code: 'FORBIDDEN', statusCode: 403 });
 
-    await pool.query(`DELETE FROM appointment_financials WHERE tenant_id = $1 AND appointment_id = $2`, [
+    await tenantSql(tenantA,`DELETE FROM appointment_financials WHERE tenant_id = $1 AND appointment_id = $2`, [
       tenantA,
       apptId,
     ]);
-    await pool.query(`DELETE FROM appointments WHERE id = $1`, [apptId]);
+    await tenantSql(tenantA,`DELETE FROM appointments WHERE id = $1`, [apptId]);
   });
 
   it('desconto: manager reduz saldo e valida teto (sinal + desconto ≤ preço)', async () => {
     const apptId = randomUUID();
-    await pool.query(
+    await tenantSql(tenantA,
       `INSERT INTO appointments (
          id, tenant_id, customer_id, professional_id, service_id, starts_at, ends_at,
          status, source, idempotency_key, completed_at
@@ -317,7 +362,7 @@ describe.skipIf(!run)('finance service integration (migration 020)', () => {
        )`,
       [apptId, tenantA, customerId, prof1, serviceId, randomUUID()],
     );
-    await pool.query(
+    await tenantSql(tenantA,
       `INSERT INTO appointment_financials (tenant_id, appointment_id, service_price_cents, deposit_paid_cents)
        VALUES ($1,$2,4000,3500)`,
       [tenantA, apptId],
@@ -340,16 +385,16 @@ describe.skipIf(!run)('finance service integration (migration 020)', () => {
     const row = await withTenant(tenantA, async (c) => getAppointmentFinancial(c, tenantA, apptId));
     expect(row.balance_due_cents).toBe(0);
 
-    await pool.query(`DELETE FROM appointment_financials WHERE tenant_id = $1 AND appointment_id = $2`, [
+    await tenantSql(tenantA,`DELETE FROM appointment_financials WHERE tenant_id = $1 AND appointment_id = $2`, [
       tenantA,
       apptId,
     ]);
-    await pool.query(`DELETE FROM appointments WHERE id = $1`, [apptId]);
+    await tenantSql(tenantA,`DELETE FROM appointments WHERE id = $1`, [apptId]);
   });
 
   it('ensureFinancialOnServiceCompleted cria linha reconciliando preço do serviço', async () => {
     const apptId = randomUUID();
-    await pool.query(
+    await tenantSql(tenantA,
       `INSERT INTO appointments (
          id, tenant_id, customer_id, professional_id, service_id, starts_at, ends_at,
          status, source, idempotency_key, completed_at
@@ -369,11 +414,11 @@ describe.skipIf(!run)('finance service integration (migration 020)', () => {
     expect(row.financial).toBeTruthy();
     expect(Number((row.financial as { service_price_cents: unknown }).service_price_cents)).toBe(10000);
 
-    await pool.query(`DELETE FROM appointment_financials WHERE tenant_id = $1 AND appointment_id = $2`, [
+    await tenantSql(tenantA,`DELETE FROM appointment_financials WHERE tenant_id = $1 AND appointment_id = $2`, [
       tenantA,
       apptId,
     ]);
-    await pool.query(`DELETE FROM appointments WHERE id = $1`, [apptId]);
+    await tenantSql(tenantA,`DELETE FROM appointments WHERE id = $1`, [apptId]);
   });
 
   it('relatório diário: receita só em completed; cancelado/no_show não entram na receita', async () => {
@@ -381,7 +426,7 @@ describe.skipIf(!run)('finance service integration (migration 020)', () => {
     const cancelledId = randomUUID();
     const noShowId = randomUUID();
 
-    await pool.query(
+    await tenantSql(tenantA,
       `INSERT INTO appointments (
          id, tenant_id, customer_id, professional_id, service_id, starts_at, ends_at,
          status, source, idempotency_key,
@@ -395,7 +440,7 @@ describe.skipIf(!run)('finance service integration (migration 020)', () => {
       [completedId, tenantA, customerId, prof1, serviceId, randomUUID()],
     );
 
-    await pool.query(
+    await tenantSql(tenantA,
       `INSERT INTO appointments (
          id, tenant_id, customer_id, professional_id, service_id, starts_at, ends_at,
          status, source, idempotency_key,
@@ -409,7 +454,7 @@ describe.skipIf(!run)('finance service integration (migration 020)', () => {
       [cancelledId, tenantA, customerId, prof2, serviceId, randomUUID()],
     );
 
-    await pool.query(
+    await tenantSql(tenantA,
       `INSERT INTO appointments (
          id, tenant_id, customer_id, professional_id, service_id, starts_at, ends_at,
          status, source, idempotency_key,
@@ -423,7 +468,7 @@ describe.skipIf(!run)('finance service integration (migration 020)', () => {
       [noShowId, tenantA, customerId, prof2, serviceId, randomUUID()],
     );
 
-    await pool.query(
+    await tenantSql(tenantA,
       `INSERT INTO appointment_financials (
          tenant_id, appointment_id, service_price_cents, deposit_paid_cents,
          deposit_recorded_at, settled_at, balance_payment_method, balance_collected_cents
@@ -436,7 +481,7 @@ describe.skipIf(!run)('finance service integration (migration 020)', () => {
       [tenantA, completedId],
     );
 
-    await pool.query(
+    await tenantSql(tenantA,
       `INSERT INTO appointment_financials (
          tenant_id, appointment_id, service_price_cents, deposit_paid_cents,
          deposit_recorded_at, settled_at, balance_payment_method, balance_collected_cents
@@ -459,35 +504,100 @@ describe.skipIf(!run)('finance service integration (migration 020)', () => {
     expect(report.revenue.balance_total_cents).toBe(8000);
     expect(report.revenue.by_balance_method.cash).toBe(8000);
 
-    await pool.query(`DELETE FROM appointment_financials WHERE tenant_id = $1 AND appointment_id = ANY($2::uuid[])`, [
+    await tenantSql(tenantA,`DELETE FROM appointment_financials WHERE tenant_id = $1 AND appointment_id = ANY($2::uuid[])`, [
       tenantA,
       [completedId, cancelledId],
     ]);
     for (const id of [completedId, cancelledId, noShowId]) {
-      await pool.query(`DELETE FROM appointments WHERE id = $1`, [id]);
+      await tenantSql(tenantA,`DELETE FROM appointments WHERE id = $1`, [id]);
     }
+  });
+
+  it('listagem: filtro período e financial_status + isolamento tenant', async () => {
+    const apptOpen = randomUUID();
+    const apptSettled = randomUUID();
+    const dayStart = '2029-11-01T00:00:00Z';
+    const dayEnd = '2029-11-02T00:00:00Z';
+
+    await tenantSql(tenantA,
+      `INSERT INTO appointments (
+         id, tenant_id, customer_id, professional_id, service_id, starts_at, ends_at,
+         status, source, idempotency_key, completed_at
+       ) VALUES
+       ($1,$2,$3,$4,$5,'2029-11-01T10:00:00Z','2029-11-01T11:00:00Z','completed','api',$6,'2029-11-01T11:05:00Z'),
+       ($7,$2,$3,$4,$5,'2029-11-01T12:00:00Z','2029-11-01T13:00:00Z','completed','api',$8,'2029-11-01T13:05:00Z')`,
+      [apptOpen, tenantA, customerId, prof1, serviceId, randomUUID(), apptSettled, randomUUID()],
+    );
+    await tenantSql(tenantA,
+      `INSERT INTO appointment_financials (
+         tenant_id, appointment_id, service_price_cents, deposit_paid_cents, settled_at
+       ) VALUES
+       ($1,$2,8000,1000,NULL),
+       ($1,$3,8000,0,'2029-11-01T14:00:00Z')`,
+      [tenantA, apptOpen, apptSettled],
+    );
+
+    const openOnly = await listAppointmentFinancials(tenantA, {
+      from: dayStart,
+      to: dayEnd,
+      financial_status: 'open',
+      page: 1,
+      limit: 50,
+    });
+    expect(openOnly.data.some((r) => r.appointment_id === apptOpen)).toBe(true);
+    expect(openOnly.data.some((r) => r.appointment_id === apptSettled)).toBe(false);
+
+    const settledOnly = await listAppointmentFinancials(tenantA, {
+      from: dayStart,
+      to: dayEnd,
+      financial_status: 'settled',
+      page: 1,
+      limit: 50,
+    });
+    expect(settledOnly.data.some((r) => r.appointment_id === apptSettled)).toBe(true);
+
+    const tenantBList = await listAppointmentFinancials(tenantB, {
+      from: dayStart,
+      to: dayEnd,
+      page: 1,
+      limit: 50,
+    });
+    expect(tenantBList.data.some((r) => r.appointment_id === apptOpen)).toBe(false);
+
+    const byProf = await listAppointmentFinancials(tenantA, {
+      professional_id: prof2,
+      page: 1,
+      limit: 50,
+    });
+    expect(byProf.data.some((r) => r.appointment_id === apptOpen)).toBe(false);
+
+    await tenantSql(tenantA,`DELETE FROM appointment_financials WHERE tenant_id = $1 AND appointment_id = ANY($2::uuid[])`, [
+      tenantA,
+      [apptOpen, apptSettled],
+    ]);
+    await tenantSql(tenantA,`DELETE FROM appointments WHERE id = ANY($1::uuid[])`, [[apptOpen, apptSettled]]);
   });
 
   it('relatório não mistura tenants', async () => {
     const custB = randomUUID();
     const profB = randomUUID();
-    await pool.query(
+    await tenantSql(tenantB,
       `INSERT INTO professionals (id, tenant_id, name, slug, active) VALUES ($1,$2,'PB',$3,true)`,
       [profB, tenantB, `pb-${profB.slice(0, 6)}`],
     );
-    await pool.query(
+    await tenantSql(tenantB,
       `INSERT INTO customers (id, tenant_id, name, phone, whatsapp_opt_in) VALUES ($1,$2,'CB',$3,true)`,
       [custB, tenantB, `5521${custB.slice(0, 8)}888`],
     );
 
     const svcB = randomUUID();
-    await pool.query(
+    await tenantSql(tenantB,
       `INSERT INTO services (id, tenant_id, name, duration_minutes, price_cents, active) VALUES ($1,$2,'SrvB',30,99999,true)`,
       [svcB, tenantB],
     );
 
     const apptB = randomUUID();
-    await pool.query(
+    await tenantSql(tenantB,
       `INSERT INTO appointments (
          id, tenant_id, customer_id, professional_id, service_id, starts_at, ends_at,
          status, source, idempotency_key, completed_at
@@ -498,7 +608,7 @@ describe.skipIf(!run)('finance service integration (migration 020)', () => {
        )`,
       [apptB, tenantB, custB, profB, svcB, randomUUID()],
     );
-    await pool.query(
+    await tenantSql(tenantB,
       `INSERT INTO appointment_financials (
          tenant_id, appointment_id, service_price_cents, deposit_paid_cents,
          deposit_recorded_at, settled_at, balance_payment_method, balance_collected_cents
@@ -514,13 +624,13 @@ describe.skipIf(!run)('finance service integration (migration 020)', () => {
     const reportA = await getDailyFinanceReport(tenantA, REPORT_DAY);
     expect(reportA.revenue.balance_total_cents).not.toBe(99999);
 
-    await pool.query(`DELETE FROM appointment_financials WHERE tenant_id = $1 AND appointment_id = $2`, [
+    await tenantSql(tenantB,`DELETE FROM appointment_financials WHERE tenant_id = $1 AND appointment_id = $2`, [
       tenantB,
       apptB,
     ]);
-    await pool.query(`DELETE FROM appointments WHERE id = $1`, [apptB]);
-    await pool.query(`DELETE FROM services WHERE id = $1`, [svcB]);
-    await pool.query(`DELETE FROM customers WHERE id = $1`, [custB]);
-    await pool.query(`DELETE FROM professionals WHERE id = $1`, [profB]);
+    await tenantSql(tenantB,`DELETE FROM appointments WHERE id = $1`, [apptB]);
+    await tenantSql(tenantB,`DELETE FROM services WHERE id = $1`, [svcB]);
+    await tenantSql(tenantB,`DELETE FROM customers WHERE id = $1`, [custB]);
+    await tenantSql(tenantB,`DELETE FROM professionals WHERE id = $1`, [profB]);
   });
 });

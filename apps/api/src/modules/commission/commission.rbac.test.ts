@@ -8,14 +8,15 @@ describe('commissions RBAC', () => {
     expect(canAccess('manager', 'commissions', 'reportByProfessional')).toBe(false);
   });
 
-  it('attendant vê lançamentos e fechamentos; não gere regras', () => {
-    expect(canAccess('attendant', 'commissions', 'readEntries')).toBe(true);
+  it('attendant vê fechamentos mas não lançamentos de comissão nem gere regras', () => {
+    expect(canAccess('attendant', 'commissions', 'readEntries')).toBe(false);
     expect(canAccess('attendant', 'commissions', 'readClosing')).toBe(true);
     expect(canAccess('attendant', 'commissions', 'manageRules')).toBe(false);
     expect(canAccess('attendant', 'commissions', 'computeClosing')).toBe(false);
   });
 
-  it('manager gere regras, status e recomputo', () => {
+  it('manager vê lançamentos, gere regras, status e recomputo', () => {
+    expect(canAccess('manager', 'commissions', 'readEntries')).toBe(true);
     expect(canAccess('manager', 'commissions', 'manageRules')).toBe(true);
     expect(canAccess('manager', 'commissions', 'updateEntryStatus')).toBe(true);
     expect(canAccess('manager', 'commissions', 'computeClosing')).toBe(true);

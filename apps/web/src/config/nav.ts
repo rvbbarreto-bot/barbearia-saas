@@ -7,6 +7,10 @@ import {
   UserCircle,
   Settings,
   MessageCircle,
+  ClipboardList,
+  ListOrdered,
+  Wallet,
+  Percent,
 } from 'lucide-react';
 import { ROLE_LEVEL } from '@/lib/rbac';
 
@@ -27,5 +31,9 @@ export const APP_NAV: AppNavItem[] = [
   { to: '/clientes', label: 'Clientes', icon: Users, minRole: 'attendant' },
   { to: '/servicos', label: 'Serviços', icon: Scissors, minRole: 'manager' },
   { to: '/profissionais', label: 'Profissionais', icon: UserCircle, minRole: 'manager' },
+  { to: '/lista-espera', label: 'Lista de espera', icon: ListOrdered, minRole: 'attendant' },
+  { to: '/operacao/financeiro', label: 'Financeiro', icon: Wallet, minRole: 'manager' },
+  { to: '/operacao/comissao', label: 'Comissões', icon: Percent, minRole: 'manager' },
+  { to: '/auditoria', label: 'Auditoria', icon: ClipboardList, minRole: 'tenant_admin' },
   { to: '/configuracoes', label: 'Configurações', icon: Settings, minRole: 'manager' },
 ];

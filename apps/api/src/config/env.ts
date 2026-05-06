@@ -1,6 +1,12 @@
 import 'dotenv/config';
 import { z } from 'zod';
 
+function parseBoolish(val: unknown): boolean {
+  if (val === undefined || val === '') return false;
+  const s = String(val).toLowerCase().trim();
+  return s === 'true' || s === '1' || s === 'yes';
+}
+
 const schema = z.object({
   NODE_ENV: z.string().default('development'),
   PORT: z.coerce.number().default(3000),
@@ -32,6 +38,24 @@ const schema = z.object({
     const s = String(val).toLowerCase().trim();
     return s === 'true' || s === '1' || s === 'yes';
   }, z.boolean()),
+  /** Varredura periódica de fila de espera (consulta availability + notification_jobs). */
+  WAITLIST_SWEEP_ENABLED: z.preprocess((val) => {
+    if (val === undefined || val === '') return false;
+    const s = String(val).toLowerCase().trim();
+    return s === 'true' || s === '1' || s === 'yes';
+  }, z.boolean()),
+  WAITLIST_SWEEP_INTERVAL_MS: z.coerce.number().min(30_000).default(120_000),
+  WAITLIST_SWEEP_MAX_DAYS_AHEAD: z.coerce.number().min(1).max(60).default(14),
+  WAITLIST_SWEEP_BATCH_PER_TENANT: z.coerce.number().min(1).max(500).default(40),
+  /** Recall promocional (API POST /recall/send, n8n). Default false — não ativar sem QA/governança. */
+  RECALL_ENABLED: z.preprocess(parseBoolish, z.boolean()),
+  /** Bloqueio explícito de integração PIX real até decisão de PSP (ver docs/ADR_PIX_PROVIDER.md). */
+  PIX_REAL_PROVIDER_ENABLED: z.preprocess(parseBoolish, z.boolean()),
 });
+
+/** Lê `RECALL_ENABLED` em tempo de pedido (útil para testes de integração sem reiniciar processo). */
+export function isRecallEnabledRuntime(): boolean {
+  return parseBoolish(process.env.RECALL_ENABLED);
+}
 
 export const env = schema.parse(process.env);

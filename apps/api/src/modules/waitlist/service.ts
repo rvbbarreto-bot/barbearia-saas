@@ -100,39 +100,53 @@ export async function createWaitlistEntry(
   });
 }
 
+const UUID_RX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function optUuid(v: unknown): string | null {
+  return typeof v === 'string' && UUID_RX.test(v) ? v : null;
+}
+
 export async function listWaitlistEntries(tenantId: string, rawQuery: Record<string, unknown>) {
   const { limit, offset, page } = parsePagination(rawQuery);
   const rawSt = String(rawQuery.status ?? 'active').toLowerCase();
   const statusFilter = ['active', 'cancelled', 'converted', 'all'].includes(rawSt) ? rawSt : 'active';
+  const professionalFilter = optUuid(rawQuery.professional_id);
+  const serviceFilter = optUuid(rawQuery.service_id);
 
   return withTenant(tenantId, async (client) => {
-    const baseSelect = `
+    const cond: string[] = ['w.tenant_id = $1'];
+    const vals: unknown[] = [tenantId];
+    let i = 2;
+
+    if (statusFilter !== 'all') {
+      cond.push(`w.status = $${i}`);
+      vals.push(statusFilter);
+      i += 1;
+    }
+    if (professionalFilter) {
+      cond.push(`w.professional_id = $${i}`);
+      vals.push(professionalFilter);
+      i += 1;
+    }
+    if (serviceFilter) {
+      cond.push(`w.service_id = $${i}`);
+      vals.push(serviceFilter);
+      i += 1;
+    }
+
+    const where = cond.join(' AND ');
+    const listSql = `
       SELECT w.*, c.name AS customer_name, c.phone AS customer_phone, c.is_vip AS customer_is_vip
         FROM waitlist_entries w
         JOIN customers c ON c.tenant_id = w.tenant_id AND c.id = w.customer_id
-       WHERE w.tenant_id = $1`;
+       WHERE ${where}
+       ORDER BY w.created_at ASC
+       LIMIT $${i} OFFSET $${i + 1}`;
+    const countSql = `SELECT COUNT(*)::int AS total FROM waitlist_entries w WHERE ${where}`;
 
-    let listSql: string;
-    let countSql: string;
-    let params: unknown[];
-    let countParams: unknown[];
-
-    if (statusFilter === 'all') {
-      listSql = `${baseSelect} ORDER BY w.created_at ASC LIMIT $2 OFFSET $3`;
-      countSql = `SELECT COUNT(*)::int AS total FROM waitlist_entries w WHERE w.tenant_id = $1`;
-      params = [tenantId, limit, offset];
-      countParams = [tenantId];
-    } else {
-      listSql = `${baseSelect} AND w.status = $2 ORDER BY w.created_at ASC LIMIT $3 OFFSET $4`;
-      countSql = `SELECT COUNT(*)::int AS total FROM waitlist_entries w WHERE w.tenant_id = $1 AND w.status = $2`;
-      params = [tenantId, statusFilter, limit, offset];
-      countParams = [tenantId, statusFilter];
-    }
-
-    const [data, count] = await Promise.all([
-      client.query(listSql, params),
-      client.query(countSql, countParams),
-    ]);
+    const listParams = [...vals, limit, offset];
+    const [data, count] = await Promise.all([client.query(listSql, listParams), client.query(countSql, vals)]);
 
     return { data: data.rows, total: count.rows[0].total as number, page, limit };
   });
@@ -164,6 +178,70 @@ export async function cancelWaitlistEntry(tenantId: string, entryId: string, act
       entityId: entryId,
       before: { status: row.status },
       after: { status: 'cancelled' },
+    });
+
+    return upd.rows[0];
+  });
+}
+
+const convertWaitlistSchema = z.object({
+  appointment_id: z.string().uuid(),
+});
+
+export async function convertWaitlistEntry(
+  tenantId: string,
+  entryId: string,
+  rawBody: unknown,
+  actorUserId: string | undefined,
+) {
+  const { appointment_id } = convertWaitlistSchema.parse(rawBody);
+
+  return withTenant(tenantId, async (client) => {
+    const cur = await client.query(
+      `SELECT * FROM waitlist_entries WHERE tenant_id = $1 AND id = $2 FOR UPDATE`,
+      [tenantId, entryId],
+    );
+    if (!cur.rowCount) throw new AppError('WAITLIST_ENTRY_NOT_FOUND', 'Entrada de fila não encontrada', 404);
+    const row = cur.rows[0];
+    if (String(row.status) !== 'active') {
+      throw new AppError('WAITLIST_NOT_ACTIVE', 'Entrada já não está ativa.', 409);
+    }
+
+    const appt = await client.query<{ customer_id: string }>(
+      `SELECT customer_id FROM appointments WHERE tenant_id = $1 AND id = $2 LIMIT 1`,
+      [tenantId, appointment_id],
+    );
+    if (!appt.rowCount) throw new AppError('APPOINTMENT_NOT_FOUND', 'Agendamento não encontrado', 404);
+    if (String(appt.rows[0].customer_id) !== String(row.customer_id)) {
+      throw new AppError(
+        'WAITLIST_CONVERT_MISMATCH',
+        'O agendamento não pertence ao mesmo cliente da entrada de fila.',
+        422,
+      );
+    }
+
+    const upd = await client.query(
+      `UPDATE waitlist_entries
+          SET status = 'converted',
+              metadata = metadata || $3::jsonb,
+              updated_at = now()
+        WHERE tenant_id = $1 AND id = $2
+        RETURNING *`,
+      [
+        tenantId,
+        entryId,
+        JSON.stringify({ converted_appointment_id: appointment_id, converted_at: new Date().toISOString() }),
+      ],
+    );
+
+    await writeAuditLog(client, {
+      tenantId,
+      actorUserId: actorUserId ?? null,
+      action: 'WAITLIST_ENTRY_CONVERTED',
+      entity: 'waitlist_entry',
+      entityId: entryId,
+      before: { status: row.status },
+      after: { status: 'converted', appointment_id },
     });
 
     return upd.rows[0];

@@ -30,6 +30,11 @@ export const permissionPolicy = {
     read: 'attendant',
     create: 'attendant',
     cancel: 'attendant',
+    convert: 'attendant',
+  },
+  integrations: {
+    /** Enfileirar texto WhatsApp via message_outbox (n8n / automações credenciadas). */
+    enqueueOutbound: 'attendant',
   },
   availability: {
     read: 'viewer',
@@ -76,12 +81,22 @@ export const permissionPolicy = {
   commissions: {
     readRules: 'manager',
     manageRules: 'manager',
-    readEntries: 'attendant',
+    /** Lançamentos — dado sensível; alinhado à UI e decisão PO (DEV/QA-07.1). */
+    readEntries: 'manager',
     updateEntryStatus: 'manager',
     computeClosing: 'manager',
     readClosing: 'attendant',
     /** Totais por profissional — dono/administrador. */
     reportByProfessional: 'tenant_admin',
+  },
+  recall: {
+    readCandidates: 'viewer',
+    /** Enfileira recall via outbox — operação sensível. */
+    sendPromotional: 'manager',
+    cancelSend: 'manager',
+    readTemplates: 'viewer',
+    writeTemplates: 'manager',
+    approveTemplate: 'manager',
   },
 } as const;
 

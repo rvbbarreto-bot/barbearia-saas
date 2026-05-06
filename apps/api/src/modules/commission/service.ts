@@ -1,5 +1,6 @@
 import type { PoolClient } from 'pg';
 import { withTenant } from '../../infra/db/pool.js';
+import { parsePagination, type PaginatedResult } from '../../shared/pagination.js';
 import { AppError } from '../../shared/errors.js';
 import { isCommissionEnabledInSettingsJson } from './tenant-commission-flag.js';
 import { writeAuditLog } from '../../shared/audit.js';
@@ -308,25 +309,44 @@ export async function patchCommissionRule(
 export async function listCommissionEntries(
   tenantId: string,
   query: Record<string, unknown>,
-) {
+): Promise<PaginatedResult<Record<string, unknown>>> {
+  const { limit, offset, page } = parsePagination(query);
   const professionalId = query.professional_id ? String(query.professional_id) : null;
+  const branchId = query.branch_id ? String(query.branch_id) : null;
   const status = query.status ? String(query.status) : null;
-  const limit = Math.min(200, Math.max(1, Number(query.limit ?? 50)));
-  const offset = Math.max(0, Number(query.offset ?? 0));
+  const from = query.from != null && String(query.from).trim() ? String(query.from) : null;
+  const to = query.to != null && String(query.to).trim() ? String(query.to) : null;
 
   return withTenant(tenantId, async (client) => {
-    const r = await client.query(
-      `SELECT ce.*, a.completed_at
+    const countRes = await client.query<{ total: string }>(
+      `SELECT COUNT(*)::text AS total
          FROM commission_entries ce
          INNER JOIN appointments a ON a.tenant_id = ce.tenant_id AND a.id = ce.appointment_id
         WHERE ce.tenant_id = $1
           AND ($2::uuid IS NULL OR ce.professional_id = $2)
           AND ($3::text IS NULL OR ce.status = $3)
-        ORDER BY ce.created_at DESC
-        LIMIT $4 OFFSET $5`,
-      [tenantId, professionalId, status, limit, offset],
+          AND ($4::uuid IS NULL OR ce.branch_id = $4)
+          AND ($5::timestamptz IS NULL OR (a.completed_at IS NOT NULL AND a.completed_at >= $5::timestamptz))
+          AND ($6::timestamptz IS NULL OR (a.completed_at IS NOT NULL AND a.completed_at < $6::timestamptz))`,
+      [tenantId, professionalId, status, branchId, from, to],
     );
-    return r.rows;
+    const total = Number(countRes.rows[0]?.total ?? 0);
+
+    const r = await client.query(
+      `SELECT ce.*, a.completed_at::text AS completed_at
+         FROM commission_entries ce
+         INNER JOIN appointments a ON a.tenant_id = ce.tenant_id AND a.id = ce.appointment_id
+        WHERE ce.tenant_id = $1
+          AND ($2::uuid IS NULL OR ce.professional_id = $2)
+          AND ($3::text IS NULL OR ce.status = $3)
+          AND ($4::uuid IS NULL OR ce.branch_id = $4)
+          AND ($5::timestamptz IS NULL OR (a.completed_at IS NOT NULL AND a.completed_at >= $5::timestamptz))
+          AND ($6::timestamptz IS NULL OR (a.completed_at IS NOT NULL AND a.completed_at < $6::timestamptz))
+        ORDER BY ce.created_at DESC
+        LIMIT $7 OFFSET $8`,
+      [tenantId, professionalId, status, branchId, from, to, limit, offset],
+    );
+    return { data: r.rows as Record<string, unknown>[], total, page, limit };
   });
 }
 

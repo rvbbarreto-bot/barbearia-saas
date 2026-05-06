@@ -1,6 +1,11 @@
 import { FastifyInstance } from 'fastify';
 import { requirePermission } from '../../middlewares/rbac.js';
-import { cancelWaitlistEntry, createWaitlistEntry, listWaitlistEntries } from './service.js';
+import {
+  cancelWaitlistEntry,
+  convertWaitlistEntry,
+  createWaitlistEntry,
+  listWaitlistEntries,
+} from './service.js';
 
 export async function waitlistRoutes(app: FastifyInstance) {
   app.get(
@@ -23,5 +28,19 @@ export async function waitlistRoutes(app: FastifyInstance) {
     { preHandler: requirePermission('waitlist', 'cancel') },
     async (request: any) =>
       cancelWaitlistEntry(request.tenantId, request.params.entryId, request.user?.sub),
+  );
+
+  app.post(
+    '/waitlist/:entryId/convert',
+    { preHandler: requirePermission('waitlist', 'convert') },
+    async (request: any, reply) => {
+      const row = await convertWaitlistEntry(
+        request.tenantId,
+        request.params.entryId,
+        request.body,
+        request.user?.sub,
+      );
+      return reply.code(200).send(row);
+    },
   );
 }

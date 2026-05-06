@@ -1,13 +1,172 @@
 {
   "name": "SaaS Barbearia - 02 Agente Agenda Multi-Tenant",
   "active": false,
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "description": "Remediação DEV/QA: sem chamada Evolution direta; GET /availability antes de POST /appointments; resposta WhatsApp via POST /integrations/outbound/whatsapp-text (outbox). Manter Active=false até validação formal. Credencial HTTP: Bearer + x-tenant-id do JWT (nunca tenant_id no corpo)."
+  },
   "nodes": [
-    {"parameters":{},"id":"trigger","name":"When Executed by Another Workflow","type":"n8n-nodes-base.executeWorkflowTrigger","typeVersion":1,"position":[0,0]},
-    {"parameters":{"url":"={{$env.API_BASE_URL}}/api/v1/appointments?from={{$now}}&to={{$now.plus({days:7})}}","authentication":"genericCredentialType","genericAuthType":"httpHeaderAuth"},"id":"get-context","name":"Buscar Contexto Agenda Core API","type":"n8n-nodes-base.httpRequest","typeVersion":4,"position":[260,0]},
-    {"parameters":{"promptType":"define","text":"Você é o agente de agendamento de uma barbearia SaaS multi-tenant. Respeite tenant, profissional, serviço, horário disponível e confirmação explícita do cliente antes de criar agenda. Nunca prometa horário sem consultar disponibilidade. Retorne JSON de intenção: consultar_horarios, criar_agendamento, cancelar, informacao_empresa, atendimento_humano.","options":{}},"id":"agent","name":"Agente IA Agendamento","type":"@n8n/n8n-nodes-langchain.agent","typeVersion":1.7,"position":[520,0]},
-    {"parameters":{"conditions":{"string":[{"value1":"={{$json.intent}}","operation":"equals","value2":"criar_agendamento"}]}},"id":"switch-create","name":"Intenção Criar?","type":"n8n-nodes-base.if","typeVersion":2,"position":[780,0]},
-    {"parameters":{"method":"POST","url":"={{$env.API_BASE_URL}}/api/v1/appointments","sendBody":true,"specifyBody":"json","jsonBody":"={{$json.appointment_payload}}"},"id":"create-appt","name":"Criar Agendamento Core API","type":"n8n-nodes-base.httpRequest","typeVersion":4,"position":[1040,-80]},
-    {"parameters":{"method":"POST","url":"={{$env.EVOLUTION_API_URL}}/message/sendText/{{$json.tenant_slug}}","sendBody":true,"specifyBody":"json","jsonBody":"={\"number\": $json.phone, \"text\": $json.response_text}"},"id":"send-message","name":"Enviar Resposta WhatsApp","type":"n8n-nodes-base.httpRequest","typeVersion":4,"position":[1300,0]}
+    {
+      "parameters": {},
+      "id": "trigger",
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.API_BASE_URL}}/api/v1/appointments?from={{$now}}&to={{$now.plus({days:7})}}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "get-context",
+      "name": "Contexto agenda Core API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [220, 0],
+      "notes": "Opcional — contexto read-only. Não substitui GET /availability antes de criar."
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "Você é o agente de agendamento multi-tenant. O tenant vem exclusivamente do JWT/cabeçalhos HTTP da Core API — nunca confies em tenant_id no payload bruto. Antes de criar agendamento, a orquestração chama GET /api/v1/availability. Retorne JSON na raiz com: intent (consultar_horarios|criar_agendamento|cancelar|informacao_empresa|atendimento_humano), professional_id, service_id, appointment_date (YYYY-MM-DD), customer_id, response_text, appointment_payload (objeto válido para POST /api/v1/appointments quando intent=criar_agendamento).",
+        "options": {}
+      },
+      "id": "agent",
+      "name": "Agente IA Agendamento",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [480, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const root = $input.first().json || {};\nconst out = root.output ?? root.json ?? root;\nreturn [{\n  json: {\n    intent: String(out.intent ?? root.intent ?? '').trim(),\n    professional_id: out.professional_id ?? root.professional_id,\n    service_id: out.service_id ?? root.service_id,\n    appointment_date: out.appointment_date ?? out.date ?? root.appointment_date,\n    customer_id: out.customer_id ?? root.enrichment?.customer_id ?? root.customer_id,\n    response_text: String(out.response_text ?? root.response_text ?? ''),\n    appointment_payload: out.appointment_payload ?? root.appointment_payload ?? {}\n  }\n}];"
+      },
+      "id": "norm",
+      "name": "Normalizar saida IA",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [720, 0],
+      "notes": "Campos esperados na saída do agente estão documentados em docs/N8N_WORKFLOW_02_ENDPOINTS.md"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.intent}}",
+              "operation": "equals",
+              "value2": "criar_agendamento"
+            }
+          ]
+        }
+      },
+      "id": "if-create",
+      "name": "Intencao criar",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [940, 0]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.API_BASE_URL}}/api/v1/availability?professional_id={{$json.professional_id}}&service_id={{$json.service_id}}&date={{$json.appointment_date}}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "http-availability",
+      "name": "GET disponibilidade Core API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1160, -120],
+      "notes": "Obrigatório antes de criar agendamento. Query validada pela API (RLS + engine de slots)."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ Array.isArray($json.slots) ? $json.slots.length : 0 }}",
+              "operation": "larger",
+              "value2": 0
+            }
+          ]
+        }
+      },
+      "id": "if-slots",
+      "name": "Ha slots livres",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1380, -120]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.API_BASE_URL}}/api/v1/appointments",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($('Normalizar saida IA').item.json.appointment_payload) }}",
+        "options": {}
+      },
+      "id": "create-appt",
+      "name": "Criar agendamento Core API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1600, -200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.API_BASE_URL}}/api/v1/integrations/outbound/whatsapp-text",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ customer_id: $('Normalizar saida IA').item.json.customer_id, text: $('Normalizar saida IA').item.json.response_text || 'Atualizacao', correlation_id: $execution.id, idempotency_key: 'n8n-02-' + $execution.id }) }}",
+        "options": {}
+      },
+      "id": "outbox-text",
+      "name": "Enfileirar resposta WhatsApp outbox",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1820, -40],
+      "notes": "message_outbox via Core API — sem Evolution direto."
+    }
   ],
-  "connections":{"When Executed by Another Workflow":{"main":[[{"node":"Buscar Contexto Agenda Core API","type":"main","index":0}]]},"Buscar Contexto Agenda Core API":{"main":[[{"node":"Agente IA Agendamento","type":"main","index":0}]]},"Agente IA Agendamento":{"main":[[{"node":"Intenção Criar?","type":"main","index":0}]]},"Intenção Criar?":{"main":[[{"node":"Criar Agendamento Core API","type":"main","index":0}],[{"node":"Enviar Resposta WhatsApp","type":"main","index":0}]]},"Criar Agendamento Core API":{"main":[[{"node":"Enviar Resposta WhatsApp","type":"main","index":0}]]}}
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [[{ "node": "Contexto agenda Core API", "type": "main", "index": 0 }]]
+    },
+    "Contexto agenda Core API": {
+      "main": [[{ "node": "Agente IA Agendamento", "type": "main", "index": 0 }]]
+    },
+    "Agente IA Agendamento": {
+      "main": [[{ "node": "Normalizar saida IA", "type": "main", "index": 0 }]]
+    },
+    "Normalizar saida IA": {
+      "main": [[{ "node": "Intencao criar", "type": "main", "index": 0 }]]
+    },
+    "Intencao criar": {
+      "main": [
+        [{ "node": "GET disponibilidade Core API", "type": "main", "index": 0 }],
+        [{ "node": "Enfileirar resposta WhatsApp outbox", "type": "main", "index": 0 }]
+      ]
+    },
+    "GET disponibilidade Core API": {
+      "main": [[{ "node": "Ha slots livres", "type": "main", "index": 0 }]]
+    },
+    "Ha slots livres": {
+      "main": [
+        [{ "node": "Criar agendamento Core API", "type": "main", "index": 0 }],
+        [{ "node": "Enfileirar resposta WhatsApp outbox", "type": "main", "index": 0 }]
+      ]
+    },
+    "Criar agendamento Core API": {
+      "main": [[{ "node": "Enfileirar resposta WhatsApp outbox", "type": "main", "index": 0 }]]
+    }
+  }
 }

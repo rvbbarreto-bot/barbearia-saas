@@ -32,11 +32,14 @@ import { startPixPaymentExpiryWorker } from './modules/payments/pix.worker.js';
 import { consentRoutes } from './modules/consents/routes.js';
 import { recallRoutes } from './modules/recall/routes.js';
 import { waitlistRoutes } from './modules/waitlist/routes.js';
+import { integrationsRoutes } from './modules/integrations/routes.js';
+import { startWaitlistSweepWorker } from './modules/waitlist/sweep.worker.js';
 import { financeRoutes } from './modules/finance/routes.js';
 import { commissionRoutes } from './modules/commission/routes.js';
 import { isSessionRevoked } from './modules/auth/session.js';
 import { startOutboxWorker } from './infra/queues/outbox-worker.js';
 import { startNotificationJobsWorker } from './modules/notificationJobs/worker.js';
+import { registerOpenApi } from './openapi/register-openapi.js';
 
 const app = Fastify({
   logger: {
@@ -128,6 +131,8 @@ app.get('/health/ready', async (_request, reply) => {
 });
 app.get('/health', async (_request, reply) => reply.code(200).send({ status: 'ok' }));
 
+await registerOpenApi(app, env.NODE_ENV);
+
 // Rotas publicas (sem auth)
 await app.register(authRoutes);
 await app.register(whatsappRoutes);
@@ -144,7 +149,10 @@ const PUBLIC_PATHS = [
 ];
 
 function isPublicPath(url: string): boolean {
-  return PUBLIC_PATHS.some((p) => url.startsWith(p));
+  const path = url.split('?')[0] ?? url;
+  if (path.startsWith('/docs')) return true;
+  if (path.startsWith('/documentation')) return true;
+  return PUBLIC_PATHS.some((p) => path.startsWith(p));
 }
 
 // Autenticacao global + tenant + rate-limit por tenant
@@ -185,9 +193,13 @@ await app.register(tenantOperationalRoutes, { prefix: '/api/v1' });
 await app.register(consentRoutes, { prefix: '/api/v1' });
 await app.register(recallRoutes, { prefix: '/api/v1' });
 await app.register(waitlistRoutes, { prefix: '/api/v1' });
+await app.register(integrationsRoutes, { prefix: '/api/v1' });
 await app.register(financeRoutes, { prefix: '/api/v1' });
 await app.register(commissionRoutes, { prefix: '/api/v1' });
 await app.register(paymentRoutes, { prefix: '/api/v1' });
+
+// Varredura waitlist → notification_jobs (intervalo configurável; desativado por defeito no env)
+startWaitlistSweepWorker();
 
 // Worker de outbox (envia mensagens WhatsApp assincronamente)
 startOutboxWorker();

@@ -1,0 +1,17 @@
+{
+  "ignoreTablesMissingRls": ["users", "audit_logs"],
+  "entryMetadata": {
+    "users": {
+      "classification": "temporary",
+      "isolamento": "camada_servico_sql_explicito",
+      "card": "docs/TECH_DEBT_CARDS_DEVQA06.md#card-rls-users",
+      "nota": "Login e /me filtram por tenant_id; RLS planeada com bootstrap SECURITY DEFINER."
+    },
+    "audit_logs": {
+      "classification": "temporary",
+      "isolamento": "camada_servico_listagem",
+      "card": "docs/TECH_DEBT_CARDS_DEVQA06.md#card-rls-audit-logs",
+      "nota": "INSERT pode ter tenant_id NULL (auth); SELECT via listAuditLogs força tenant_id."
+    }
+  }
+}
