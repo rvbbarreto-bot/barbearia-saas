@@ -7,7 +7,7 @@ Fase de consolidação pós-QA negativo: formalização de **resolução de tena
 ## 2. Branch e commit
 
 - **Branch:** `feature/p1-inbound-outbox-hardening`
-- **Commit testado:** `860e1d3` (`feat(p1): hardening tenant resolution, appointment implicit confirm RBAC, outbox idempotency API, inbound QA integration, QA script and docs`)
+- **Commit testado:** estado consolidado na branch `feature/p1-inbound-outbox-hardening` — identificador exato: `git log -1 --format=%H` nesta branch após checkout.
 
 ## 3. Escopo implementado
 
