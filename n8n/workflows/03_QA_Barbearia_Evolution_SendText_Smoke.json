@@ -1,0 +1,73 @@
+{
+  "name": "03_QA_Barbearia_Evolution_SendText_Smoke",
+  "active": false,
+  "meta": {
+    "description": "Smoke QA isolado — envio SendText via Evolution API. NAO e workflow de producao. Manter active=false. Variaveis n8n: EVOLUTION_API_URL, EVOLUTION_INSTANCE, EVOLUTION_API_KEY, QA_WHATSAPP_NUMBER (55DDDNUMERO)."
+  },
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "manual-trigger",
+      "name": "Manual Trigger QA",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const required = ['EVOLUTION_API_URL', 'EVOLUTION_INSTANCE', 'EVOLUTION_API_KEY', 'QA_WHATSAPP_NUMBER'];\nconst missing = required.filter((k) => !$env[k] || String($env[k]).trim() === '');\nif (missing.length) {\n  throw new Error('Configuracao ausente no n8n: ' + missing.join(', '));\n}\nconst number = String($env.QA_WHATSAPP_NUMBER).replace(/\\D/g, '');\nif (!/^55\\d{10,11}$/.test(number)) {\n  throw new Error('QA_WHATSAPP_NUMBER invalido — use formato 55DDDNUMERO');\n}\nreturn [{ json: { number, instance: $env.EVOLUTION_INSTANCE, baseUrl: $env.EVOLUTION_API_URL } }];"
+      },
+      "id": "validate-env",
+      "name": "Validar variaveis obrigatorias",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.baseUrl }}/message/sendText/{{ $json.instance }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.EVOLUTION_API_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ number: $json.number, text: '[QA Smoke] Barbearia SaaS — Evolution SendText ' + new Date().toISOString() }) }}",
+        "options": { "timeout": 30000 }
+      },
+      "id": "send-text",
+      "name": "Evolution SendText",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [480, 0],
+      "continueOnFail": true,
+      "notes": "Nao logar EVOLUTION_API_KEY. Timeout 30s."
+    },
+    {
+      "parameters": {
+        "jsCode": "const res = $input.first().json;\nconst status = res.statusCode ?? res.status ?? 0;\nif (status >= 200 && status < 300) {\n  return [{ json: { ok: true, status, message: 'Envio Evolution OK (verificar WhatsApp QA)' } }];\n}\nreturn [{ json: { ok: false, status, error: res.error || res.message || 'Falha Evolution', body: res } }];"
+      },
+      "id": "classify",
+      "name": "Classificar sucesso ou erro",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [720, 0]
+    }
+  ],
+  "connections": {
+    "Manual Trigger QA": {
+      "main": [[{ "node": "Validar variaveis obrigatorias", "type": "main", "index": 0 }]]
+    },
+    "Validar variaveis obrigatorias": {
+      "main": [[{ "node": "Evolution SendText", "type": "main", "index": 0 }]]
+    },
+    "Evolution SendText": {
+      "main": [[{ "node": "Classificar sucesso ou erro", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" }
+}

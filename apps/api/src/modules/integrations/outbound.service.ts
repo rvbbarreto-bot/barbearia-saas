@@ -33,7 +33,7 @@ export async function enqueueIntegrationWhatsappText(
       );
     }
 
-    await enqueueOutboundMessage(
+    const { inserted } = await enqueueOutboundMessage(
       {
         tenantId,
         customerId: body.customer_id,
@@ -49,15 +49,17 @@ export async function enqueueIntegrationWhatsappText(
       client,
     );
 
-    await writeAuditLog(client, {
-      tenantId,
-      actorUserId: actorUserId ?? null,
-      action: 'INTEGRATION_OUTBOUND_WHATSAPP_ENQUEUED',
-      entity: 'message_outbox',
-      entityId: null,
-      after: { customer_id: body.customer_id, text_len: body.text.length },
-    });
+    if (inserted) {
+      await writeAuditLog(client, {
+        tenantId,
+        actorUserId: actorUserId ?? null,
+        action: 'INTEGRATION_OUTBOUND_WHATSAPP_ENQUEUED',
+        entity: 'message_outbox',
+        entityId: null,
+        after: { customer_id: body.customer_id, text_len: body.text.length },
+      });
+    }
 
-    return { ok: true as const };
+    return { ok: true as const, duplicate: !inserted };
   });
 }

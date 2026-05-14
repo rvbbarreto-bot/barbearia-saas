@@ -1,0 +1,650 @@
+{
+  "info": {
+    "name": "Barbearia SaaS - QA Collection",
+    "_postman_id": "f6f0cdb7-2062-46f7-90f9-7b95d8fe7f5a",
+    "description": "Colecao minima para QA integrado de autenticacao, agenda e operacao.\n\nWorkflow 02B: Health → Login → Catalogo → GET appointments (testes [02B]).\nWorkflow 03A Appointments: apos 02B — POST create → GET list → GET :id → confirm → reschedule → cancel (testes [03A]).\nWorkflow 03A Negativos: validacao, SERVICE_NOT_BOOKABLE, idempotencia.\nMassa fixa seed 099: prof 000...011, servico 000...021, cliente 000...031.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "GET /health",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('[02B] GET /health — status 200', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{api_base_url}}/health"
+          }
+        },
+        {
+          "name": "GET /health/live",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{api_base_url}}/health/live"
+          }
+        },
+        {
+          "name": "GET /health/ready (Postgres + Redis)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('[02B] GET /health/ready — status 200', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{api_base_url}}/health/ready"
+          }
+        },
+        {
+          "name": "GET /database/health (Postgres)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{api_base_url}}/database/health"
+          }
+        },
+        {
+          "name": "GET /docs (Swagger UI — dev)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{api_base_url}}/docs"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tenants",
+      "item": [
+        {
+          "name": "GET /api/v1/tenants (tenant_owner → 403 esperado)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "x-tenant-id", "value": "{{tenant_id}}" }
+            ],
+            "url": "{{api_base_url}}/api/v1/tenants"
+          }
+        },
+        {
+          "name": "GET /api/v1/tenants (platform_admin, SEM x-tenant-id — Cenário A)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{platform_access_token}}" }],
+            "url": "{{api_base_url}}/api/v1/tenants"
+          }
+        },
+        {
+          "name": "GET /api/v1/tenants (platform_admin, COM x-tenant-id — regressão)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{platform_access_token}}" },
+              { "key": "x-tenant-id", "value": "{{tenant_id}}" }
+            ],
+            "url": "{{api_base_url}}/api/v1/tenants"
+          }
+        },
+        {
+          "name": "GET /api/v1/tenants/:outroUuid (tenant_owner → 403 — isolamento)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "x-tenant-id", "value": "{{tenant_id}}" }
+            ],
+            "url": "{{api_base_url}}/api/v1/tenants/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+          }
+        },
+        {
+          "name": "GET /api/v1/tenants/current (tenant_owner / tenant_admin+)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "x-tenant-id", "value": "{{tenant_id}}" }
+            ],
+            "url": "{{api_base_url}}/api/v1/tenants/current"
+          }
+        },
+        {
+          "name": "GET /api/v1/tenants/:tenantId (tenant_admin+ — UUID = JWT)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "x-tenant-id", "value": "{{tenant_id}}" }
+            ],
+            "url": "{{api_base_url}}/api/v1/tenants/{{tenant_id}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Integrações",
+      "item": [
+        {
+          "name": "GET /api/v1/integrations/outbound/outbox-summary (manager+)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "x-tenant-id", "value": "{{tenant_id}}" }
+            ],
+            "url": "{{api_base_url}}/api/v1/integrations/outbound/outbox-summary"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "POST /auth/login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('[02B] POST /auth/login — status 200', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "  const j = pm.response.json();",
+                  "  pm.environment.set('access_token', j.access_token);",
+                  "  pm.test('[02B] access_token gerado', () => {",
+                  "    pm.expect(j.access_token).to.be.a('string').and.not.empty;",
+                  "  });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{admin_email}}\",\n  \"password\": \"{{admin_password}}\",\n  \"tenant_id\": \"{{tenant_id}}\"\n}"
+            },
+            "url": "{{api_base_url}}/auth/login"
+          }
+        },
+        {
+          "name": "POST /auth/login (platform_admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const j = pm.response.json();",
+                  "  pm.environment.set('platform_access_token', j.access_token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{platform_admin_email}}\",\n  \"password\": \"{{platform_admin_password}}\"\n}"
+            },
+            "url": "{{api_base_url}}/auth/login"
+          }
+        },
+        {
+          "name": "GET /api/v1/me",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "x-tenant-id",
+                "value": "{{tenant_id}}"
+              }
+            ],
+            "url": "{{api_base_url}}/api/v1/me"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Catalogo",
+      "item": [
+        {
+          "name": "GET /api/v1/services",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('[02B] GET /api/v1/services — status 200', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('[02B] services — lista paginada', () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property('data');",
+                  "  pm.expect(j.data).to.be.an('array');",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "  const j = pm.response.json();",
+                  "  const seed = pm.environment.get('qa_service_id');",
+                  "  const row = j.data.find(s => s.id === seed) || j.data[0];",
+                  "  if (row) pm.environment.set('service_id', row.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "x-tenant-id", "value": "{{tenant_id}}" }
+            ],
+            "url": "{{api_base_url}}/api/v1/services?page=1&limit=20"
+          }
+        },
+        {
+          "name": "GET /api/v1/professionals",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('[02B] GET /api/v1/professionals — status 200', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('[02B] professionals — lista paginada', () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property('data');",
+                  "  pm.expect(j.data).to.be.an('array');",
+                  "});",
+                  "pm.test('[02B/03A] pelo menos 1 profissional com service_ids (seed)', () => {",
+                  "  const j = pm.response.json();",
+                  "  const linked = j.data.find(p => Array.isArray(p.service_ids) && p.service_ids.length > 0);",
+                  "  pm.expect(linked, 'Rode docker compose down -v ou migration 101').to.exist;",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "  const j = pm.response.json();",
+                  "  const seedPro = pm.environment.get('qa_professional_id');",
+                  "  const seedSvc = pm.environment.get('qa_service_id');",
+                  "  let pref = j.data.find(p => p.id === seedPro);",
+                  "  if (!pref) pref = j.data.find(p => Array.isArray(p.service_ids) && p.service_ids.length > 0);",
+                  "  if (pref) {",
+                  "    pm.environment.set('professional_id', pref.id);",
+                  "    const sid = (pref.service_ids && pref.service_ids.includes(seedSvc)) ? seedSvc : pref.service_ids[0];",
+                  "    if (sid) pm.environment.set('service_id', sid);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "x-tenant-id", "value": "{{tenant_id}}" }
+            ],
+            "url": "{{api_base_url}}/api/v1/professionals?page=1&limit=20"
+          }
+        },
+        {
+          "name": "GET /api/v1/customers",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('[02B] GET /api/v1/customers — status 200', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('[02B] customers — lista paginada', () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property('data');",
+                  "  pm.expect(j.data).to.be.an('array');",
+                  "  pm.expect(j.data.length, 'Seed 099 deve criar clientes QA').to.be.above(0);",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "  const j = pm.response.json();",
+                  "  const seed = pm.environment.get('qa_customer_id');",
+                  "  const row = j.data.find(c => c.id === seed) || j.data[0];",
+                  "  if (row) pm.environment.set('customer_id', row.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "x-tenant-id", "value": "{{tenant_id}}" }
+            ],
+            "url": "{{api_base_url}}/api/v1/customers?page=1&limit=20"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Appointments",
+      "item": [
+        {
+          "name": "GET /api/v1/appointments (from/to obrigatórios)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('[02B] GET /api/v1/appointments — status 200', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('[02B] appointments — payload paginado', () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property('data');",
+                  "  pm.expect(j).to.have.property('total');",
+                  "  pm.expect(j.data).to.be.an('array');",
+                  "  pm.expect(j.page).to.eql(1);",
+                  "  pm.expect(j.limit).to.eql(20);",
+                  "});",
+                  "pm.test('[02B] appointments — sem erro de schema (c.notes)', () => {",
+                  "  const body = pm.response.text();",
+                  "  pm.expect(body).to.not.include('c.notes');",
+                  "  pm.expect(body).to.not.include('column c.notes does not exist');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "x-tenant-id", "value": "{{tenant_id}}" }
+            ],
+            "url": "{{api_base_url}}/api/v1/appointments?from={{appointments_from_iso}}&to={{appointments_to_iso}}&page=1&limit=20"
+          }
+        },
+        {
+          "name": "POST /api/v1/appointments (create)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('[03A] POST create — status 201', () => {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "if (pm.response.code === 201) {",
+                  "  const j = pm.response.json();",
+                  "  pm.environment.set('appointment_id', j.id);",
+                  "  pm.test('[03A] appointment id gerado', () => pm.expect(j.id).to.be.a('string').and.not.empty);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "x-tenant-id", "value": "{{tenant_id}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_id\": \"{{customer_id}}\",\n  \"professional_id\": \"{{professional_id}}\",\n  \"service_id\": \"{{service_id}}\",\n  \"starts_at\": \"{{appointment_start_iso}}\",\n  \"ends_at\": \"{{appointment_end_iso}}\",\n  \"idempotency_key\": \"{{idempotency_key}}\",\n  \"explicit_confirmation\": true,\n  \"source\": \"manual\",\n  \"notes\": \"QA create\"\n}"
+            },
+            "url": "{{api_base_url}}/api/v1/appointments"
+          }
+        },
+        {
+          "name": "GET /api/v1/appointments/:id",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('[03A] GET appointment by id — status 200', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('[03A] id coincide com environment', () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j.id).to.eql(pm.environment.get('appointment_id'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "x-tenant-id", "value": "{{tenant_id}}" }
+            ],
+            "url": "{{api_base_url}}/api/v1/appointments/{{appointment_id}}"
+          }
+        },
+        {
+          "name": "PATCH /api/v1/appointments/:id/confirm",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('[03A] confirm — status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('[03A] status confirmed', () => {",
+                  "  pm.expect(pm.response.json().status).to.eql('confirmed');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "x-tenant-id", "value": "{{tenant_id}}" }
+            ],
+            "url": "{{api_base_url}}/api/v1/appointments/{{appointment_id}}/confirm"
+          }
+        },
+        {
+          "name": "PATCH /api/v1/appointments/:id/reschedule",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('[03A] reschedule — status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "x-tenant-id", "value": "{{tenant_id}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"starts_at\": \"{{appointment_reschedule_start_iso}}\",\n  \"ends_at\": \"{{appointment_reschedule_end_iso}}\",\n  \"reason\": \"QA reschedule\"\n}"
+            },
+            "url": "{{api_base_url}}/api/v1/appointments/{{appointment_id}}/reschedule"
+          }
+        },
+        {
+          "name": "PATCH /api/v1/appointments/:id/cancel",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('[03A] cancel — status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('[03A] status cancelled', () => {",
+                  "  pm.expect(pm.response.json().status).to.eql('cancelled');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "x-tenant-id", "value": "{{tenant_id}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"QA cancel\"\n}"
+            },
+            "url": "{{api_base_url}}/api/v1/appointments/{{appointment_id}}/cancel"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Appointments — Negativos QA",
+      "item": [
+        {
+          "name": "POST /api/v1/appointments (payload invalido → 400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('[03A-] validacao — status 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "x-tenant-id", "value": "{{tenant_id}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_id\": \"{{customer_id}}\",\n  \"professional_id\": \"{{professional_id}}\"\n}"
+            },
+            "url": "{{api_base_url}}/api/v1/appointments"
+          }
+        },
+        {
+          "name": "POST /api/v1/appointments (SERVICE_NOT_BOOKABLE → 404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('[03A-] SERVICE_NOT_BOOKABLE — status 404', () => pm.response.to.have.status(404));",
+                  "pm.test('[03A-] codigo SERVICE_NOT_BOOKABLE', () => {",
+                  "  pm.expect(pm.response.json().error).to.eql('SERVICE_NOT_BOOKABLE');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "x-tenant-id", "value": "{{tenant_id}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_id\": \"{{customer_id}}\",\n  \"professional_id\": \"{{professional_id}}\",\n  \"service_id\": \"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa\",\n  \"starts_at\": \"{{appointment_start_iso}}\",\n  \"ends_at\": \"{{appointment_end_iso}}\",\n  \"idempotency_key\": \"qa-not-bookable-001\",\n  \"explicit_confirmation\": true,\n  \"source\": \"manual\"\n}"
+            },
+            "url": "{{api_base_url}}/api/v1/appointments"
+          }
+        },
+        {
+          "name": "POST /api/v1/appointments (idempotency duplicada)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('[03A-] idempotencia — status 409', () => pm.response.to.have.status(409));",
+                  "pm.test('[03A-] DUPLICATE_IDEMPOTENCY_KEY', () => {",
+                  "  pm.expect(pm.response.json().error).to.eql('DUPLICATE_IDEMPOTENCY_KEY');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "x-tenant-id", "value": "{{tenant_id}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_id\": \"{{customer_id}}\",\n  \"professional_id\": \"{{professional_id}}\",\n  \"service_id\": \"{{service_id}}\",\n  \"starts_at\": \"2026-05-14T15:00:00.000Z\",\n  \"ends_at\": \"2026-05-14T15:30:00.000Z\",\n  \"idempotency_key\": \"{{idempotency_key}}\",\n  \"explicit_confirmation\": true,\n  \"source\": \"manual\"\n}"
+            },
+            "url": "{{api_base_url}}/api/v1/appointments"
+          }
+        }
+      ]
+    }
+  ]
+}

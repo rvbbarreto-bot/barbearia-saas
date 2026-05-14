@@ -16,6 +16,8 @@ RUN npm run build
 # ── Stage 2: serve estático com nginx ─────────────────────────────────────────
 FROM nginx:1.27-alpine AS runner
 
+RUN apk add --no-cache curl
+
 # Configuração customizada do nginx (proxy reverso para API + SPA fallback)
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
@@ -24,7 +26,7 @@ COPY --from=builder /app/dist /usr/share/nginx/html
 
 EXPOSE 80
 
-HEALTHCHECK --interval=20s --timeout=5s --start-period=15s --retries=3 \
-  CMD wget -qO- http://localhost:80/ || exit 1
+HEALTHCHECK --interval=15s --timeout=5s --start-period=10s --retries=5 \
+  CMD curl -fsS http://127.0.0.1/ >/dev/null || exit 1
 
 CMD ["nginx", "-g", "daemon off;"]

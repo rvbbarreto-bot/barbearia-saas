@@ -91,7 +91,7 @@ function NewAppointmentModalInner({ onClose }: { onClose: () => void }) {
         ends_at: selectedSlot!.ends_at,
         idempotency_key: idempotencyKey.current,
         source,
-        explicit_confirmation: false,
+        explicit_confirmation: true,
         notes:
           isManager && squeezeNotes.trim().length >= 3
             ? `[encaixe] ${squeezeNotes.trim()}`

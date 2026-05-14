@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuthStore } from '@/store/authStore';
+import { getDefaultTenantId } from '@/lib/defaultTenant';
 import { loginRequest } from './authService';
 
 const UUID_LOOSE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -25,9 +26,8 @@ const loginSchema = z.object({
 
 type LoginFormData = z.infer<typeof loginSchema>;
 
-const DEFAULT_TENANT = import.meta.env.VITE_DEFAULT_TENANT_ID ?? '00000000-0000-0000-0000-000000000001';
-
 export function LoginPage() {
+  const defaultTenant = getDefaultTenantId();
   const navigate = useNavigate();
   const { setAuth } = useAuthStore();
   const [serverError, setServerError] = useState<string | null>(null);
@@ -45,21 +45,38 @@ export function LoginPage() {
   async function onSubmit(data: LoginFormData) {
     setServerError(null);
     try {
-      const tenantId = data.tenant_id?.trim() || DEFAULT_TENANT;
-      const response = await loginRequest({ email: data.email, password: data.password, tenant_id: tenantId });
+      const trimmed = data.tenant_id?.trim() ?? '';
+      const response = await loginRequest({
+        email: data.email,
+        password: data.password,
+        ...(trimmed !== '' && UUID_LOOSE.test(trimmed) ? { tenant_id: trimmed } : {}),
+      });
+      const sessionTenant =
+        response.user.tenant_id ?? (trimmed !== '' && UUID_LOOSE.test(trimmed) ? trimmed : defaultTenant);
       setAuth({
         accessToken: response.access_token,
         refreshToken: response.refresh_token,
         user: response.user,
-        loginTenantId: tenantId,
+        loginTenantId: sessionTenant,
       });
       navigate('/dashboard', { replace: true });
     } catch (err: unknown) {
-      const status = (err as { response?: { status?: number; data?: { error?: string } } })?.response?.status;
+      const ax = err as {
+        response?: { status?: number; data?: { error?: string; message?: string } };
+      };
+      const status = ax?.response?.status;
+      const code = ax?.response?.data?.error;
       if (status === 401) {
         setServerError('E-mail ou senha incorretos.');
       } else if (status === 429) {
         setServerError('Muitas tentativas. Aguarde alguns instantes.');
+      } else if (status === 400 && code === 'TENANT_REQUIRED') {
+        setServerError(
+          ax.response?.data?.message ??
+            'Este e-mail existe em mais de um tenant. Abra "Tenant (opcional)" e indique o UUID.',
+        );
+      } else if (status === 400) {
+        setServerError(ax.response?.data?.message ?? 'Dados inválidos. Verifique o formulário.');
       } else {
         setServerError('Erro ao conectar. Tente novamente.');
       }
@@ -141,7 +158,7 @@ export function LoginPage() {
                   <Label htmlFor={tenantFieldId}>Tenant ID (UUID)</Label>
                   <Input
                     id={tenantFieldId}
-                    placeholder={DEFAULT_TENANT}
+                    placeholder={defaultTenant}
                     aria-invalid={!!errors.tenant_id}
                     {...register('tenant_id')}
                   />

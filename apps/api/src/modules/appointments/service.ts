@@ -36,15 +36,23 @@ import {
   refreshCustomerRestrictionsAfterNoShow,
 } from './customer-restrictions.service.js';
 import { releaseHoldForBooking } from './appointment-holds.service.js';
+import { assertAppointmentFitsBusinessHours } from './assert-appointment-business-hours.js';
 import { tryEnqueueWaitlistOnSlotFreed } from '../waitlist/service.js';
 import { ensureFinancialOnServiceCompleted } from '../finance/service.js';
 import { createCommissionEntryForCompletedAppointment } from '../commission/service.js';
+import { validateImplicitAppointmentConfirmation } from './explicit-confirmation-policy.js';
 
 export { resolveAppointmentProfessionalFilter, type ListAppointmentsCaller };
 
 function calendarSlotWasBlocked(status: unknown): boolean {
   const s = String(status);
   return (APPOINTMENT_SLOT_BLOCKING_STATUSES as readonly string[]).includes(s);
+}
+
+function appointmentInstantEquals(dbVal: unknown, iso: string): boolean {
+  const a = new Date(dbVal as string | Date).getTime();
+  const b = Date.parse(iso);
+  return Number.isFinite(a) && Number.isFinite(b) && a === b;
 }
 
 export function throwIfExclusionViolation(err: unknown): void {
@@ -244,7 +252,7 @@ export const createAppointmentSchema = z.object({
   source: z.enum(['whatsapp', 'web', 'manual', 'api', 'walk_in', 'admin']).default('manual'),
   idempotency_key: z.string().min(8),
   notes: z.string().optional(),
-  /** Se true, fica `awaiting_confirmation` até PATCH …/confirm. Se false, apenas balcão (attendant+) confirma na mesma transação. */
+  /** Se true, fica `awaiting_confirmation` até PATCH …/confirm. Se false, confirmação administrativa imediata (CT-073): só `tenant_admin`+ ou `walk_in` com `attendant`+; não equivale à confirmação explícita do cliente. */
   explicit_confirmation: z.boolean(),
   hold_id: z.string().uuid().optional(),
 });
@@ -256,21 +264,14 @@ export async function createAppointment(
 ) {
   const data = createAppointmentSchema.parse(input);
 
-  if (!data.explicit_confirmation) {
-    if (!caller?.sub || !hasRequiredRole(caller.role, 'attendant')) {
-      throw new AppError(
-        'FORBIDDEN',
-        'Confirmação imediata permitida apenas para perfil de balcão ou superior.',
-        403,
-      );
-    }
-    if (caller.role === 'professional') {
-      throw new AppError(
-        'FORBIDDEN',
-        'Perfil profissional deve criar com confirmação explícita (dois passos ou canal WhatsApp).',
-        403,
-      );
-    }
+  validateImplicitAppointmentConfirmation(
+    { explicit_confirmation: data.explicit_confirmation, source: data.source },
+    caller,
+  );
+
+  const startMs = Date.parse(data.starts_at);
+  if (!Number.isFinite(startMs) || startMs < Date.now() - 60_000) {
+    throw new AppError('APPOINTMENT_IN_PAST', 'Não é possível agendar no passado.', 422);
   }
 
   const actorUserId = caller?.sub;
@@ -286,7 +287,39 @@ export async function createAppointment(
         });
       }
 
+      const existingIdem = await client.query(
+        `SELECT * FROM appointments WHERE tenant_id = $1 AND idempotency_key = $2 LIMIT 1`,
+        [tenantId, data.idempotency_key],
+      );
+      if (existingIdem.rowCount) {
+        const row = existingIdem.rows[0] as Record<string, unknown>;
+        const samePayload =
+          String(row.customer_id) === data.customer_id &&
+          String(row.professional_id) === data.professional_id &&
+          String(row.service_id) === data.service_id &&
+          String(row.source) === data.source &&
+          String(row.notes ?? '') === String(data.notes ?? '') &&
+          appointmentInstantEquals(row.starts_at, data.starts_at) &&
+          appointmentInstantEquals(row.ends_at, data.ends_at);
+        if (samePayload) {
+          return row;
+        }
+        throw new AppError(
+          'DUPLICATE_IDEMPOTENCY_KEY',
+          'Requisição duplicada: idempotency_key já utilizada para este tenant.',
+          409,
+        );
+      }
+
       const svc = await loadBookableService(client, tenantId, data.professional_id, data.service_id);
+
+      const custOk = await client.query(
+        `SELECT 1 FROM customers WHERE tenant_id = $1 AND id = $2 LIMIT 1`,
+        [tenantId, data.customer_id],
+      );
+      if (!custOk.rowCount) {
+        throw new AppError('CUSTOMER_NOT_FOUND', 'Cliente não encontrado.', 404);
+      }
 
       await assertCustomerBookingAllowed(client, tenantId, data.customer_id, caller);
 
@@ -296,6 +329,14 @@ export async function createAppointment(
         durationMinutes: svc.duration_minutes,
       });
       assertMatchingPrice(data.price_cents, svc.price_cents);
+
+      await assertAppointmentFitsBusinessHours(
+        client,
+        tenantId,
+        data.professional_id,
+        data.starts_at,
+        data.ends_at,
+      );
 
       const { footprintStartIso, footprintEndIso } = expandFootprintUtc(
         data.starts_at,
@@ -355,6 +396,7 @@ export async function createAppointment(
           starts_at: created.starts_at,
           ends_at: created.ends_at,
           explicit_confirmation_pending: data.explicit_confirmation,
+          administrative_skip_client_explicit_confirm: !data.explicit_confirmation,
           hold_id: data.hold_id ?? null,
         },
       });
@@ -1009,7 +1051,7 @@ export async function listAppointments(
 
     const [data, count] = await Promise.all([
       client.query(
-        `SELECT a.*, c.name AS customer_name, c.notes AS customer_notes,
+        `SELECT a.*, c.name AS customer_name, NULL::text AS customer_notes,
                 p.name AS professional_name,
                 s.name AS service_name,
                 COALESCE(cr.requires_deposit, false) AS customer_requires_deposit,
@@ -1044,6 +1086,68 @@ export async function listAppointments(
     ]);
 
     return { data: data.rows, total: count.rows[0].total as number, page, limit };
+  });
+}
+
+/** Detalhe de um agendamento (mesmo shape que itens de `listAppointments`). */
+export async function getAppointmentById(
+  tenantId: string,
+  appointmentId: string,
+  caller?: ListAppointmentsCaller,
+) {
+  let effectiveProfessionalId: string | undefined;
+  if (caller?.role === 'professional') {
+    if (!caller.sub) {
+      throw new AppError('UNAUTHORIZED', 'Token sem identificação de utilizador.', 401);
+    }
+    effectiveProfessionalId = await resolveAppointmentProfessionalFilter(tenantId, caller);
+  }
+
+  return withTenant(tenantId, async (client) => {
+    const filters: string[] = ['a.tenant_id = $1', 'a.id = $2::uuid'];
+    const params: unknown[] = [tenantId, appointmentId];
+    let idx = 3;
+    if (effectiveProfessionalId) {
+      filters.push(`a.professional_id = $${idx++}::uuid`);
+      params.push(effectiveProfessionalId);
+    }
+    const where = `WHERE ${filters.join(' AND ')}`;
+
+    const result = await client.query(
+      `SELECT a.*, c.name AS customer_name, NULL::text AS customer_notes,
+              p.name AS professional_name,
+              s.name AS service_name,
+              COALESCE(cr.requires_deposit, false) AS customer_requires_deposit,
+              COALESCE(cr.manual_booking_only, false) AS customer_manual_booking_only,
+              (
+                a.status = 'confirmed'
+                AND now() > a.starts_at
+                AND now() <= a.starts_at
+                  + (
+                      COALESCE(
+                        CASE
+                          WHEN (ts.settings->>'late_tolerance_minutes') ~ '^[0-9]+$'
+                          THEN (ts.settings->>'late_tolerance_minutes')::int
+                        END,
+                        15
+                      ) * interval '1 minute'
+                    )
+              ) AS late_within_tolerance
+         FROM appointments a
+         JOIN customers c ON c.id = a.customer_id
+         JOIN professionals p ON p.id = a.professional_id
+         LEFT JOIN services s ON s.id = a.service_id AND s.tenant_id = a.tenant_id
+         LEFT JOIN tenant_settings ts ON ts.tenant_id = a.tenant_id
+         LEFT JOIN customer_restrictions cr
+           ON cr.tenant_id = a.tenant_id AND cr.customer_id = a.customer_id
+         ${where}
+        LIMIT 1`,
+      params,
+    );
+    if (!result.rowCount) {
+      throw new AppError('APPOINTMENT_NOT_FOUND', 'Agendamento não encontrado', 404);
+    }
+    return result.rows[0];
   });
 }
 

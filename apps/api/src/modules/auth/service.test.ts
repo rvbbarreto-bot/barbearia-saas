@@ -73,6 +73,33 @@ describe('auth login service', () => {
     expect(queryMock).toHaveBeenCalledTimes(3);
   });
 
+  it('resolves tenant when tenant_id is omitted and exactly one active user matches email', async () => {
+    queryMock.mockResolvedValueOnce({ rowCount: 1, rows: [BASE_USER] });
+    queryMock.mockResolvedValueOnce({ rowCount: 1, rows: [] });
+    queryMock.mockResolvedValueOnce({ rowCount: 1, rows: [] });
+
+    const user = await login({ email: 'admin@demo.local', password: 'admin12345' });
+
+    expect(user.tenant_id).toBe(TENANT_ID);
+    expect(queryMock).toHaveBeenCalledTimes(3);
+  });
+
+  it('rejects when tenant_id omitted and multiple active users share email', async () => {
+    queryMock.mockResolvedValueOnce({
+      rowCount: 2,
+      rows: [
+        BASE_USER,
+        { ...BASE_USER, id: '22222222-2222-4222-8222-222222222222' },
+      ],
+    });
+
+    await expect(login({ email: 'admin@demo.local', password: 'admin12345' })).rejects.toMatchObject({
+      code: 'TENANT_REQUIRED',
+      statusCode: 400,
+    });
+    expect(queryMock).toHaveBeenCalledTimes(1);
+  });
+
   it('returns user on valid bcrypt credentials and resets lockout', async () => {
     queryMock.mockResolvedValueOnce({ rowCount: 1, rows: [BASE_USER] }); // SELECT user
     queryMock.mockResolvedValueOnce({ rowCount: 1, rows: [] });          // UPDATE last_login_at / reset

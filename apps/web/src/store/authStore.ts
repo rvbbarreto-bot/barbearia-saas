@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { getDefaultTenantId } from '@/lib/defaultTenant';
 import type { AuthUser } from '@/types/api';
 
 interface AuthState {
@@ -20,15 +21,13 @@ interface AuthState {
   isAuthenticated: () => boolean;
 }
 
-const DEFAULT_TENANT_ID = import.meta.env.VITE_DEFAULT_TENANT_ID ?? '00000000-0000-0000-0000-000000000001';
-
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
       accessToken: null,
       refreshToken: null,
       user: null,
-      tenantId: DEFAULT_TENANT_ID,
+      tenantId: getDefaultTenantId(),
 
       setAuth({ accessToken, refreshToken, user, loginTenantId }) {
         set({
@@ -48,7 +47,7 @@ export const useAuthStore = create<AuthState>()(
           accessToken: null,
           refreshToken: null,
           user: null,
-          tenantId: DEFAULT_TENANT_ID,
+          tenantId: getDefaultTenantId(),
         });
       },
 

@@ -45,7 +45,7 @@ export type EnqueueOutboundInput = {
  * Enfileira uma mensagem no outbox para envio assíncrono.
  *
  * - Idempotente: se `idempotencyKey` for fornecido e já existir para o mesmo
- *   `tenantId`, o INSERT é ignorado silenciosamente (ON CONFLICT DO NOTHING).
+ *   `tenantId`, o INSERT é ignorado (`ON CONFLICT DO NOTHING`); devolve `{ inserted: false }`.
  * - Suporta uso dentro de transação existente: passe `client` para participar
  *   do mesmo contexto transacional (útil para garantia de entrega junto com
  *   mudança de estado de negócio).
@@ -53,17 +53,18 @@ export type EnqueueOutboundInput = {
 export async function enqueueOutboundMessage(
   input: EnqueueOutboundInput,
   client?: PoolClient | Pool,
-): Promise<void> {
+): Promise<{ inserted: boolean }> {
   const db = client ?? defaultPool;
 
-  await db.query(
+  const result = await db.query<{ id: string }>(
     `INSERT INTO message_outbox
        (tenant_id, customer_id, channel, payload, metadata,
         idempotency_key, correlation_id, max_attempts, status, next_retry_at)
      VALUES ($1, $2, $3, $4::jsonb, $5::jsonb, $6, $7, $8, 'pending', now())
      ON CONFLICT (tenant_id, idempotency_key)
      WHERE idempotency_key IS NOT NULL
-     DO NOTHING`,
+     DO NOTHING
+     RETURNING id`,
     [
       input.tenantId,
       input.customerId ?? null,
@@ -75,6 +76,7 @@ export async function enqueueOutboundMessage(
       input.maxAttempts ?? 5,
     ],
   );
+  return { inserted: (result.rowCount ?? 0) > 0 };
 }
 
 // ── Compatibilidade retroativa ────────────────────────────────────────────────
@@ -91,7 +93,7 @@ export async function enqueueWhatsAppMessage(input: {
   instanceName?: string;
   phone?: string;
   correlationId?: string | null;
-}): Promise<void> {
+}): Promise<{ inserted: boolean }> {
   if (!input.instanceName || !input.phone) {
     throw new Error(
       'enqueueWhatsAppMessage: instanceName e phone são obrigatórios',

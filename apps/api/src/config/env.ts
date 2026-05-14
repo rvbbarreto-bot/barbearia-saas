@@ -1,5 +1,39 @@
-import 'dotenv/config';
+import { existsSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import dotenv from 'dotenv';
 import { z } from 'zod';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+/**
+ * Carrega `.env` em cascata para `npm run dev` em `apps/api` encontrar o ficheiro da raiz do monorepo.
+ * Ordem (último sobrescreve): raiz do repo → `apps/api/.env` → `process.cwd()/.env`.
+ */
+function loadEnvFromKnownLocations(): void {
+  const ordered = [
+    path.resolve(__dirname, '../../../.env'),
+    path.resolve(__dirname, '../../.env'),
+    path.resolve(process.cwd(), '.env'),
+  ];
+  const seen = new Set<string>();
+  for (const filePath of ordered) {
+    if (seen.has(filePath) || !existsSync(filePath)) continue;
+    seen.add(filePath);
+    dotenv.config({ path: filePath, override: true });
+  }
+}
+
+loadEnvFromKnownLocations();
+
+/** Alias opcional para QA/DevOps (`API_PORT` → `PORT`). */
+if (
+  (process.env.PORT === undefined || process.env.PORT === '') &&
+  process.env.API_PORT !== undefined &&
+  process.env.API_PORT !== ''
+) {
+  process.env.PORT = process.env.API_PORT;
+}
 
 function parseBoolish(val: unknown): boolean {
   if (val === undefined || val === '') return false;
@@ -56,6 +90,11 @@ const schema = z.object({
 /** Lê `RECALL_ENABLED` em tempo de pedido (útil para testes de integração sem reiniciar processo). */
 export function isRecallEnabledRuntime(): boolean {
   return parseBoolish(process.env.RECALL_ENABLED);
+}
+
+/** Simula falha de envio ao provider (CT-101 / QA). Não marca `sent` sem tentativa real falhada. */
+export function isOutboxForceSendFailureRuntime(): boolean {
+  return parseBoolish(process.env.OUTBOX_FORCE_SEND_FAILURE);
 }
 
 export const env = schema.parse(process.env);

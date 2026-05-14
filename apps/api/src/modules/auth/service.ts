@@ -9,13 +9,17 @@ import { env } from '../../config/env.js';
 
 const UUID_LOOSE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-const loginSchema = z.object({
+/** `tenant_id` opcional: omitido ou string vazia → resolve por e-mail se existir um único utilizador ativo; caso contrário exige UUID (multi-tenant). */
+export const loginInputSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
-  tenant_id: z.string().regex(UUID_LOOSE, 'Invalid UUID'),
+  tenant_id: z.preprocess(
+    (v) => (v === '' || v === null || v === undefined ? undefined : v),
+    z.string().regex(UUID_LOOSE, 'Invalid UUID').optional(),
+  ),
 });
 
-type LoginInput = z.infer<typeof loginSchema>;
+export type LoginInput = z.infer<typeof loginInputSchema>;
 
 type LoginOutput = {
   id: string;
@@ -38,20 +42,38 @@ async function comparePassword(password: string, passwordHash: string): Promise<
 }
 
 export async function login(input: LoginInput): Promise<LoginOutput> {
-  const data = loginSchema.parse(input);
+  const data = loginInputSchema.parse(input);
 
-  const result = await pool.query(
-    `SELECT id, tenant_id, role, email, name, password_hash, is_active,
-            failed_login_count, locked_until, professional_id
-       FROM users
-      WHERE tenant_id = $1 AND email = $2
-      LIMIT 1`,
-    [data.tenant_id, data.email],
-  );
+  let result;
+  if (data.tenant_id) {
+    result = await pool.query(
+      `SELECT id, tenant_id, role, email, name, password_hash, is_active,
+              failed_login_count, locked_until, professional_id
+         FROM users
+        WHERE tenant_id = $1 AND email = $2
+        LIMIT 1`,
+      [data.tenant_id, data.email],
+    );
+  } else {
+    result = await pool.query(
+      `SELECT id, tenant_id, role, email, name, password_hash, is_active,
+              failed_login_count, locked_until, professional_id
+         FROM users
+        WHERE email = $1 AND is_active = true`,
+      [data.email],
+    );
+    if (result.rowCount && result.rowCount > 1) {
+      throw new AppError(
+        'TENANT_REQUIRED',
+        'Este e-mail existe em mais de um tenant. Indique o Tenant ID (UUID) no login.',
+        400,
+      );
+    }
+  }
 
   if (!result.rowCount) {
     await writeAuthAudit({
-      tenantId: data.tenant_id,
+      tenantId: data.tenant_id ?? null,
       action: 'AUTH_LOGIN_FAILED',
       reason: 'USER_NOT_FOUND',
     });
@@ -71,9 +93,11 @@ export async function login(input: LoginInput): Promise<LoginOutput> {
     professional_id: string | null;
   };
 
+  const tenantCtx = user.tenant_id;
+
   if (!user.is_active) {
     await writeAuthAudit({
-      tenantId: data.tenant_id,
+      tenantId: tenantCtx,
       actorUserId: user.id,
       action: 'AUTH_LOGIN_FAILED',
       reason: 'USER_INACTIVE',
@@ -85,7 +109,7 @@ export async function login(input: LoginInput): Promise<LoginOutput> {
   if (user.locked_until && new Date(user.locked_until) > new Date()) {
     const unlockAt = new Date(user.locked_until).toISOString();
     await writeAuthAudit({
-      tenantId: data.tenant_id,
+      tenantId: tenantCtx,
       actorUserId: user.id,
       action: 'AUTH_LOGIN_FAILED',
       reason: 'ACCOUNT_LOCKED',
@@ -106,7 +130,7 @@ export async function login(input: LoginInput): Promise<LoginOutput> {
       [user.id, newCount, shouldLock, env.AUTH_LOCKOUT_MINUTES],
     );
     await writeAuthAudit({
-      tenantId: data.tenant_id,
+      tenantId: tenantCtx,
       actorUserId: user.id,
       action: 'AUTH_LOGIN_FAILED',
       reason: 'INVALID_PASSWORD',
@@ -127,7 +151,7 @@ export async function login(input: LoginInput): Promise<LoginOutput> {
   );
 
   await writeAuthAudit({
-    tenantId: data.tenant_id,
+    tenantId: tenantCtx,
     actorUserId: user.id,
     action: 'AUTH_LOGIN_SUCCESS',
   });

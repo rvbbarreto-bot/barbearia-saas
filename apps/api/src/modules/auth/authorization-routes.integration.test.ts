@@ -7,6 +7,7 @@ import { availabilityRoutes } from '../availability/routes.js';
 
 const mocks = vi.hoisted(() => ({
   listAppointments: vi.fn(),
+  getAppointmentById: vi.fn(),
   createAppointment: vi.fn(),
   cancelAppointment: vi.fn(),
   rescheduleAppointment: vi.fn(),
@@ -15,6 +16,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('../appointments/service.js', () => ({
   listAppointments: mocks.listAppointments,
+  getAppointmentById: mocks.getAppointmentById,
   createAppointment: mocks.createAppointment,
   cancelAppointment: mocks.cancelAppointment,
   rescheduleAppointment: mocks.rescheduleAppointment,
@@ -45,6 +47,24 @@ describe('authorization by endpoint policies', () => {
 
   afterAll(async () => {
     await app.close();
+  });
+
+  it('allows viewer to read single appointment', async () => {
+    mocks.getAppointmentById.mockResolvedValueOnce({ id: '11111111-1111-4111-8111-111111111115', status: 'confirmed' });
+    const token = await app.jwt.sign({
+      sub: '11111111-1111-4111-8111-111111111111',
+      tenant_id: '11111111-1111-4111-8111-111111111111',
+      role: 'viewer',
+      jti: 'r-view-appt',
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/v1/appointments/11111111-1111-4111-8111-111111111115',
+      headers: { authorization: `Bearer ${token}` },
+    });
+
+    expect(response.statusCode).toBe(200);
   });
 
   it('allows viewer to read appointments', async () => {

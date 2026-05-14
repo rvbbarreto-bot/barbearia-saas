@@ -18,7 +18,7 @@
  */
 
 import { pool } from '../db/pool.js';
-import { env } from '../../config/env.js';
+import { env, isOutboxForceSendFailureRuntime } from '../../config/env.js';
 
 // ── Constantes ────────────────────────────────────────────────────────────────
 
@@ -179,6 +179,12 @@ async function trySend(
   phone: string,
   text: string,
 ): Promise<SendResult> {
+  if (isOutboxForceSendFailureRuntime()) {
+    return {
+      ok: false,
+      error: 'Simulated provider failure (OUTBOX_FORCE_SEND_FAILURE=true)',
+    };
+  }
   try {
     const providerResponse = await sendViaEvolution(instanceName, phone, text);
     return { ok: true, providerResponse };

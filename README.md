@@ -6,6 +6,10 @@
 
 ## Sumário
 
+**QA / ambiente local reproduzível:** `[docs/QA_AMBIENTE_LOCAL.md](docs/QA_AMBIENTE_LOCAL.md)` — URLs, portas, `.env`, Docker vs npm.
+
+**Bateria negativa API + fecho PO:** relatório `docs/RELATORIO_QA_API_TESTES_NEGATIVOS_2026-05-14.md`, anexo `docs/FECHO_QA_API_NEGATIVOS_PO_2026-05-14.md`, script `scripts/qa-api-negative-battery.ps1`.
+
 1. [Baseline oficial V4 (PO)](#baseline-oficial-v4-po)
 2. [Pré-requisitos](#pré-requisitos)
 3. [Configuração de variáveis de ambiente](#configuração-de-variáveis-de-ambiente)
@@ -23,9 +27,9 @@
 
 ## Baseline oficial V4 (PO)
 
-- **Documento canónico (PDF):** `docs/Barbearia_SaaS_V4_Revisao_Senior_Baixo_Nivel.pdf` — baseline e ordem de referência: **`docs/README.md`** (histórico de caminho em `docs/requirements/README.md`).
+- **Documento canónico (PDF):** `docs/Barbearia_SaaS_V4_Revisao_Senior_Baixo_Nivel.pdf` — baseline e ordem de referência: `**docs/README.md`** (histórico de caminho em `docs/requirements/README.md`).
 - **Verificação DevOps (local/CI):** `PowerShell -ExecutionPolicy Bypass -File scripts/verify-v4-baseline.ps1` — use `-Strict` quando o PDF/MD já tiver de existir no clone.
-- **Homologação final DEV oficial:** modelo de relatório complementar em **`docs/HOMOLOGACAO_FINAL_RELATORIO_COMPLEMENTAR_TEMPLATE.md`**.
+- **Homologação final DEV oficial:** modelo de relatório complementar em `**docs/HOMOLOGACAO_FINAL_RELATORIO_COMPLEMENTAR_TEMPLATE.md`**.
 - **Regra Cursor (IA / equipa):** `.cursor/rules/barbearia-v4-baseline.mdc` na **raiz do clone** do pacote (ver nota em `docs/requirements/README.md` se o workspace for só `barbearia-saas/`).
 - Documentação técnica adicional: `docs/DOC_BAIXO_NIVEL_REQUISITOS.md` (complementar; não substitui o PDF oficial até equivalência declarada pelo PO).
 
@@ -33,12 +37,14 @@
 
 ## Pré-requisitos
 
-| Ferramenta | Versão mínima |
-|---|---|
-| Docker Desktop | 4.x |
-| Docker Compose | v2 (incluído no Docker Desktop) |
-| Node.js (para desenvolvimento local sem Docker) | 22.x LTS |
-| npm | 10.x |
+
+| Ferramenta                                      | Versão mínima                   |
+| ----------------------------------------------- | ------------------------------- |
+| Docker Desktop                                  | 4.x                             |
+| Docker Compose                                  | v2 (incluído no Docker Desktop) |
+| Node.js (para desenvolvimento local sem Docker) | 22.x LTS                        |
+| npm                                             | 10.x                            |
+
 
 ---
 
@@ -108,30 +114,34 @@ docker exec -i barbearia-postgres psql -U barbearia -d barbearia_saas \
 
 ### URLs locais após subir
 
-| Serviço | URL | Notas |
-|---|---|---|
-| API | http://localhost:3000 | Health: `GET /health` |
-| Frontend (dev) | http://localhost:5173 | `cd apps/web && npm run dev` |
-| n8n | http://localhost:5679 | Usuário: valor de `N8N_BASIC_AUTH_USER` |
-| PostgreSQL | localhost:5432 | Usuário/senha: conforme `.env` |
-| Redis | localhost:6380 | Senha: conforme `REDIS_PASSWORD` |
+
+| Serviço        | URL                                            | Notas                                   |
+| -------------- | ---------------------------------------------- | --------------------------------------- |
+| API            | [http://localhost:3000](http://localhost:3000) | Health: `GET /health`                   |
+| Frontend (dev) | [http://localhost:5173](http://localhost:5173) | `cd apps/web && npm run dev`            |
+| n8n            | [http://localhost:5679](http://localhost:5679) | Usuário: valor de `N8N_BASIC_AUTH_USER` |
+| PostgreSQL     | localhost:5432                                 | Usuário/senha: conforme `.env`          |
+| Redis          | localhost:6380                                 | Senha: conforme `REDIS_PASSWORD`        |
+
 
 ### Importação de workflows n8n (via API JSON)
 
 Trecho apenas referência para quando for subir fluxos automatizados; **não** bloqueia migrations, seed nem testes da API.
 
-| Variável / item | Observação |
-|-----------------|------------|
-| `N8N_API_KEY` | Obrigatória para chamadas REST do n8n; sem ela os scripts/import recebem **401**. |
-| `N8N_URL` | Opcional (ex.: `http://localhost:5678`). |
-| Script | Da raiz deste projeto (`apps/`, `n8n/`, `docker-compose.yml`): `node n8n/import_workflows_from_json.mjs` |
+
+| Variável / item | Observação                                                                                               |
+| --------------- | -------------------------------------------------------------------------------------------------------- |
+| `N8N_API_KEY`   | Obrigatória para chamadas REST do n8n; sem ela os scripts/import recebem **401**.                        |
+| `N8N_URL`       | Opcional (ex.: `http://localhost:5678`).                                                                 |
+| Script          | Da raiz deste projeto (`apps/`, `n8n/`, `docker-compose.yml`): `node n8n/import_workflows_from_json.mjs` |
+
 
 ---
 
 ## Migrações e seed
 
 As migrations ficam em `database/migrations/` e são aplicadas em ordem numérica.  
-O Docker Compose aplica automaticamente no **primeiro boot** (via `entrypoint-initdb.d`).
+O Docker Compose aplica automaticamente no **primeiro boot** (via `entrypoint-initdb.d`), incluindo **`099_demo_seed_qa.sql`** (tenant demo + utilizadores + serviços/profissionais) quando o volume Postgres está vazio.
 
 Pendências de permissões da role da aplicação (produção): ver `database/SECURITY_HARDENING.md`.
 
@@ -174,12 +184,14 @@ docker exec -i barbearia-postgres \
 
 ### Dados demo
 
-| Campo | Valor |
-|---|---|
-| Tenant ID | `00000000-0000-0000-0000-000000000001` |
-| E-mail | `admin@demo.local` |
-| Senha | `admin12345` |
-| Webhook token | `demo_webhook_token_change_me` |
+
+| Campo         | Valor                                  |
+| ------------- | -------------------------------------- |
+| Tenant ID     | `00000000-0000-0000-0000-000000000001` |
+| E-mail        | `admin@demo.local`                     |
+| Senha         | `admin12345`                           |
+| Webhook token | `demo_webhook_token_change_me`         |
+
 
 > Estes dados são **exclusivos para desenvolvimento local**. Não use em staging ou produção.
 
@@ -189,13 +201,15 @@ docker exec -i barbearia-postgres \
 
 Todos os serviços possuem healthcheck configurado no `docker-compose.yml`.
 
-| Serviço | Rota/Comando | Critério |
-|---|---|---|
-| `postgres` | `pg_isready` | healthy antes de subir API e n8n |
-| `redis` | `redis-cli ping` | healthy antes de subir API |
-| `api` | `GET /health/ready` → HTTP 200 | healthy antes de subir web e n8n |
-| `web` | `GET /` → HTTP 200 | independente |
-| `n8n` | `GET /healthz` → HTTP 200 | depende de postgres + api healthy |
+
+| Serviço    | Rota/Comando                   | Critério                          |
+| ---------- | ------------------------------ | --------------------------------- |
+| `postgres` | `pg_isready`                   | healthy antes de subir API e n8n  |
+| `redis`    | `redis-cli ping`               | healthy antes de subir API        |
+| `api`      | `GET /health/ready` → HTTP 200 | healthy antes de subir web e n8n  |
+| `web`      | `GET /` → HTTP 200             | independente                      |
+| `n8n`      | `GET /healthz` → HTTP 200      | depende de postgres + api healthy |
+
 
 ```bash
 # Verificar status de todos os healthchecks
@@ -258,122 +272,159 @@ docker exec barbearia-api env | grep -E "NODE_ENV|PORT|DATABASE|REDIS|JWT"
 
 ### Variáveis obrigatórias (sem valor padrão seguro)
 
-| Variável | Descrição | Como gerar |
-|---|---|---|
-| `JWT_SECRET` | Chave de assinatura JWT. Mínimo 64 chars. | `openssl rand -base64 64` |
-| `POSTGRES_PASSWORD` | Senha do PostgreSQL. | `openssl rand -base64 32` |
-| `REDIS_PASSWORD` | Senha do Redis. | `openssl rand -base64 32` |
-| `N8N_ENCRYPTION_KEY` | Chave de criptografia das credenciais n8n. Mínimo 32 chars. | `openssl rand -hex 16` |
-| `N8N_BASIC_AUTH_PASSWORD` | Senha do painel n8n. | `openssl rand -base64 24` |
+
+| Variável                  | Descrição                                                   | Como gerar                |
+| ------------------------- | ----------------------------------------------------------- | ------------------------- |
+| `JWT_SECRET`              | Chave de assinatura JWT. Mínimo 64 chars.                   | `openssl rand -base64 64` |
+| `POSTGRES_PASSWORD`       | Senha do PostgreSQL.                                        | `openssl rand -base64 32` |
+| `REDIS_PASSWORD`          | Senha do Redis.                                             | `openssl rand -base64 32` |
+| `N8N_ENCRYPTION_KEY`      | Chave de criptografia das credenciais n8n. Mínimo 32 chars. | `openssl rand -hex 16`    |
+| `N8N_BASIC_AUTH_PASSWORD` | Senha do painel n8n.                                        | `openssl rand -base64 24` |
+
 
 ### Variáveis obrigatórias com padrão aceitável em dev
 
-| Variável | Padrão dev | Descrição |
-|---|---|---|
-| `NODE_ENV` | `development` | Ambiente de execução |
-| `PORT` | `3000` | Porta da API |
-| `POSTGRES_DB` | `barbearia_saas` | Nome do banco de dados |
-| `POSTGRES_USER` | `barbearia` | Usuário do PostgreSQL |
-| `DATABASE_URL` | — | URL completa do PostgreSQL (derivada das vars acima) |
-| `REDIS_URL` | — | URL completa do Redis (derivada de `REDIS_PASSWORD`) |
-| `JWT_EXPIRES_IN` | `15m` | Expiração do access token |
-| `JWT_REFRESH_EXPIRES_IN` | `7d` | Expiração do refresh token |
-| `CORS_ORIGIN` | `http://localhost:5173` | Origem permitida pelo CORS |
-| `N8N_BASIC_AUTH_USER` | `admin` | Usuário do painel n8n |
-| `N8N_WEBHOOK_URL` | `http://localhost:5678/` | URL pública do n8n |
-| `OUTBOX_POLL_INTERVAL_MS` | `5000` | Intervalo do worker de outbox (ms) |
-| `OUTBOX_CONCURRENCY` | `5` | Concorrência do worker de outbox |
+
+| Variável                  | Padrão dev               | Descrição                                            |
+| ------------------------- | ------------------------ | ---------------------------------------------------- |
+| `NODE_ENV`                | `development`            | Ambiente de execução                                 |
+| `PORT`                    | `3000`                   | Porta da API                                         |
+| `POSTGRES_DB`             | `barbearia_saas`         | Nome do banco de dados                               |
+| `POSTGRES_USER`           | `barbearia`              | Usuário do PostgreSQL                                |
+| `DATABASE_URL`            | —                        | URL completa do PostgreSQL (derivada das vars acima) |
+| `REDIS_URL`               | —                        | URL completa do Redis (derivada de `REDIS_PASSWORD`) |
+| `JWT_EXPIRES_IN`          | `15m`                    | Expiração do access token                            |
+| `JWT_REFRESH_EXPIRES_IN`  | `7d`                     | Expiração do refresh token                           |
+| `CORS_ORIGIN`             | `http://localhost:5173`  | Origem permitida pelo CORS                           |
+| `N8N_BASIC_AUTH_USER`     | `admin`                  | Usuário do painel n8n                                |
+| `N8N_WEBHOOK_URL`         | `http://localhost:5678/` | URL pública do n8n                                   |
+| `OUTBOX_POLL_INTERVAL_MS` | `5000`                   | Intervalo do worker de outbox (ms)                   |
+| `OUTBOX_CONCURRENCY`      | `5`                      | Concorrência do worker de outbox                     |
+| `OUTBOX_FORCE_SEND_FAILURE` | `false` (omit)       | Se `true`, simula falha do provider (CT-101); mensagem não é `sent`, fica `pending`/`dead` com retry |
+
 
 ### Variáveis de integrações externas (obrigatórias em produção)
 
-| Variável | Descrição |
-|---|---|
-| `EVOLUTION_API_URL` | URL da Evolution API (WhatsApp) |
-| `EVOLUTION_API_KEY` | Chave da Evolution API |
-| `OPENAI_API_KEY` | Chave da OpenAI (somente se o agente de IA for ativado) |
+
+| Variável            | Descrição                                               |
+| ------------------- | ------------------------------------------------------- |
+| `EVOLUTION_API_URL` | URL da Evolution API (WhatsApp)                         |
+| `EVOLUTION_API_KEY` | Chave da Evolution API                                  |
+| `OPENAI_API_KEY`    | Chave da OpenAI (somente se o agente de IA for ativado) |
+
 
 ### Variáveis de rate limit (opcionais — possuem padrão)
 
-| Variável | Padrão | Descrição |
-|---|---|---|
-| `AUTH_RATE_LIMIT_WINDOW` | `1 minute` | Janela de rate limit para autenticação |
-| `AUTH_LOGIN_RATE_LIMIT_MAX` | `10` | Máx. tentativas de login por janela |
-| `AUTH_REFRESH_RATE_LIMIT_MAX` | `20` | Máx. refreshes por janela |
-| `AUTH_LOGOUT_RATE_LIMIT_MAX` | `30` | Máx. logouts por janela |
-| `AUTH_MAX_FAILED_ATTEMPTS` | `5` | Tentativas antes do bloqueio de conta |
-| `AUTH_LOCKOUT_MINUTES` | `15` | Duração do bloqueio de conta (minutos) |
-| `TENANT_DEFAULT_RPM` | `300` | Rate limit padrão por tenant (req/min) |
+
+| Variável                      | Padrão     | Descrição                              |
+| ----------------------------- | ---------- | -------------------------------------- |
+| `AUTH_RATE_LIMIT_WINDOW`      | `1 minute` | Janela de rate limit para autenticação |
+| `AUTH_LOGIN_RATE_LIMIT_MAX`   | `10`       | Máx. tentativas de login por janela    |
+| `AUTH_REFRESH_RATE_LIMIT_MAX` | `20`       | Máx. refreshes por janela              |
+| `AUTH_LOGOUT_RATE_LIMIT_MAX`  | `30`       | Máx. logouts por janela                |
+| `AUTH_MAX_FAILED_ATTEMPTS`    | `5`        | Tentativas antes do bloqueio de conta  |
+| `AUTH_LOCKOUT_MINUTES`        | `15`       | Duração do bloqueio de conta (minutos) |
+| `TENANT_DEFAULT_RPM`          | `300`      | Rate limit padrão por tenant (req/min) |
+
 
 ### Variáveis do Frontend (`apps/web/.env.local`)
 
-| Variável | Obrigatória | Descrição |
-|---|---|---|
+
+| Variável                 | Obrigatória    | Descrição                                    |
+| ------------------------ | -------------- | -------------------------------------------- |
 | `VITE_DEFAULT_TENANT_ID` | Não (dev only) | UUID do tenant exibido na tela de login demo |
+
 
 ---
 
 ## Endpoints da API
 
+### Contexto multi-tenant (`x-tenant-id` e JWT)
+
+- O JWT de acesso inclui o claim `tenant_id` após login bem-sucedido.
+- **Ordem de resolução (CT-020 / P1):** (1) se `x-tenant-id` estiver presente e não vazio, esse valor define o tenant da operação; (2) caso contrário, usa-se o `tenant_id` do JWT; (3) se nenhum dos dois existir, **401** `TENANT_REQUIRED`; (4) se ambos existirem e forem **diferentes**, **403** `TENANT_MISMATCH`.
+- Integrações devem **continuar a enviar** `x-tenant-id` por clareza e para testes explícitos de isolamento.
+- Detalhe canónico: `apps/api/src/openapi/spec.ts` (descrição global e `securitySchemes.tenantHeader`).
+
+### Confirmação explícita em agendamentos (`explicit_confirmation`)
+
+- Com `explicit_confirmation: true`, o fluxo típico aguarda confirmação explícita (dois passos / painel).
+- Com `false`, trata-se de **criação administrativa / walk-in** sem confirmação explícita do cliente pelo canal: permitido apenas para **`tenant_admin` ou superior** em `source` não walk-in, ou **`walk_in`** operado por **`attendant` ou superior** (exceto `professional`, sempre bloqueado com `false`). Rastreável em `appointment_events` (`administrative_skip_client_explicit_confirm`). Decisão de produto: `docs/DECISAO_PRODUTO_CT073_EXPLICIT_CONFIRMATION.md`.
+
 ### Saúde
 
-| Método | Rota | Descrição |
-|---|---|---|
-| `GET` | `/health` | Liveness check |
-| `GET` | `/health/ready` | Readiness check (API + DB + Redis) |
+
+| Método | Rota            | Descrição                          |
+| ------ | --------------- | ---------------------------------- |
+| `GET`  | `/health`       | Liveness check                     |
+| `GET`  | `/health/ready` | Readiness check (API + DB + Redis) |
+
 
 ### Autenticação
 
-| Método | Rota | Auth |
-|---|---|---|
-| `POST` | `/auth/login` | — |
-| `POST` | `/auth/refresh` | — |
-| `POST` | `/auth/logout` | JWT |
+
+| Método | Rota            | Auth |
+| ------ | --------------- | ---- |
+| `POST` | `/auth/login`   | —    |
+| `POST` | `/auth/refresh` | —    |
+| `POST` | `/auth/logout`  | JWT  |
+
 
 ### WhatsApp
 
-| Método | Rota | Auth |
-|---|---|---|
+
+| Método | Rota                         | Auth                       |
+| ------ | ---------------------------- | -------------------------- |
 | `POST` | `/webhooks/whatsapp/inbound` | `x-webhook-token` (header) |
+
 
 ### Catálogo (serviços e profissionais)
 
-| Método | Rota | Auth |
-|---|---|---|
-| `GET` | `/api/v1/services` | JWT (lista operacional: só **ativos**; `active=false` só gerência) |
-| `GET` | `/api/v1/services/:id` | JWT |
-| `POST/PATCH` | `/api/v1/services` … | JWT **manager**+ |
-| `GET` | `/api/v1/professionals` | JWT |
-| `POST/PATCH` | `/api/v1/professionals` … | JWT **manager**+ |
-| `PATCH` | `/api/v1/professionals/:id/services` | JWT **manager** (substitui vínculos) |
-| `POST` | `/api/v1/professionals/:id/services` | JWT **manager** (adição idempotente) |
 
-Payloads e erros (`SERVICE_NOT_BOOKABLE`, `SCHEDULE_DURATION_MISMATCH`, etc.): **`apps/api/docs/CATALOG_API.md`**.
+| Método       | Rota                                 | Auth                                                               |
+| ------------ | ------------------------------------ | ------------------------------------------------------------------ |
+| `GET`        | `/api/v1/services`                   | JWT (lista operacional: só **ativos**; `active=false` só gerência) |
+| `GET`        | `/api/v1/services/:id`               | JWT                                                                |
+| `POST/PATCH` | `/api/v1/services` …                 | JWT **manager**+                                                   |
+| `GET`        | `/api/v1/professionals`              | JWT                                                                |
+| `POST/PATCH` | `/api/v1/professionals` …            | JWT **manager**+                                                   |
+| `PATCH`      | `/api/v1/professionals/:id/services` | JWT **manager** (substitui vínculos)                               |
+| `POST`       | `/api/v1/professionals/:id/services` | JWT **manager** (adição idempotente)                               |
+
+
+Payloads e erros (`SERVICE_NOT_BOOKABLE`, `SCHEDULE_DURATION_MISMATCH`, etc.): `**apps/api/docs/CATALOG_API.md`**.
 
 ### Agendamentos
 
-| Método | Rota | Auth |
-|---|---|---|
-| `GET` | `/api/v1/appointments` | JWT |
-| `POST` | `/api/v1/appointments` | JWT — corpo deve incluir **`service_id`** (catálogo V4) |
-| `PATCH` | `/api/v1/appointments/:id/cancel` | JWT |
-| `PATCH` | `/api/v1/appointments/:id/reschedule` | JWT |
+
+| Método  | Rota                                  | Auth                                                    |
+| ------- | ------------------------------------- | ------------------------------------------------------- |
+| `GET`   | `/api/v1/appointments`                | JWT                                                     |
+| `POST`  | `/api/v1/appointments`                | JWT — corpo deve incluir `**service_id**` (catálogo V4) |
+| `PATCH` | `/api/v1/appointments/:id/cancel`     | JWT                                                     |
+| `PATCH` | `/api/v1/appointments/:id/reschedule` | JWT                                                     |
+
 
 ### Disponibilidade
 
-| Método | Rota | Auth |
-|---|---|---|
-| `GET` | `/api/v1/availability` | JWT |
+
+| Método | Rota                   | Auth |
+| ------ | ---------------------- | ---- |
+| `GET`  | `/api/v1/availability` | JWT  |
+
 
 ### Profissionais — folgas e horários
 
-| Método | Rota | Auth |
-|---|---|---|
-| `GET/POST` | `/api/v1/professionals/:id/time-off` | JWT |
-| `PATCH/DELETE` | `/api/v1/professionals/:id/time-off/:timeOffId` | JWT |
-| `GET/POST` | `/api/v1/professionals/:id/recurring-time-off` | JWT |
-| `PATCH/DELETE` | `/api/v1/professionals/:id/recurring-time-off/:recurringId` | JWT |
-| `GET/POST` | `/api/v1/professionals/:id/business-hours` | JWT |
-| `PATCH/DELETE` | `/api/v1/professionals/:id/business-hours/:businessHoursId` | JWT |
+
+| Método         | Rota                                                        | Auth |
+| -------------- | ----------------------------------------------------------- | ---- |
+| `GET/POST`     | `/api/v1/professionals/:id/time-off`                        | JWT  |
+| `PATCH/DELETE` | `/api/v1/professionals/:id/time-off/:timeOffId`             | JWT  |
+| `GET/POST`     | `/api/v1/professionals/:id/recurring-time-off`              | JWT  |
+| `PATCH/DELETE` | `/api/v1/professionals/:id/recurring-time-off/:recurringId` | JWT  |
+| `GET/POST`     | `/api/v1/professionals/:id/business-hours`                  | JWT  |
+| `PATCH/DELETE` | `/api/v1/professionals/:id/business-hours/:businessHoursId` | JWT  |
+
 
 ---
 
@@ -424,11 +475,13 @@ O pipeline roda automaticamente em **push/PR** para `main` e `develop` via GitHu
 
 ### Jobs
 
-| Job | O que valida |
-|---|---|
-| `api` | typecheck · lint · test:unit · test integração · build |
-| `web` | lint · typecheck · test smoke · build Vite |
-| `security` | `npm audit --audit-level=high` em ambos os pacotes |
+
+| Job        | O que valida                                           |
+| ---------- | ------------------------------------------------------ |
+| `api`      | typecheck · lint · test:unit · test integração · build |
+| `web`      | lint · typecheck · test smoke · build Vite             |
+| `security` | `npm audit --audit-level=high` em ambos os pacotes     |
+
 
 > O CI **falha imediatamente** se typecheck, testes ou build falharem em qualquer job.
 
@@ -488,9 +541,12 @@ npm run build
 
 ### Limitações conhecidas (P0-03)
 
-| # | Limitação | Como resolver |
-|---|---|---|
-| 1 | `eslint` e `typescript-eslint` foram adicionados às `devDependencies` da API mas o `package-lock.json` ainda não foi atualizado. O step `npm install` no CI regenera o lock, mas o ideal é commitar o lock atualizado. | Execute `cd apps/api && npm install` localmente e commite o `package-lock.json` gerado. |
-| 2 | `vitest` e `@vitest/coverage-v8` foram adicionados às `devDependencies` do web mas o `package-lock.json` do web ainda não foi atualizado. | Execute `cd apps/web && npm install` localmente e commite o `package-lock.json` gerado. |
-| 3 | O web não possui testes de componente React (precisam de jsdom/happy-dom). | Adicione `@vitest/browser` ou `jsdom` e crie testes de componente separados quando houver cobertura de UI. |
-| 4 | Os testes de integração da API requerem banco PostgreSQL e Redis reais. Em máquinas sem Docker, rode `docker compose -f docker-compose.api-only.yml up -d` antes de `npm test`. | — |
+
+| #   | Limitação                                                                                                                                                                                                              | Como resolver                                                                                              |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| 1   | `eslint` e `typescript-eslint` foram adicionados às `devDependencies` da API mas o `package-lock.json` ainda não foi atualizado. O step `npm install` no CI regenera o lock, mas o ideal é commitar o lock atualizado. | Execute `cd apps/api && npm install` localmente e commite o `package-lock.json` gerado.                    |
+| 2   | `vitest` e `@vitest/coverage-v8` foram adicionados às `devDependencies` do web mas o `package-lock.json` do web ainda não foi atualizado.                                                                              | Execute `cd apps/web && npm install` localmente e commite o `package-lock.json` gerado.                    |
+| 3   | O web não possui testes de componente React (precisam de jsdom/happy-dom).                                                                                                                                             | Adicione `@vitest/browser` ou `jsdom` e crie testes de componente separados quando houver cobertura de UI. |
+| 4   | Os testes de integração da API requerem banco PostgreSQL e Redis reais. Em máquinas sem Docker, rode `docker compose -f docker-compose.api-only.yml up -d` antes de `npm test`.                                        | —                                                                                                          |
+
+

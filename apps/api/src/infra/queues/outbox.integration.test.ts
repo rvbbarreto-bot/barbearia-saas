@@ -180,18 +180,20 @@ describe('message_outbox integration', () => {
       await pool.query(`SET app.tenant_id = '${tenantId}'`);
       const key = `idem-${randomUUID()}`;
 
-      await enqueueOutboundMessage({
+      const first = await enqueueOutboundMessage({
         tenantId,
         payload: { type: 'text', text: 'Mensagem 1' },
         metadata: { phone: '5511900000002', instance_name: 'inst-01', provider: 'evolution' },
         idempotencyKey: key,
       });
-      await enqueueOutboundMessage({
+      expect(first.inserted).toBe(true);
+      const second = await enqueueOutboundMessage({
         tenantId,
         payload: { type: 'text', text: 'Mensagem 2 (duplicada)' },
         metadata: { phone: '5511900000002', instance_name: 'inst-01', provider: 'evolution' },
         idempotencyKey: key,
       });
+      expect(second.inserted).toBe(false);
 
       const r = await pool.query(
         `SELECT count(*) FROM message_outbox WHERE tenant_id = $1 AND idempotency_key = $2`,
@@ -334,6 +336,32 @@ describe('message_outbox integration', () => {
       const after = await getRow(pool, id);
       expect(after?.status).toBe('dead');
       expect(after?.last_error).toContain('phone');
+    });
+  });
+
+  describe('CT-101 OUTBOX_FORCE_SEND_FAILURE', () => {
+    it('não marca sent; agenda retry (pending) com last_error', async () => {
+      const prev = process.env.OUTBOX_FORCE_SEND_FAILURE;
+      process.env.OUTBOX_FORCE_SEND_FAILURE = 'true';
+      try {
+        await pool.query(`SET app.tenant_id = '${tenantId}'`);
+        const id = await insertRow(pool, tenantId);
+
+        const row = await pool.query(
+          `SELECT id, tenant_id, customer_id, payload, metadata, attempts, max_attempts, correlation_id
+             FROM message_outbox WHERE id = $1`,
+          [id],
+        );
+        await processRow(row.rows[0]);
+
+        const after = await getRow(pool, id);
+        expect(after?.status).toBe('pending');
+        expect(after?.last_error).toContain('Simulated provider failure');
+        expect(after?.sent_at).toBeNull();
+        expect((after?.attempts ?? 0) >= 1).toBe(true);
+      } finally {
+        process.env.OUTBOX_FORCE_SEND_FAILURE = prev ?? '';
+      }
     });
   });
 

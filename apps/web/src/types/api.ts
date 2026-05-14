@@ -13,7 +13,8 @@ export interface AuthUser {
 export interface LoginRequest {
   email: string;
   password: string;
-  tenant_id: string;
+  /** Opcional. Omitir quando não preenchido — não enviar string vazia. */
+  tenant_id?: string;
 }
 
 export interface LoginResponse {

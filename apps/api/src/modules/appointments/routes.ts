@@ -8,6 +8,7 @@ import {
   createAppointment,
   createManualOverrideAppointment,
   createWalkInAppointment,
+  getAppointmentById,
   getAppointmentHistory,
   getAppointmentStatusHistory,
   listAppointments,
@@ -27,6 +28,13 @@ export async function appointmentRoutes(app: FastifyInstance) {
     { preHandler: requirePermission('appointments', 'read') },
     async (request: any) =>
       listAppointments(request.tenantId, request.query as Record<string, unknown>, request.user),
+  );
+
+  app.get(
+    '/appointments/:appointmentId',
+    { preHandler: requirePermission('appointments', 'read') },
+    async (request: any) =>
+      getAppointmentById(request.tenantId, request.params.appointmentId, request.user),
   );
 
   app.get(

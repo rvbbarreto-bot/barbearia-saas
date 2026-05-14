@@ -19,7 +19,7 @@ export async function integrationsRoutes(app: FastifyInstance) {
         request.body,
         request.user?.sub,
       );
-      return reply.code(202).send(row);
+      return reply.code(row.duplicate ? 200 : 202).send(row);
     },
   );
 }

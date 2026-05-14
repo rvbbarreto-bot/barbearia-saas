@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { env } from '../../config/env.js';
 import { pool } from '../../infra/db/pool.js';
-import { login, requestPasswordReset, resetPassword } from './service.js';
+import { login, loginInputSchema, requestPasswordReset, resetPassword } from './service.js';
 import { writeAuthAudit } from './audit.js';
 import {
   activateRefreshSession,
@@ -12,14 +12,7 @@ import {
   rotateRefreshSession,
 } from './session.js';
 
-// Regex permissivo que aceita qualquer UUID bem-formado (incluindo fixtures de teste)
 const UUID_LOOSE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-const loginBodySchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8),
-  tenant_id: z.string().regex(UUID_LOOSE, 'Invalid UUID'),
-});
 
 const refreshBodySchema = z.object({
   refresh_token: z.string().min(20),
@@ -38,7 +31,7 @@ export async function authRoutes(app: FastifyInstance) {
   app.post('/auth/login', {
     config: { rateLimit: { max: env.AUTH_LOGIN_RATE_LIMIT_MAX, timeWindow: env.AUTH_RATE_LIMIT_WINDOW } },
   }, async (request: any, reply) => {
-    const payload = loginBodySchema.parse(request.body);
+    const payload = loginInputSchema.parse(request.body);
     const user = await login(payload);
 
     const accessJti = randomUUID();

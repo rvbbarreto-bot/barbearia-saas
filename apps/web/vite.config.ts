@@ -11,7 +11,9 @@ export default defineConfig({
     },
   },
   server: {
-    port: 5173,
+    /** Porta oficial QA/dev; se ocupada, o Vite sugere a seguinte (ex.: 5174). Sobrescrever: `npm run dev -- --port 5200`. */
+    port: Number(process.env.VITE_DEV_SERVER_PORT) || 5173,
+    strictPort: false,
     proxy: {
       '/api': {
         target: 'http://localhost:3000',

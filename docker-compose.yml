@@ -48,6 +48,10 @@ services:
       dockerfile: Dockerfile
     container_name: barbearia-api
     env_file: .env
+    # Garante URLs da rede Docker mesmo que `.env` na máquina host esteja apontado para localhost (npm dev).
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-barbearia}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-barbearia_saas}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
     ports:
       - "3000:3000"
     depends_on:
@@ -69,7 +73,8 @@ services:
       context: ./apps/web
       dockerfile: Dockerfile
       args:
-        VITE_DEFAULT_TENANT_ID: ${VITE_DEFAULT_TENANT_ID:-}
+        # Sem valor, o Vite embute string vazia e o login enviava tenant_id "" — UUID demo do seed.
+        VITE_DEFAULT_TENANT_ID: ${VITE_DEFAULT_TENANT_ID:-00000000-0000-0000-0000-000000000001}
     container_name: barbearia-web
     ports:
       - "3001:80"
@@ -77,10 +82,10 @@ services:
       api:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:80/ || exit 1"]
-      interval: 20s
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1/ >/dev/null || exit 1"]
+      interval: 15s
       timeout: 5s
-      retries: 3
+      retries: 5
       start_period: 15s
     restart: unless-stopped
 
@@ -107,7 +112,8 @@ services:
       API_BASE_URL: http://api:3000
       # Token de autenticação usado pelo workflow para chamar o Core API
       # Deve corresponder ao webhook_token do tenant na tabela tenants
-      N8N_WEBHOOK_TOKEN: ${N8N_WEBHOOK_TOKEN:?N8N_WEBHOOK_TOKEN is required. Copy .env.example to .env and fill it.}
+      # Default alinhado ao seed demo (`database/seeds/001_demo.sql`). Sobrescreva em `.env` em ambientes reais.
+      N8N_WEBHOOK_TOKEN: ${N8N_WEBHOOK_TOKEN:-demo_webhook_token_change_me}
     volumes:
       - n8n_data:/home/node/.n8n
       - ./n8n/workflows:/workflows:ro
@@ -116,12 +122,17 @@ services:
         condition: service_healthy
       api:
         condition: service_healthy
+    # Basic Auth na UI — wget busybox pode não suportar credenciais; Node usa env sem interpolar senha no shell.
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:5678/healthz || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          'node -e "require(\"http\").get({hostname:\"127.0.0.1\",port:5678,path:\"/healthz\",headers:{Authorization:\"Basic \"+Buffer.from((process.env.N8N_BASIC_AUTH_USER||\"admin\")+\":\"+(process.env.N8N_BASIC_AUTH_PASSWORD||\"\")).toString(\"base64\")}},r=>process.exit(r.statusCode===200?0:1)).on(\"error\",()=>process.exit(1));"',
+        ]
       interval: 20s
-      timeout: 10s
-      retries: 5
-      start_period: 30s
+      timeout: 15s
+      retries: 8
+      start_period: 90s
     restart: unless-stopped
 
 volumes:

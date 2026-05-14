@@ -65,7 +65,10 @@ app.addContentTypeParser('application/json', { parseAs: 'string' }, (req, body, 
 });
 
 await app.register(helmet);
-await app.register(cors, { origin: env.CORS_ORIGIN === '*' ? true : env.CORS_ORIGIN.split(',') });
+await app.register(cors, {
+  origin:
+    env.CORS_ORIGIN === '*' ? true : env.CORS_ORIGIN.split(',').map((o) => o.trim()),
+});
 await app.register(rateLimit, { max: 500, timeWindow: '1 minute' });
 await app.register(jwt, { secret: env.JWT_SECRET });
 
@@ -131,6 +134,18 @@ app.get('/health/ready', async (_request, reply) => {
 });
 app.get('/health', async (_request, reply) => reply.code(200).send({ status: 'ok' }));
 
+/** Verificação apenas PostgreSQL (QA/docs); readiness completo continua em `/health/ready`. */
+app.get('/database/health', async (_request, reply) => {
+  const { pool } = await import('./infra/db/pool.js');
+  try {
+    await pool.query('SELECT 1 AS ok');
+    return reply.code(200).send({ status: 'ok', database: 'connected' });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return reply.code(503).send({ status: 'error', database: 'disconnected', error: message });
+  }
+});
+
 await registerOpenApi(app, env.NODE_ENV);
 
 // Rotas publicas (sem auth)
@@ -140,6 +155,7 @@ await app.register(pixWebhookRoutes);
 
 const PUBLIC_PATHS = [
   '/health',
+  '/database/health',
   '/auth/login',
   '/auth/refresh',
   '/auth/forgot-password',

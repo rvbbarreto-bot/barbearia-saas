@@ -9,6 +9,13 @@ export async function tenantRoutes(app: FastifyInstance) {
     async (request: any) => listTenants(request.query as Record<string, unknown>),
   );
 
+  /** Tenant do JWT/`x-tenant-id` — para `tenant_owner` e restantes perfis tenant (mín. `tenant_admin`). */
+  app.get(
+    '/tenants/current',
+    { preHandler: requireRole('tenant_admin') },
+    async (request: any) => getTenantById(request.tenantId as string),
+  );
+
   app.get(
     '/tenants/:tenantId',
     { preHandler: requireRole('tenant_admin') },

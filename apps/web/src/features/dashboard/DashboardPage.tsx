@@ -1,5 +1,6 @@
 import { useQueries } from '@tanstack/react-query';
 import { format, startOfDay, endOfDay } from 'date-fns';
+import { countNoShowsInResponse } from './countNoShowsInResponse';
 import {
   CalendarDays,
   ListOrdered,
@@ -20,68 +21,121 @@ import { AppointmentStatusBadge } from '@/components/shared/AppointmentStatusBad
 import type { Appointment, CommissionEntryRow, PaginatedResponse, WaitlistEntry } from '@/types/api';
 import { formatCentsBrl } from '@/features/financeiro/formatCentsBrl';
 
+function todayRangeIso() {
+  const from = startOfDay(new Date()).toISOString();
+  const to = endOfDay(new Date()).toISOString();
+  return { from, to };
+}
+
+function logDashboardKpiFailure(kpiLabel: string, err: unknown) {
+  console.error(`[Dashboard] KPI "${kpiLabel}": falha na consulta à API`, err);
+}
+
 async function fetchTodayAppointments() {
-  const from = format(startOfDay(new Date()), "yyyy-MM-dd'T'HH:mm:ss");
-  const to = format(endOfDay(new Date()), "yyyy-MM-dd'T'HH:mm:ss");
-  const { data } = await api.get<PaginatedResponse<Appointment>>('/api/v1/appointments', {
-    params: { from, to, limit: 5, page: 1 },
-  });
-  return data;
+  const { from, to } = todayRangeIso();
+  try {
+    const { data } = await api.get<PaginatedResponse<Appointment>>('/api/v1/appointments', {
+      params: { from, to, limit: 5, page: 1 },
+    });
+    return data;
+  } catch (e) {
+    logDashboardKpiFailure('Agendamentos hoje', e);
+    throw e;
+  }
 }
 
 async function fetchTodayAppointmentsForNoShow() {
-  const from = format(startOfDay(new Date()), "yyyy-MM-dd'T'HH:mm:ss");
-  const to = format(endOfDay(new Date()), "yyyy-MM-dd'T'HH:mm:ss");
-  const { data } = await api.get<PaginatedResponse<Appointment>>('/api/v1/appointments', {
-    params: { from, to, limit: 500, page: 1 },
-  });
-  return data.data.filter((a) => a.status === 'no_show').length;
+  const { from, to } = todayRangeIso();
+  try {
+    const { data } = await api.get<PaginatedResponse<Appointment>>('/api/v1/appointments', {
+      params: { from, to, limit: 500, page: 1 },
+    });
+    return countNoShowsInResponse(data);
+  } catch (e) {
+    logDashboardKpiFailure('No-show hoje', e);
+    throw e;
+  }
 }
 
 async function fetchTotalClientes() {
-  const { data } = await api.get<PaginatedResponse<unknown>>('/api/v1/customers', { params: { limit: 1, page: 1 } });
-  return data.total;
+  try {
+    const { data } = await api.get<PaginatedResponse<unknown>>('/api/v1/customers', { params: { limit: 1, page: 1 } });
+    return data.total;
+  } catch (e) {
+    logDashboardKpiFailure('Clientes', e);
+    throw e;
+  }
 }
 
 async function fetchTotalProfissionais() {
-  const { data } = await api.get<PaginatedResponse<unknown>>('/api/v1/professionals', { params: { limit: 1, page: 1 } });
-  return data.total;
+  try {
+    const { data } = await api.get<PaginatedResponse<unknown>>('/api/v1/professionals', { params: { limit: 1, page: 1 } });
+    return data.total;
+  } catch (e) {
+    logDashboardKpiFailure('Profissionais', e);
+    throw e;
+  }
 }
 
 async function fetchWaitlistActiveTotal() {
-  const { data } = await api.get<PaginatedResponse<WaitlistEntry>>('/api/v1/waitlist', {
-    params: { page: 1, limit: 1, status: 'active' },
-  });
-  return data.total;
+  try {
+    const { data } = await api.get<PaginatedResponse<WaitlistEntry>>('/api/v1/waitlist', {
+      params: { page: 1, limit: 1, status: 'active' },
+    });
+    return data.total;
+  } catch (e) {
+    logDashboardKpiFailure('Fila de espera (ativas)', e);
+    throw e;
+  }
 }
 
 async function fetchRecallCandidatesTotal() {
-  const { data } = await api.get<{ total: number }>('/api/v1/recall/candidates', {
-    params: { only_sendable: 'false', limit: 1, offset: 0 },
-  });
-  return data.total;
+  try {
+    const { data } = await api.get<{ total: number }>('/api/v1/recall/candidates', {
+      params: { only_sendable: 'false', limit: 1, offset: 0 },
+    });
+    return data.total;
+  } catch (e) {
+    logDashboardKpiFailure('Recall (candidatos)', e);
+    throw e;
+  }
 }
 
 async function fetchOutboxSummary() {
-  const { data } = await api.get<{ pending: number; dead: number }>(
-    '/api/v1/integrations/outbound/outbox-summary',
-  );
-  return data;
+  try {
+    const { data } = await api.get<{ pending: number; dead: number }>(
+      '/api/v1/integrations/outbound/outbox-summary',
+    );
+    return data;
+  } catch (e) {
+    logDashboardKpiFailure('Outbox', e);
+    throw e;
+  }
 }
 
 async function fetchTodayRevenueCents() {
   const date = format(new Date(), 'yyyy-MM-dd');
-  const { data } = await api.get<{ revenue?: { grand_total_cents?: number } }>('/api/v1/finance/reports/daily', {
-    params: { date },
-  });
-  return data.revenue?.grand_total_cents ?? null;
+  try {
+    const { data } = await api.get<{ revenue?: { grand_total_cents?: number } }>('/api/v1/finance/reports/daily', {
+      params: { date },
+    });
+    return data.revenue?.grand_total_cents ?? null;
+  } catch (e) {
+    logDashboardKpiFailure('Receita hoje (relatório)', e);
+    throw e;
+  }
 }
 
 async function fetchCommissionPendingTotal() {
-  const { data } = await api.get<PaginatedResponse<CommissionEntryRow>>('/api/v1/commission/entries', {
-    params: { status: 'pending', limit: 1, page: 1 },
-  });
-  return data.total;
+  try {
+    const { data } = await api.get<PaginatedResponse<CommissionEntryRow>>('/api/v1/commission/entries', {
+      params: { status: 'pending', limit: 1, page: 1 },
+    });
+    return data.total;
+  } catch (e) {
+    logDashboardKpiFailure('Comissão pendente', e);
+    throw e;
+  }
 }
 
 function greeting() {
@@ -173,70 +227,83 @@ export function DashboardPage() {
   const kpis = [
     {
       label: 'Agendamentos hoje',
-      value: todayQ.data?.total ?? '—',
+      value: todayQ.isError ? '—' : (todayQ.data?.total ?? '—'),
+      valueTitle: todayQ.isError ? 'Indicador indisponível — ver consola (F12).' : undefined,
       icon: CalendarDays,
       color: 'text-blue-600',
       bg: 'bg-blue-50',
     },
     {
       label: 'Clientes',
-      value: clientesQ.data ?? '—',
+      value: clientesQ.isError ? '—' : (clientesQ.data ?? '—'),
+      valueTitle: clientesQ.isError ? 'Indicador indisponível — ver consola (F12).' : undefined,
       icon: Users,
       color: 'text-violet-600',
       bg: 'bg-violet-50',
     },
     {
       label: 'Profissionais',
-      value: profQ.data ?? '—',
+      value: profQ.isError ? '—' : (profQ.data ?? '—'),
+      valueTitle: profQ.isError ? 'Indicador indisponível — ver consola (F12).' : undefined,
       icon: User,
       color: 'text-green-600',
       bg: 'bg-green-50',
     },
     {
       label: 'Fila de espera (ativas)',
-      value: !waitlistKpiEnabled ? '—' : (waitQ.data ?? '—'),
+      value: !waitlistKpiEnabled ? '—' : waitQ.isError ? '—' : String(waitQ.data ?? 0),
+      valueTitle: waitlistKpiEnabled && waitQ.isError ? 'Indicador indisponível — ver consola (F12).' : undefined,
       icon: ListOrdered,
       color: 'text-orange-600',
       bg: 'bg-orange-50',
     },
     {
       label: 'No-show hoje',
-      value: !noShowEnabled ? '—' : noShowQ.isError ? 'erro' : (noShowQ.data ?? '—'),
+      value: !noShowEnabled ? '—' : noShowQ.isError ? '—' : String(noShowQ.data ?? 0),
+      valueTitle:
+        noShowEnabled && noShowQ.isError
+          ? 'Falha técnica ao obter dados — não é “zero real”. Ver consola (F12).'
+          : undefined,
       icon: UserX,
       color: 'text-rose-600',
       bg: 'bg-rose-50',
     },
     {
       label: 'Recall (candidatos)',
-      value: !recallEnabled ? '—' : recallQ.isError ? 'erro' : (recallQ.data ?? '—'),
+      value: !recallEnabled ? '—' : recallQ.isError ? '—' : String(recallQ.data ?? 0),
+      valueTitle: recallEnabled && recallQ.isError ? 'Indicador indisponível — ver consola (F12).' : undefined,
       icon: Radio,
       color: 'text-cyan-600',
       bg: 'bg-cyan-50',
     },
     {
       label: 'Outbox pendente',
-      value: !outboxEnabled ? '—' : outboxQ.isError ? 'erro' : (outboxQ.data?.pending ?? '—'),
+      value: !outboxEnabled ? '—' : outboxQ.isError ? '—' : String(outboxQ.data?.pending ?? 0),
+      valueTitle: outboxEnabled && outboxQ.isError ? 'Indicador indisponível — ver consola (F12).' : undefined,
       icon: Inbox,
       color: 'text-amber-700',
       bg: 'bg-amber-50',
     },
     {
       label: 'Outbox dead',
-      value: !outboxEnabled ? '—' : outboxQ.isError ? 'erro' : (outboxQ.data?.dead ?? '—'),
+      value: !outboxEnabled ? '—' : outboxQ.isError ? '—' : String(outboxQ.data?.dead ?? 0),
+      valueTitle: outboxEnabled && outboxQ.isError ? 'Indicador indisponível — ver consola (F12).' : undefined,
       icon: Inbox,
       color: 'text-red-700',
       bg: 'bg-red-50',
     },
     {
       label: 'Receita hoje (relatório)',
-      value: !revenueEnabled ? '—' : revenueQ.isError ? 'erro' : formatCentsBrl(revenueQ.data ?? undefined),
+      value: !revenueEnabled ? '—' : revenueQ.isError ? formatCentsBrl(null) : formatCentsBrl(revenueQ.data ?? undefined),
+      valueTitle: revenueEnabled && revenueQ.isError ? 'Indicador temporariamente indisponível' : undefined,
       icon: Wallet,
       color: 'text-emerald-700',
       bg: 'bg-emerald-50',
     },
     {
       label: 'Comissão pendente',
-      value: !commissionPendingEnabled ? '—' : commissionQ.isError ? 'erro' : (commissionQ.data ?? '—'),
+      value: !commissionPendingEnabled ? '—' : commissionQ.isError ? '—' : String(commissionQ.data ?? 0),
+      valueTitle: commissionPendingEnabled && commissionQ.isError ? 'Indicador indisponível — ver consola (F12).' : undefined,
       icon: Percent,
       color: 'text-indigo-700',
       bg: 'bg-indigo-50',
@@ -271,7 +338,9 @@ export function DashboardPage() {
               </div>
               <div className="flex flex-col gap-0.5">
                 <span className="text-sm text-muted-foreground">{k.label}</span>
-                <span className="text-2xl font-bold text-foreground">{k.value}</span>
+                <span className="text-2xl font-bold text-foreground" title={'valueTitle' in k ? k.valueTitle : undefined}>
+                  {k.value}
+                </span>
               </div>
             </div>
           ))}

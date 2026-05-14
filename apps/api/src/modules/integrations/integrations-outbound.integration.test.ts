@@ -114,16 +114,18 @@ describe.skipIf(!run)('integrations outbound → outbox', () => {
 
   it('idempotência ON CONFLICT não duplica linhas', async () => {
     const key = `idem-stable-${randomUUID().slice(0, 8)}`;
-    await enqueueIntegrationWhatsappText(
+    const r1 = await enqueueIntegrationWhatsappText(
       tenantA,
       { customer_id: customerA, text: 'dup', idempotency_key: key },
       undefined,
     );
-    await enqueueIntegrationWhatsappText(
+    expect(r1).toEqual({ ok: true, duplicate: false });
+    const r2 = await enqueueIntegrationWhatsappText(
       tenantA,
       { customer_id: customerA, text: 'dup2', idempotency_key: key },
       undefined,
     );
+    expect(r2).toEqual({ ok: true, duplicate: true });
     const c = await pool.connect();
     try {
       await withAppTenant(c, tenantA, async () => {
@@ -275,9 +277,39 @@ describe.skipIf(!run)('integrations outbound HTTP RBAC', () => {
       },
     });
     expect(res.statusCode).toBe(202);
-    expect(res.json()).toEqual({ ok: true });
+    expect(res.json()).toEqual({ ok: true, duplicate: false });
   });
 
+  it('segundo POST com mesma idempotency_key retorna 200 idempotente', async () => {
+    const app = await appPromise;
+    const token = await app.jwt.sign({
+      tenant_id: tenantA,
+      role: 'attendant',
+      jti: `jti-${randomUUID()}`,
+    });
+    const key = `idem-http-dup-${randomUUID().slice(0, 8)}`;
+    const payload = {
+      customer_id: customerA,
+      text: 'dup row',
+      idempotency_key: key,
+    };
+    const res1 = await app.inject({
+      method: 'POST',
+      url: '/api/v1/integrations/outbound/whatsapp-text',
+      headers: { authorization: `Bearer ${token}`, 'x-tenant-id': tenantA },
+      payload,
+    });
+    const res2 = await app.inject({
+      method: 'POST',
+      url: '/api/v1/integrations/outbound/whatsapp-text',
+      headers: { authorization: `Bearer ${token}`, 'x-tenant-id': tenantA },
+      payload: { ...payload, text: 'ignored body' },
+    });
+    expect(res1.statusCode).toBe(202);
+    expect(res1.json()).toEqual({ ok: true, duplicate: false });
+    expect(res2.statusCode).toBe(200);
+    expect(res2.json()).toEqual({ ok: true, duplicate: true });
+  });
   it('attendant recebe 403 em GET outbox-summary', async () => {
     const app = await appPromise;
     const token = await app.jwt.sign({

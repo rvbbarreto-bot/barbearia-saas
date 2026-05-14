@@ -1,0 +1,73 @@
+{
+  "info": {
+    "name": "QA - Testes Negativos e Ressalvas (P1)",
+    "description": "Complemento CT-020, CT-073, CT-073-B, CT-093, CT-100, CT-101 — não substitui a collection base.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "apiRoot", "value": "{{baseUrl}}/api/v1" },
+    { "key": "accessToken", "value": "" },
+    { "key": "tenantId", "value": "00000000-0000-0000-0000-000000000001" }
+  ],
+  "item": [
+    {
+      "name": "CT-020 GET services sem x-tenant-id",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+        ],
+        "url": "{{apiRoot}}/services?page=1&limit=5"
+      }
+    },
+    {
+      "name": "CT-073 POST appointment explicit_confirmation false (owner)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+          { "key": "x-tenant-id", "value": "{{tenantId}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"customer_id\": \"00000000-0000-4000-8000-000000004031\",\n  \"professional_id\": \"00000000-0000-4000-8000-000000004011\",\n  \"service_id\": \"00000000-0000-4000-8000-000000004021\",\n  \"starts_at\": \"2027-03-15T14:00:00.000Z\",\n  \"ends_at\": \"2027-03-15T14:30:00.000Z\",\n  \"source\": \"manual\",\n  \"idempotency_key\": \"postman-ct073-{{$guid}}\",\n  \"explicit_confirmation\": false,\n  \"notes\": \"P1 Postman\"\n}"
+        },
+        "url": "{{apiRoot}}/appointments"
+      }
+    },
+    {
+      "name": "CT-093 webhook duplicate external_message_id",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "x-webhook-instance", "value": "demo-qa-inbound" },
+          { "key": "x-webhook-token", "value": "demo_webhook_token_change_me" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"phone\": \"5511999999988\",\n  \"message\": \"dup\",\n  \"external_message_id\": \"postman-ct093-{{$guid}}\"\n}"
+        },
+        "url": "{{baseUrl}}/webhooks/whatsapp/inbound"
+      }
+    },
+    {
+      "name": "CT-100 Outbound duplicate idempotency_key",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+          { "key": "x-tenant-id", "value": "{{tenantId}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"customer_id\": \"00000000-0000-4000-8000-000000004031\",\n  \"text\": \"ct100\",\n  \"idempotency_key\": \"postman-ct100-fixed-key\"\n}"
+        },
+        "url": "{{apiRoot}}/integrations/outbound/whatsapp-text"
+      }
+    }
+  ]
+}

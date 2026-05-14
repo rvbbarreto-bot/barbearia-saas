@@ -8,14 +8,21 @@ export const openApiDocument = {
     title: 'Barbearia SaaS — Core API',
     version: '0.1.0',
     description:
-      'API multi-tenant. Autenticação: Bearer JWT. Tenant: cabeçalho `x-tenant-id` alinhado ao token. ' +
-      'Ambiente DEV/QA. Flags: RECALL_ENABLED, WAITLIST_*, PIX_REAL_PROVIDER_ENABLED. ' +
+      'API multi-tenant. Autenticação: Bearer JWT. **Resolução de tenant (CT-020):** (1) se `x-tenant-id` estiver presente (não vazio), prevalece; (2) senão, usa-se o `tenant_id` do JWT; (3) se ambos existirem e divergirem → **403** `TENANT_MISMATCH`; (4) se nenhum existir → **401** `TENANT_REQUIRED`. ' +
+      'Recomenda-se enviar sempre `x-tenant-id` em integrações. ' +
+      'Ambiente DEV/QA. Flags: RECALL_ENABLED, WAITLIST_*, PIX_REAL_PROVIDER_ENABLED, OUTBOX_FORCE_SEND_FAILURE (simulação de falha de provider). ' +
       'Limites de plano (`plan_limits`): ver docs/ADR_PLAN_LIMITS_DEVQA_07.md e docs/ADR_PLAN_LIMITS_ENFORCEMENT.md.',
   },
   servers: [{ url: 'http://localhost:3000', description: 'Local (ajustar PORT)' }],
   tags: [
     { name: 'auth', description: 'Login, refresh (público controlado por rate limit)' },
     { name: 'me', description: 'Perfil do utilizador autenticado' },
+    {
+      name: 'tenants',
+      description:
+        '`GET|POST /tenants` lista/cria tenants globalmente — apenas `platform_admin`; **sem obrigatoriedade de** `x-tenant-id`. ' +
+        '`GET /tenants/current` e `GET /tenants/{id}` são tenant-scoped (exigem contexto de tenant).',
+    },
     { name: 'users', description: 'Gestão de utilizadores do tenant (RBAC tenant_admin+)' },
     { name: 'services', description: 'Catálogo de serviços' },
     { name: 'health', description: 'Liveness / readiness' },
@@ -37,7 +44,8 @@ export const openApiDocument = {
         type: 'apiKey',
         in: 'header',
         name: 'x-tenant-id',
-        description: 'UUID do tenant; deve coincidir com o JWT.',
+        description:
+          'UUID do tenant. **Prioridade:** quando presente (não vazio), o servidor usa este valor; caso contrário infere do JWT. Se ambos existirem e divergirem → **403** `TENANT_MISMATCH`.',
       },
     },
     schemas: {
@@ -56,9 +64,9 @@ export const openApiDocument = {
     '/auth/login': {
       post: {
         tags: ['auth'],
-        summary: 'Autenticação (tenant explícito)',
+        summary: 'Autenticação (tenant opcional)',
         description:
-          'Corpo: `email`, `password`, `tenant_id` (UUID). Devolve access/refresh JWT. Rate limit aplicado.',
+          'Corpo: `email`, `password`, e opcionalmente `tenant_id` (UUID). Se `tenant_id` for omitido e existir um único utilizador ativo para o e-mail, o tenant é inferido; se existirem vários tenants para o mesmo e-mail, resposta 400 `TENANT_REQUIRED`. Não enviar `tenant_id` como string vazia.',
         security: [],
         requestBody: {
           required: true,
@@ -66,11 +74,11 @@ export const openApiDocument = {
             'application/json': {
               schema: {
                 type: 'object',
-                required: ['email', 'password', 'tenant_id'],
+                required: ['email', 'password'],
                 properties: {
                   email: { type: 'string', format: 'email' },
                   password: { type: 'string', minLength: 8 },
-                  tenant_id: { type: 'string', format: 'uuid' },
+                  tenant_id: { type: 'string', format: 'uuid', description: 'Opcional — obrigatório quando o e-mail existe em mais de um tenant.' },
                 },
               },
             },
@@ -78,6 +86,7 @@ export const openApiDocument = {
         },
         responses: {
           '200': { description: 'tokens + user' },
+          '400': { description: 'TENANT_REQUIRED ou validação', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } },
           '401': { description: 'INVALID_CREDENTIALS', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } },
           '429': { description: 'ACCOUNT_LOCKED' },
         },
@@ -140,6 +149,14 @@ export const openApiDocument = {
         responses: { '201': { description: 'Criado' } },
       },
     },
+    '/health': {
+      get: {
+        tags: ['health'],
+        summary: 'Liveness simples',
+        security: [],
+        responses: { '200': { description: 'OK' } },
+      },
+    },
     '/health/live': {
       get: {
         tags: ['health'],
@@ -156,6 +173,17 @@ export const openApiDocument = {
         responses: {
           '200': { description: 'OK' },
           '503': { description: 'Degradado', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } },
+        },
+      },
+    },
+    '/database/health': {
+      get: {
+        tags: ['health'],
+        summary: 'Saúde apenas PostgreSQL',
+        security: [],
+        responses: {
+          '200': { description: 'Base de dados acessível' },
+          '503': { description: 'Indisponível', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } },
         },
       },
     },
@@ -188,15 +216,185 @@ export const openApiDocument = {
       post: {
         tags: ['appointments'],
         summary: 'Criar agendamento',
+        description:
+          'RBAC: `appointments.create`. Campo `explicit_confirmation` (boolean): com `true`, o fluxo típico fica em `awaiting_confirmation` até confirmação explícita. ' +
+          'Com `false`, **criação administrativa / walk-in** sem confirmação explícita do cliente: permitido apenas para `tenant_admin`+ em `source` ≠ `walk_in`, ou `walk_in` com `attendant`+ (perfil `professional` bloqueado com `false`). Ver `docs/DECISAO_PRODUTO_CT073_EXPLICIT_CONFIRMATION.md`.',
         requestBody: {
           required: true,
           content: { 'application/json': { schema: { type: 'object', additionalProperties: true } } },
         },
         responses: {
           '201': { description: 'Criado' },
-          '400': { description: 'Validação / conflito de slot' },
+          '400': { description: 'Validação' },
           '401': { description: 'Não autenticado' },
+          '403': { description: 'FORBIDDEN (ex.: confirmação imediata sem perfil adequado)' },
+          '404': { description: 'CUSTOMER_NOT_FOUND / recurso de catálogo inexistente' },
+          '409': { description: 'SLOT_UNAVAILABLE / DUPLICATE_IDEMPOTENCY_KEY' },
+          '422': { description: 'APPOINTMENT_IN_PAST / restrições de cliente' },
         },
+      },
+    },
+    '/api/v1/appointments/{appointmentId}': {
+      get: {
+        tags: ['appointments'],
+        summary: 'Obter agendamento por ID',
+        description: 'RBAC: `appointments.read` (mín. `viewer`). Mesmo payload enriquecido que na listagem.',
+        parameters: [{ name: 'appointmentId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        responses: {
+          '200': { description: 'Agendamento' },
+          '401': { description: 'Não autenticado' },
+          '404': { description: 'APPOINTMENT_NOT_FOUND' },
+        },
+        security: [{ bearerAuth: [], tenantHeader: [] }],
+      },
+    },
+    '/api/v1/appointments/{appointmentId}/confirm': {
+      patch: {
+        tags: ['appointments'],
+        summary: 'Confirmar agendamento',
+        description: 'RBAC: `appointments.confirm` (mín. `attendant`). Corpo vazio `{}`.',
+        parameters: [{ name: 'appointmentId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        responses: {
+          '200': { description: 'Atualizado' },
+          '401': { description: 'Não autenticado' },
+          '403': { description: 'Sem permissão' },
+          '404': { description: 'APPOINTMENT_NOT_FOUND' },
+          '409': { description: 'Transição de estado inválida' },
+        },
+        security: [{ bearerAuth: [], tenantHeader: [] }],
+      },
+    },
+    '/api/v1/appointments/{appointmentId}/reschedule': {
+      patch: {
+        tags: ['appointments'],
+        summary: 'Remarcar agendamento',
+        description: 'RBAC: `appointments.reschedule` (mín. `attendant`). Corpo JSON: `starts_at`, `ends_at`, `reason`.',
+        parameters: [{ name: 'appointmentId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['starts_at', 'ends_at', 'reason'],
+                properties: {
+                  starts_at: { type: 'string', format: 'date-time' },
+                  ends_at: { type: 'string', format: 'date-time' },
+                  reason: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          '200': { description: 'Atualizado' },
+          '400': { description: 'Validação' },
+          '401': { description: 'Não autenticado' },
+          '403': { description: 'Sem permissão' },
+          '404': { description: 'APPOINTMENT_NOT_FOUND' },
+          '409': { description: 'Conflito de slot / estado' },
+        },
+        security: [{ bearerAuth: [], tenantHeader: [] }],
+      },
+    },
+    '/api/v1/appointments/{appointmentId}/cancel': {
+      patch: {
+        tags: ['appointments'],
+        summary: 'Cancelar agendamento',
+        description: 'RBAC: `appointments.cancel` (mín. `attendant`). Corpo JSON: `reason` (obrigatório).',
+        parameters: [{ name: 'appointmentId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { type: 'object', required: ['reason'], properties: { reason: { type: 'string' } } },
+            },
+          },
+        },
+        responses: {
+          '200': { description: 'Cancelado' },
+          '401': { description: 'Não autenticado' },
+          '403': { description: 'Sem permissão' },
+          '404': { description: 'APPOINTMENT_NOT_FOUND' },
+          '409': { description: 'Transição inválida' },
+        },
+        security: [{ bearerAuth: [], tenantHeader: [] }],
+      },
+    },
+    '/api/v1/appointments/{appointmentId}/history': {
+      get: {
+        tags: ['appointments'],
+        summary: 'Histórico de eventos do agendamento',
+        parameters: [{ name: 'appointmentId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        responses: { '200': { description: 'Lista de eventos' }, '404': { description: 'APPOINTMENT_NOT_FOUND' } },
+        security: [{ bearerAuth: [], tenantHeader: [] }],
+      },
+    },
+    '/api/v1/appointments/{appointmentId}/status-history': {
+      get: {
+        tags: ['appointments'],
+        summary: 'Histórico de estados do agendamento',
+        parameters: [{ name: 'appointmentId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        responses: { '200': { description: 'Lista' }, '404': { description: 'APPOINTMENT_NOT_FOUND' } },
+        security: [{ bearerAuth: [], tenantHeader: [] }],
+      },
+    },
+    '/api/v1/tenants': {
+      get: {
+        tags: ['tenants'],
+        summary: 'Listar todos os tenants (plataforma)',
+        description:
+          'Rota **platform-scoped**: apenas `platform_admin` → **200**; `tenant_owner` e demais perfis tenant → **403**. ' +
+          '**Não exige** `x-tenant-id`. JWT pode ter `tenant_id` null. Se enviar `x-tenant-id` e o JWT tiver `tenant_id` diferente, **403** `TENANT_MISMATCH`.',
+        responses: {
+          '200': { description: 'Lista paginada' },
+          '401': { description: 'Não autenticado' },
+          '403': { description: 'FORBIDDEN ou TENANT_MISMATCH' },
+        },
+        security: [{ bearerAuth: [] }],
+      },
+      post: {
+        tags: ['tenants'],
+        summary: 'Criar tenant (plataforma)',
+        description: 'Apenas `platform_admin`. **Não exige** `x-tenant-id` (rota platform-scoped).',
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { type: 'object', additionalProperties: true } } },
+        },
+        responses: {
+          '201': { description: 'Criado' },
+          '401': { description: 'Não autenticado' },
+          '403': { description: 'Sem papel' },
+        },
+        security: [{ bearerAuth: [] }],
+      },
+    },
+    '/api/v1/tenants/current': {
+      get: {
+        tags: ['tenants'],
+        summary: 'Tenant atual (JWT / x-tenant-id)',
+        description: 'Mínimo `tenant_admin` (inclui `tenant_owner`). Devolve o tenant do contexto autenticado.',
+        responses: {
+          '200': { description: 'Tenant' },
+          '401': { description: 'Não autenticado' },
+          '403': { description: 'Papel insuficiente' },
+        },
+        security: [{ bearerAuth: [], tenantHeader: [] }],
+      },
+    },
+    '/api/v1/tenants/{tenantId}': {
+      get: {
+        tags: ['tenants'],
+        summary: 'Obter tenant por UUID',
+        description:
+          'Mínimo `tenant_admin`. `tenantId` na rota deve coincidir com `tenant_id` do JWT (salvo `platform_admin`).',
+        parameters: [{ name: 'tenantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        responses: {
+          '200': { description: 'Tenant' },
+          '401': { description: 'Não autenticado' },
+          '403': { description: 'Acesso negado ao tenant' },
+        },
+        security: [{ bearerAuth: [], tenantHeader: [] }],
       },
     },
     '/api/v1/waitlist': {
@@ -337,7 +535,8 @@ export const openApiDocument = {
         tags: ['integrations'],
         summary: 'Enfileirar texto WhatsApp (outbox)',
         description:
-          'RBAC: `integrations.enqueueOutbound` (mín. attendant). Enfileira `message_outbox` com status `pending`; **não** envia WhatsApp síncrono nem chama Evolution a partir deste handler.',
+          'RBAC: `integrations.enqueueOutbound` (mín. attendant). Enfileira `message_outbox` com status `pending`; **não** envia WhatsApp síncrono nem chama Evolution a partir deste handler. ' +
+          '**Idempotência (CT-100):** com `idempotency_key` repetida, a primeira resposta é **202** `{ ok, duplicate: false }`; repetições com a mesma chave → **200** `{ ok, duplicate: true }` (sem nova linha nem reenvio).',
         requestBody: {
           required: true,
           content: {
@@ -356,7 +555,8 @@ export const openApiDocument = {
           },
         },
         responses: {
-          '202': { description: '{ ok: true } — mensagem aceita para processamento assíncrono' },
+          '202': { description: 'Mensagem aceite (nova linha no outbox)' },
+          '200': { description: 'Idempotente: mesma `idempotency_key` já processada — `{ ok: true, duplicate: true }`' },
           '401': { description: 'Não autenticado' },
           '403': { description: 'Sem permissão (ex.: viewer)' },
           '422': { description: 'INTEGRATION_NO_ROUTING — sem telefone/integração' },

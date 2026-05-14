@@ -1,0 +1,15 @@
+{
+  "name": "barbearia-saas",
+  "private": true,
+  "description": "Monorepo portal (apps/web) + API (apps/api). Sem scripts npm na raiz até esta pasta — ver docs/QA_AMBIENTE_LOCAL.md.",
+  "scripts": {
+    "dev": "node ./scripts/npm-root-dev-hint.cjs",
+    "dev:web": "npm run dev --prefix apps/web",
+    "dev:api": "npm run dev --prefix apps/api",
+    "install:all": "npm install --prefix apps/api && npm install --prefix apps/web",
+    "compose:config": "docker compose config",
+    "compose:up": "docker compose up -d --build",
+    "compose:down": "docker compose down",
+    "compose:ps": "docker compose ps"
+  }
+}
