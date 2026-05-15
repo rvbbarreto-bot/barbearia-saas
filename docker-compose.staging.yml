@@ -54,6 +54,27 @@ services:
       - "traefik.http.routers.api.tls=true"
       - "traefik.http.routers.api.tls.certresolver=letsencrypt"
 
+  # WEB_IMAGE obrigatório: tag semver (ex. ghcr.io/org/barbearia-web:0.4.2). Nginx serve SPA + proxy /api → api:3000.
+  web:
+    image: ${WEB_IMAGE:?Set WEB_IMAGE to a versioned container image (semver tag). Silent :latest fallback is not allowed for staging.}
+    container_name: barbearia-web-staging
+    restart: unless-stopped
+    networks: [barbearia]
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1/ >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.web.rule=Host(`${WEB_HOST}`)"
+      - "traefik.http.routers.web.tls=true"
+      - "traefik.http.routers.web.tls.certresolver=letsencrypt"
+
   n8n:
     image: n8nio/n8n:1.91.3
     container_name: barbearia-n8n-staging
@@ -77,6 +98,11 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.n8n.rule=Host(`${N8N_HOST}`)"
+      - "traefik.http.routers.n8n.tls=true"
+      - "traefik.http.routers.n8n.tls.certresolver=letsencrypt"
 
   backup:
     image: postgres:16-alpine
