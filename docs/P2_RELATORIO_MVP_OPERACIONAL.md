@@ -1,6 +1,6 @@
 # P2 — Relatório MVP operacional (piloto controlado)
 
-**Estado:** arranque formal da fase — baseline registado; implementação dos blocos A–J em curso conforme brief do PO.
+**Estado:** **P2.1 fechada tecnicamente** (ver §7.3); **P2.2** (portal web operacional) autorizada a arrancar a partir do baseline **§9**. A fase P2 global (blocos A–J) continua em curso até fecho formal pelo PO.
 
 **Branch:** `feature/p2-operational-mvp-pilot`
 
@@ -147,27 +147,50 @@ Esta fase **não** constitui homologação final de produção ou piloto comerci
 
 ---
 
-## 7. Marco P2.1 — decisão PO (APROVADO COM RESSALVAS)
+## 7. Marco P2.1 — decisões PO
+
+**Fecho técnico P2.1:** **§7.3** (HEAD final **`13cdd17835c9525290107a3ed36fb46fde30cc3c`**). A subsecção **§7.1** conserva o registo histórico da primeira decisão (com ressalvas).
+
+### 7.1 Primeira decisão PO (com ressalvas — histórico)
 
 **Data de registo (documentação):** 2026-05-14.
 
 - **Decisão:** aprovado com ressalvas obrigatórias; **não** representa fecho completo da P2, homologação final nem liberação de piloto.
 - **Pontos aprovados (resumo):** correção do mock `isOutboxForceSendFailureRuntime`; `npm run test:unit` na API (140 testes); bateria `scripts/qa-api-p2-operational-battery.ps1` com exit `0`; `docs/QA_API_P2_OPERATIONAL_RESULTS.csv` atualizado; correção do 500 em POST de time-blocks via migrations **103** e **104**; RBAC no-show com exclusão de `professional`; ajuste em `AppointmentDrawer.tsx`; `rbac.test.ts`, OpenAPI e `P2_APPOINTMENT_LIFECYCLE.md`; `npm run typecheck` no Web; commit de referência da entrega funcional **`a30b0fcd40049cd863f8769a4267a4d3de256e57`**. Fecho das ressalvas obrigatórias (fluxo de migrations, runbook, evidências neste relatório): **`9ffc7ba972adae420522069f6f32ae439a839b3d`**, refresh do CSV de QA **`d19dc8461e1b7cfeb03fa71be3fb78706fa9c512`** (base do snapshot operacional em §8); commits posteriores podem ser só documentais — ver `git log`.
 
-### 7.1 Ressalvas atendidas nesta versão do repositório
+### 7.2 Ressalvas atendidas nesta versão do repositório
 
 1. **Migrations 103/104 sem `docker exec` manual por ambiente:** fluxo oficial versionado — `npm run db:migrate` (`scripts/migrate-docker.mjs`, mesma tabela `_migrations` que `migrate.sh`) ou `./migrate.sh` com `psql` local; **`npm run db:migrate:backfill -- --through …`** quando o volume veio só do `initdb` e `_migrations` está vazia (ver `README.md`). Documentado em `README.md`, `docs/P2_QA_EXECUCAO.md`, `docs/P2_RUNBOOK_SUPORTE.md` (bloco **«Primeiro deploy após P2.1»**).
 2. **Relatório:** evidências operacionais em **§8** (git, compose, health, logs, QA). **Working tree:** ver nota em §8.6 — distinguir ficheiros rastreados vs ignorados/local-only.
 
-### 7.2 Próximo passo (PO)
+### 7.3 Fecho técnico P2.1 — decisão PO (aprovação para fechamento)
 
-Consolidar migrations/runbook em todos os ambientes; avançar **P2.2** — portal web operacional consumindo appointments, time-blocks, no-show, cancelamento/remarcação e availability.
+**Data de registo:** 2026-05-14.
+
+- **Decisão:** P2.1 **aprovada para fechamento técnico**. As ressalvas anteriores foram tratadas de forma satisfatória.
+- **Commit funcional P2.1 (implementação):** **`a30b0fcd40049cd863f8769a4267a4d3de256e57`**.
+- **HEAD final da P2.1** na branch `feature/p2-operational-mvp-pilot` (funcional + documentação / governança até ao fecho do relatório): **`13cdd17835c9525290107a3ed36fb46fde30cc3c`**.
+- **Working tree:** na fábrica, `git status` **limpo** para ficheiros rastreados no momento do registo do baseline **§9** (confirmar em cada clone antes de iniciar P2.2).
+
+**Pontos aprovados (síntese PO):** (1) `scripts/migrate-docker.mjs`; (2) `npm run db:migrate`, `db:migrate:dry-run`, `db:migrate:seed`, `db:migrate:backfill`; (3) backfill do registo de migrations para volumes antigos criados via `initdb`; (4) `migrate.sh` a apontar para o fluxo oficial; (5) README com «Primeiro deploy após P2.1»; (6) `docs/P2_RUNBOOK_SUPORTE.md` e `docs/P2_QA_EXECUCAO.md`; (7) relatório P2 com decisão PO, evidências, logs, health, database health, `docker compose ps` e QA exit `0`; (8) CSV da bateria QA P2.1; (9) clarificação de working tree limpo para ficheiros rastreados; (10) manutenção do commit funcional **a30b0fc** e da documentação até ao HEAD **13cdd17**.
+
+**Observações de controlo (operador):**
+
+- **`db:migrate:backfill`** apenas quando o operador **confirmar** que as migrations anteriores ao limite `--through` estão **fisicamente** reflectidas no banco.
+- Em **cada ambiente**, após `migration` / `backfill`: **smoke técnico** e **QA aplicável**.
+- Esta aprovação **fecha a P2.1**; **não** representa aprovação da P2 completa, homologação final, produção nem piloto comercial.
+
+**Autorizado:** avançar para **P2.2** — portal web operacional a consumir appointments, time-blocks, no-show, cancelamento, remarcação e availability. **Baseline de código:** **§9**.
+
+### 7.4 Encaminhamento (pós-P2.1)
+
+Manter runbooks e fluxo de migrations em todos os ambientes; executar **§9** como ponto de partida antes do primeiro commit P2.2.
 
 ---
 
 ## 8. Evidências anexas — snapshot P2.1 (fábrica)
 
-Stack (Docker, health, logs, bateria QA) capturada na mesma sessão em que o repositório estava no commit **`d19dc8461e1b7cfeb03fa71be3fb78706fa9c512`** (`chore(qa): refresh P2 operational battery CSV`). Ordem de integração na branch: **`a30b0fcd40049cd863f8769a4267a4d3de256e57`** (feat P2.1) → **`9ffc7ba972adae420522069f6f32ae439a839b3d`** (fluxo `npm run db:migrate` + backfill + runbooks) → **`d19dc8461e1b7cfeb03fa71be3fb78706fa9c512`** (CSV QA; base do snapshot §8) → commits posteriores possivelmente só documentais (ver `git log`). Para o **tip** actual execute na raiz `git log -1` e `git rev-parse HEAD`.
+Stack (Docker, health, logs, bateria QA) capturada na mesma sessão em que o repositório estava no commit **`d19dc8461e1b7cfeb03fa71be3fb78706fa9c512`** (`chore(qa): refresh P2 operational battery CSV`). Ordem de integração na branch: **`a30b0fcd40049cd863f8769a4267a4d3de256e57`** (feat P2.1) → **`9ffc7ba972adae420522069f6f32ae439a839b3d`** (fluxo `npm run db:migrate` + backfill + runbooks) → **`d19dc8461e1b7cfeb03fa71be3fb78706fa9c512`** (CSV QA; base do snapshot §8) → commits de documentação até **`13cdd17835c9525290107a3ed36fb46fde30cc3c`** (HEAD final P2.1; baseline P2.2 em **§9**). Para o **tip** num clone, execute `git log -1` e `git rev-parse HEAD`.
 
 ### 8.1 `git log -1` (congelado no commit da bateria QA)
 
@@ -242,3 +265,38 @@ CSV escrito: C:\Users\Ricardo\OneDrive\Empresas Ricardo\Exeq\Projeto_Barbearia_V
 Bateria P2.1: OK.
 EXIT_CODE=0
 ```
+
+---
+
+## 9. P2.2 — baseline de arranque (ponto de partida)
+
+Registo na **fábrica** imediatamente antes de iniciar desenvolvimento **P2.2** (portal web operacional). Branch: **`feature/p2-operational-mvp-pilot`**.
+
+### 9.1 `git rev-parse HEAD`
+
+```
+13cdd17835c9525290107a3ed36fb46fde30cc3c
+```
+
+### 9.2 `git log -1`
+
+```
+commit 13cdd17835c9525290107a3ed36fb46fde30cc3c
+Author:     Barbearia SaaS P0 <dev@barbearia-saas.local>
+AuthorDate: Thu May 14 22:11:23 2026 -0300
+Commit:     Barbearia SaaS P0 <dev@barbearia-saas.local>
+CommitDate: Thu May 14 22:11:23 2026 -0300
+
+    docs(p2): fix commit order note in relatório §8 intro
+    
+    Co-authored-by: Cursor <cursoragent@cursor.com>
+```
+
+### 9.3 `git status`
+
+```
+On branch feature/p2-operational-mvp-pilot
+nothing to commit, working tree clean
+```
+
+**Referência de implementação P2.1 (API / regras):** commit **`a30b0fcd40049cd863f8769a4267a4d3de256e57`**. Evidências de stack e bateria QA no estado congelado em **§8**.
