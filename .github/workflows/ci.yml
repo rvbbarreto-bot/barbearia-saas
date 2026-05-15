@@ -2,7 +2,11 @@ name: CI
 
 on:
   push:
-    branches: [main, develop]
+    branches:
+      - main
+      - develop
+      # Piloto P2.2: CI na branch de entrega até PR mergeado em develop
+      - feature/p2-2-web-outbox-whatsapp-operational
   pull_request:
     branches: [main, develop]
 

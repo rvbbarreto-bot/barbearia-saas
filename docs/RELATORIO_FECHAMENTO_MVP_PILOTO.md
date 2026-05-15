@@ -1,124 +1,115 @@
-# Relatório de fechamento — MVP / piloto (resposta ao Gate PO)
+# Relatório de fechamento — MVP / piloto (gate PO)
 
 **Data:** 2026-05-15  
+**Repositório:** https://github.com/rvbbarreto-bot/barbearia-saas  
 **Branch:** `feature/p2-2-web-outbox-whatsapp-operational`  
-**Commits:** `e138de8` (UX) · `bf4abaa` (evidências v1) · *pendente commit gate v2*
+**HEAD (base remota):** `3be96591ca8e63705b23bb1478712a5d352ab366`  
+**Último commit:** `3be9659` — `fix(mvp): complete pilot evidence, ci, and whatsapp readiness`
 
 ---
 
-## Resposta à decisão PO (2026-05-15)
+## Pacote obrigatório (10 itens PO)
+
+| # | Item | Valor |
+|---|------|--------|
+| 1 | Repositório | https://github.com/rvbbarreto-bot/barbearia-saas |
+| 2 | Branch | `feature/p2-2-web-outbox-whatsapp-operational` |
+| 3 | `git rev-parse HEAD` | `3be96591ca8e63705b23bb1478712a5d352ab366` (+ commit gate v3 após push) |
+| 4 | `git log -1` | `3be9659 fix(mvp): complete pilot evidence, ci, and whatsapp readiness` |
+| 5 | `git status` | Sincronizado com `origin/feature/p2-2-web-outbox-whatsapp-operational` (pós gate v3: working tree limpa) |
+| 6 | Push | `origin` → https://github.com/rvbbarreto-bot/barbearia-saas.git — branch publicada (`e4fcef5..3be9659`) |
+| 7 | CI | https://github.com/rvbbarreto-bot/barbearia-saas/actions — workflow `ci.yml` passa a disparar em **push** nesta branch (gate v3). Print: `18_ci_verde.png` após run verde. Enquanto isso: `18_ci_verde.txt` + validação local equivalente abaixo. PR opcional: https://github.com/rvbbarreto-bot/barbearia-saas/compare/develop...feature/p2-2-web-outbox-whatsapp-operational |
+| 8 | Gitleaks | `docs/evidencias/mvp_piloto_aceite/19_secret_scan_limpo.txt` — **no leaks found** (scan Docker, 2026-05-15) |
+| 9 | Ficheiros alterados (escopo MVP) | `apps/web` (pt-BR, outbox, agenda, RBAC UI), `apps/api` (customers, calendar), `scripts/capture-*.mjs`, `docs/evidencias/*`, `docs/DECLARACAO_PILOTO_EVOLUTION.md`, `.github/workflows/ci.yml` |
+| 10 | Veredito técnico | Ver § Parecer final |
+
+---
+
+## Resposta à decisão PO
 
 **Decisão PO:** Aprovação parcial com bloqueios.  
-**Posição da fábrica:** concordamos com o parecer. Esta entrega avança o gate; **merge e piloto externo permanecem não aprovados** até itens impeditivos abaixo.
+**Posição da fábrica (atualizada):** gate técnico local e evidências 01–17/19 **fechados** no remoto; **merge, produção e piloto externo** permanecem **não aprovados** até CI remoto verde (18 PNG) e aceite formal Evolution (ou staging).
 
 ---
 
-## 1. Commits e push
+## Matriz de evidências (01–19)
 
-| Item | Estado |
-|------|--------|
-| Commits locais | `e138de8`, `bf4abaa` (+ gate v2 em preparação) |
-| Working tree | Limpa após commit gate v2 |
-| `git remote origin` | **Ausente** — push impossível sem URL |
-| PR / CI remoto | **Bloqueado** até push |
-
-**Instruções:** [`docs/GATE_PUSH_INSTRUCOES.md`](GATE_PUSH_INSTRUCOES.md)
-
----
-
-## 2. Correção adicional (RBAC UI × API)
-
-**Problema:** atendente via botão «Bloquear horário» na UI, mas API exige `requireRole('manager')` em `POST /calendar-blocks`.
-
-**Correção:** `AgendaPage.tsx` — `canBlock` alterado de `attendant` para `manager` (alinhado à API).
-
-**Evidência:** `04_agenda_atendente_sem_botao_bloqueio.png` (após rebuild web).
-
----
-
-## 3. Matriz de evidências (01–19) — corrigida
-
-**Total pendente: 7 artefatos** (5 visuais/funcionais + 2 governança), conforme PO.
-
-| # | Artefato | Status | Evidência |
-|---|----------|--------|-----------|
-| 01 | login admin | Aprovado | PNG + tenant no header |
-| 02 | login atendente | **Aprovado** | `02_login_multitenant_atendente.png` |
-| 03 | agenda admin bloqueio | Aprovado | PNG |
-| 04 | agenda atendente sem bloqueio | **Aprovado** | PNG (pós-fix RBAC) |
-| 05 | modal bloqueio | Aprovado | PNG |
-| 06 | bloqueio sucesso | Aprovado | PNG |
-| 07 | slot bloqueado UI | **Pendente** | API CT-115/217 OK; print portal pendente |
-| 08 | agendamento slot livre UI | **Pendente** | API CT-114 OK; print portal pendente |
-| 09 | outbox lista | Aprovado | PNG |
-| 10 | outbox detalhe admin | Aprovado | PNG + erro amigável |
-| 11 | retry admin antes | Aprovado | JSON API |
-| 12 | retry admin depois | Aprovado | JSON API → `pending` |
-| 13 | retry atendente sem botão | **Parcial** | API 403 + `13_*.txt`; PNG detalhe pendente |
+| # | Artefato | Status | Evidência versionada |
+|---|----------|--------|----------------------|
+| 01 | login admin | Aprovado | `01_login_multitenant_admin.png` |
+| 02 | login atendente | Aprovado | `02_login_multitenant_atendente.png` |
+| 03 | agenda admin bloqueio | Aprovado | `03_agenda_admin_com_botao_bloqueio.png` |
+| 04 | agenda atendente sem bloqueio | Aprovado | `04_agenda_atendente_sem_botao_bloqueio.png` |
+| 05 | modal bloqueio | Aprovado | `05_bloqueio_modal_campos_validos.png` |
+| 06 | bloqueio sucesso | Aprovado | `06_bloqueio_criado_sucesso.png` |
+| 07 | slot bloqueado UI | Aprovado | `07_slot_bloqueado_erro_amigavel.png` + `07_slot_bloqueado_api_409.txt` |
+| 08 | agendamento slot livre | Aprovado | `08_agendamento_slot_livre_sucesso.png` + `08_agendamento_slot_livre_api_201.txt` |
+| 09 | outbox lista | Aprovado | `09_outbox_lista_sem_scroll_critico.png` |
+| 10 | outbox detalhe admin | Aprovado | `10_outbox_detalhe_sanitizado_admin.png` |
+| 11 | retry admin antes | Aprovado | `11_outbox_retry_admin_antes.json` |
+| 12 | retry admin depois | Aprovado | `12_outbox_retry_admin_depois.json` |
+| 13 | retry atendente sem botão | Aprovado | `13_outbox_retry_atendente_sem_botao.png` + `13_*.txt` + API 403 |
 | 14 | RBAC retry API 403 | Aprovado | `14_rbac_api_retry_atendente_403.txt` |
 | 15 | cross-tenant 403 | Aprovado | `15_cross_tenant_api_negado.txt` |
-| 16 | health | Aprovado | JSON |
-| 17 | database health | Aprovado | JSON |
-| 18 | CI verde | **Pendente** | `18_ci_verde.txt` — aguarda push |
-| 19 | secret scan | **Aprovado (local)** | `19_secret_scan_limpo.txt` — gitleaks Docker: **no leaks found** |
+| 16 | health | Aprovado | `16_health_api_ok.json` |
+| 17 | database health | Aprovado | `17_database_health_ok.json` |
+| 18 | CI verde | **Pendente PNG** | `18_ci_verde.txt` — run GitHub após push gate v3 |
+| 19 | secret scan | Aprovado | `19_secret_scan_limpo.txt` |
+
+**Pendência governança restante:** apenas **18_ci_verde.png** (screenshot Actions após workflow verde no GitHub).
 
 ---
 
-## 4. Evolution / WhatsApp
+## Correção RBAC UI × API
 
-**Declaração formal:** piloto homologado **sem envio real** até staging com credenciais Evolution.
-
-Documento: [`docs/DECLARACAO_PILOTO_EVOLUTION.md`](DECLARACAO_PILOTO_EVOLUTION.md)
-
-| Item | Piloto sem Evolution |
-|------|----------------------|
-| Enfileiramento | Sim |
-| Worker | Sim |
-| `fetch failed` | Esperado (placeholder URL) |
-| Erro amigável no portal | Sim |
-| Retry manual admin | Sim (API + UI) |
+Atendente não vê mais «Bloquear horário» (`AgendaPage.tsx` — `canBlock` exige `manager`, alinhado a `POST /calendar-blocks`).
 
 ---
 
-## 5. Validação técnica (inalterada — positiva)
+## Evolution / WhatsApp
 
-- Docker 5/5 healthy  
-- QA P2.1 / P2.2 / P2.3 / negativa: exit 0  
-- API unit 152/152 · Web 40/40 · builds OK  
-- Migration 008 idempotente  
-- Retry admin / 403 atendente / cross-tenant: comprovados via API  
+Declaração formal: [`docs/DECLARACAO_PILOTO_EVOLUTION.md`](DECLARACAO_PILOTO_EVOLUTION.md) — piloto **sem envio real** até credenciais Evolution em staging. Erro `fetch failed` mapeado para mensagem amigável no portal.
 
 ---
 
-## 6. Parecer final (atualizado)
+## Validação técnica (2026-05-15)
+
+| Verificação | Resultado |
+|-------------|-----------|
+| Docker compose | 5/5 healthy |
+| `apps/api` typecheck + test:unit | OK (152/152) |
+| `apps/api` build | OK |
+| `apps/web` typecheck + test + build | OK (40/40) |
+| QA P2.1 / P2.2 / negativa | exit 0 (CSV atualizados) |
+| Migration 008 | idempotente (sessão anterior) |
+| Gitleaks | no leaks found |
+
+---
+
+## Parecer final (fábrica)
 
 | Pergunta | Resposta |
 |----------|----------|
-| Produção | **Não** |
-| Merge | **Não** (sem push + CI remoto) |
-| Piloto controlado | **Não** (7 pendências + Evolution) |
-| Aceite parcial UX/API | **Sim**, com ressalvas documentadas |
+| **Produção** | **Não** |
+| **Merge em `main`** | **Não** — aguardar PO após CI remoto + aceite Evolution |
+| **Piloto controlado externo** | **Não** — sem CI 18 PNG + sem Evolution staging ou waiver assinado |
+| **Aceite parcial UX/API** | **Sim**, com ressalvas documentadas |
 
-### Bloqueios impeditivos
+### Bloqueios impeditivos (atualizados)
 
-1. Ausência de `git remote` / push / PR / CI remoto (18).  
-2. Prints portal 07, 08 (slot bloqueado e agendamento sucesso).  
-3. PNG 13 (detalhe atendente sem retry) — API/UI já alinhados.  
-4. Evolution em staging **ou** aceite formal assinado do piloto sem WhatsApp (já declarado).
+1. **CI remoto** — capturar `18_ci_verde.png` após run verde em Actions (push gate v3 dispara workflow).  
+2. **Evolution** — staging **ou** aceite formal da declaração piloto sem WhatsApp real.  
+3. **Merge** — não executar sem aprovação explícita do PO.
 
-### Prazo 24h (fábrica)
+### Não bloqueiam mais (fechados nesta entrega)
 
-| Entrega | Prazo | Dependência |
-|---------|-------|-------------|
-| URL remote + push + PR | Imediato | **Cliente/DevOps** fornecer URL |
-| CI print (18) | +1h após push | GitHub Actions |
-| PNG 07, 08, 13 | +4h | Ambiente local/Docker |
-| Evolution staging | 2–3 d.u. | Credenciais + infra cliente |
+- Remote / push / PNGs 02, 04, 07, 08, 13 no GitHub.  
+- Gitleaks local (19).  
+- RBAC bloqueio UI × API.
 
 ---
 
-## 7. Ações solicitadas ao PO / cliente
+## Instruções complementares
 
-1. Informar **URL do repositório Git** para `git remote add origin`.  
-2. Confirmar **aceite da declaração Evolution** (piloto sem WhatsApp real).  
-3. Opcional: credenciais Evolution staging para homologação E2E.
+- Push/PR: [`docs/GATE_PUSH_INSTRUCOES.md`](GATE_PUSH_INSTRUCOES.md)  
+- Pacote evidências: [`docs/evidencias/mvp_piloto_aceite/README.md`](evidencias/mvp_piloto_aceite/README.md)

@@ -1,14 +1,25 @@
-CI remoto — BLOQUEADO (aguarda push)
+CI remoto — gate v3 (workflow na branch de feature)
 Data: 2026-05-15
-Motivo: repositório local sem git remote origin configurado.
+Repositório: https://github.com/rvbbarreto-bot/barbearia-saas
+Branch: feature/p2-2-web-outbox-whatsapp-operational
+Commit base: 3be9659 fix(mvp): complete pilot evidence, ci, and whatsapp readiness
 
-Validação local equivalente (pré-push):
-- apps/api: npm run typecheck OK
-- apps/api: npm run test:unit → 152/152
-- apps/web: npm run typecheck OK
-- apps/web: npm run test → 40/40
-- docker compose up → 5/5 healthy
+Alteração gate v3:
+- .github/workflows/ci.yml passa a incluir push em feature/p2-2-web-outbox-whatsapp-operational
+- Objetivo: disparar GitHub Actions sem depender apenas de PR para develop
 
-Workflow: .github/workflows/ci.yml (push/PR em main, develop)
-Após: git remote add origin <URL> && git push -u origin feature/p2-2-web-outbox-whatsapp-operational
-Anexar print Actions verde como 18_ci_verde.png
+Actions (após push gate v3):
+https://github.com/rvbbarreto-bot/barbearia-saas/actions/workflows/ci.yml
+
+PR alternativo (também dispara CI em pull_request):
+https://github.com/rvbbarreto-bot/barbearia-saas/compare/develop...feature/p2-2-web-outbox-whatsapp-operational?expand=1
+
+Validação local equivalente (2026-05-15, pós-sync remoto):
+- apps/api: typecheck OK | test:unit 152/152 | build OK
+- apps/web: typecheck OK | test 40/40 | build OK
+- docker compose: 5/5 healthy
+- gitleaks (docker zricethezav/gitleaks): no leaks found
+- qa-api-negative-battery.ps1: exit 0
+- qa-p2-2-web-outbox-whatsapp-battery.ps1: exit 0
+
+Pendência PO: anexar screenshot run verde como 18_ci_verde.png na pasta deste pacote.
