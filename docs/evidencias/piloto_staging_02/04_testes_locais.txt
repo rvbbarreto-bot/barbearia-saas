@@ -1,0 +1,21 @@
+PILOTO-STAGING-02 — testes locais (2026-05-15)
+Branch: feature/piloto-staging-02-agenda-operacional
+Base: piloto-staging-01 @ 3a6fc04
+
+apps/api:
+  npm run typecheck — OK
+  npm run lint — OK (0 errors, warnings preexistentes)
+  npm run test:unit — 36 files, 163 tests passed
+  npm run build — OK
+
+apps/web:
+  npm run typecheck — OK
+  npm run test — 10 files, 42 tests passed
+  npm run build — OK
+
+Novos testes API:
+  appointment-scheduling-rules.test.ts
+  assert-appointment-mutation-scope.test.ts
+  appointments.lifecycle.integration.test.ts (requer DATABASE_URL+JWT+REDIS no CI)
+
+CI GitHub: aguardar run pós-push na branch feature.

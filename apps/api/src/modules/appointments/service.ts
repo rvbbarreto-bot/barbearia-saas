@@ -43,8 +43,14 @@ import { tryEnqueueWaitlistOnSlotFreed } from '../waitlist/service.js';
 import { ensureFinancialOnServiceCompleted } from '../finance/service.js';
 import { createCommissionEntryForCompletedAppointment } from '../commission/service.js';
 import { validateImplicitAppointmentConfirmation } from './explicit-confirmation-policy.js';
+import { assertAppointmentStartsNotInPast } from './appointment-scheduling-rules.js';
+import {
+  assertAppointmentMutationScope,
+  type AppointmentMutationCaller,
+} from './assert-appointment-mutation-scope.js';
 
 export { resolveAppointmentProfessionalFilter, type ListAppointmentsCaller };
+export type AppointmentCaller = AppointmentMutationCaller;
 
 function calendarSlotWasBlocked(status: unknown): boolean {
   const s = String(status);
@@ -100,8 +106,6 @@ export async function writeAppointmentEvent(
   );
 }
 
-export type AppointmentCaller = { sub?: string; role?: string; requestId?: string; correlationId?: string };
-
 /**
  * Confirma agendamento em transação aberta (status → `confirmed`), recalcula disponibilidade e enfileira WhatsApp.
  * Idempotente se já estiver `confirmed`.
@@ -119,6 +123,7 @@ export async function confirmAppointmentInDb(
   );
   if (!cur.rowCount) throw new AppError('APPOINTMENT_NOT_FOUND', 'Agendamento não encontrado', 404);
   const appointment = cur.rows[0];
+  await assertAppointmentMutationScope(tenantId, appointment, caller);
 
   if (appointment.status === 'confirmed') {
     return appointment;
@@ -292,10 +297,7 @@ export async function createAppointment(
     caller,
   );
 
-  const startMs = Date.parse(data.starts_at);
-  if (!Number.isFinite(startMs) || startMs < Date.now() - 60_000) {
-    throw new AppError('APPOINTMENT_IN_PAST', 'Não é possível agendar no passado.', 422);
-  }
+  assertAppointmentStartsNotInPast(data.starts_at);
 
   const actorUserId = caller?.sub;
   const lockKey = `lock:appointment:${tenantId}:${data.professional_id}:${data.starts_at}:${data.ends_at}`;
@@ -737,6 +739,7 @@ export async function rescheduleAppointment(
   caller?: AppointmentCaller,
 ) {
   const data = rescheduleAppointmentBodySchema.parse(body);
+  assertAppointmentStartsNotInPast(data.starts_at);
   const actorUserId = caller?.sub;
   const lockKey = `lock:appointment:${tenantId}:${appointmentId}:reschedule`;
   return withAppointmentLock(lockKey, async () =>
@@ -747,6 +750,7 @@ export async function rescheduleAppointment(
       );
       if (!current.rowCount) throw new AppError('APPOINTMENT_NOT_FOUND', 'Agendamento não encontrado', 404);
       const appointment = current.rows[0];
+      await assertAppointmentMutationScope(tenantId, appointment, caller);
       if (appointment.status === 'cancelled') {
         throw new AppError('APPOINTMENT_CANCELLED', 'Não é possível remarcar um agendamento cancelado', 409);
       }
@@ -905,8 +909,9 @@ export async function rescheduleAppointment(
 export async function checkInAppointment(
   tenantId: string,
   appointmentId: string,
-  actorUserId?: string,
+  caller?: AppointmentCaller,
 ) {
+  const actorUserId = caller?.sub;
   const lockKey = `lock:appointment:${tenantId}:${appointmentId}:check_in`;
   return withAppointmentLock(lockKey, async () =>
     withTenant(tenantId, async (client) => {
@@ -916,6 +921,7 @@ export async function checkInAppointment(
       );
       if (!current.rowCount) throw new AppError('APPOINTMENT_NOT_FOUND', 'Agendamento não encontrado', 404);
       const appointment = current.rows[0];
+      await assertAppointmentMutationScope(tenantId, appointment, caller);
 
       if (!(STATUSES_THAT_ALLOW_CHECK_IN as readonly string[]).includes(appointment.status as string)) {
         throw new AppError(
@@ -956,8 +962,9 @@ export async function checkInAppointment(
 export async function startAppointmentService(
   tenantId: string,
   appointmentId: string,
-  actorUserId?: string,
+  caller?: AppointmentCaller,
 ) {
+  const actorUserId = caller?.sub;
   const lockKey = `lock:appointment:${tenantId}:${appointmentId}:start`;
   return withAppointmentLock(lockKey, async () =>
     withTenant(tenantId, async (client) => {
@@ -967,6 +974,7 @@ export async function startAppointmentService(
       );
       if (!current.rowCount) throw new AppError('APPOINTMENT_NOT_FOUND', 'Agendamento não encontrado', 404);
       const appointment = current.rows[0];
+      await assertAppointmentMutationScope(tenantId, appointment, caller);
 
       if (!(STATUSES_THAT_ALLOW_START_SERVICE as readonly string[]).includes(appointment.status as string)) {
         throw new AppError(
@@ -1019,6 +1027,7 @@ export async function completeAppointment(
       );
       if (!current.rowCount) throw new AppError('APPOINTMENT_NOT_FOUND', 'Agendamento não encontrado', 404);
       const appointment = current.rows[0];
+      await assertAppointmentMutationScope(tenantId, appointment, caller);
 
       if (!(STATUSES_THAT_ALLOW_COMPLETE as readonly string[]).includes(appointment.status as string)) {
         throw new AppError(
@@ -1107,6 +1116,7 @@ export async function noShowAppointment(
       );
       if (!current.rowCount) throw new AppError('APPOINTMENT_NOT_FOUND', 'Agendamento não encontrado', 404);
       const appointment = current.rows[0];
+      await assertAppointmentMutationScope(tenantId, appointment, caller);
 
       if (!(STATUSES_THAT_ALLOW_NO_SHOW as readonly string[]).includes(appointment.status as string)) {
         throw new AppError(
