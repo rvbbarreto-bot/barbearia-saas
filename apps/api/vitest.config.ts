@@ -9,6 +9,7 @@ function integrationEnvForWorkers(): Record<string, string> {
     'REDIS_URL',
     'EVOLUTION_API_URL',
     'EVOLUTION_API_KEY',
+    'EVOLUTION_INSTANCE',
     'RECALL_ENABLED',
     'PIX_REAL_PROVIDER_ENABLED',
     'WAITLIST_SLOT_NOTIFY_ENABLED',

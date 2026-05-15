@@ -88,13 +88,19 @@ Gitleaks: OK (CI + scan local). Evidências: `02_ci_head_verde.txt`, `03_gitleak
 
 | Item | Status |
 |------|--------|
-| EVOLUTION_API_URL staging | **Pendente** |
-| EVOLUTION_API_KEY | **Pendente** (secret) |
-| Envio real / sandbox | **Não validado** |
-| Worker outbox | Operacional (local); falha controlada sem URL real |
+| `EVOLUTION_API_URL` / `EVOLUTION_INSTANCE` / `EVOLUTION_API_KEY` | Documentados em `.env.example`; override local `docker-compose.evolution-local.yml` |
+| Payload worker | `{ number, text }` na raiz (Evolution 2.3.7) — já no `outbox-worker.ts` |
+| `EVOLUTION_INSTANCE` env | Prioridade sobre `tenant_integrations` (piloto instância `teste`) |
+| E2E local (Agenda → outbox → Evolution) | **Parcial** — fluxo até HTTP Evolution; `sent` pendente alinhar `EVOLUTION_API_KEY` no `.env` com a instância |
+| Validação manual PO | **OK** (Evolution 2.3.7, `host.docker.internal:8081`, sendText manual) |
+| Staging cloud | **Pendente** |
 | Waiver sem WhatsApp | Base em `docs/DECLARACAO_PILOTO_EVOLUTION.md` |
 
-**Bloqueio piloto externo:** Evolution não configurado em staging.
+**Atenção operador:** se `.env` tiver `EVOLUTION_API_URL=http://evolution.test` (placeholder CI), o worker falha com `fetch failed`. Usar `docker-compose.evolution-local.yml` ou URL real no `.env`.
+
+**Evidência:** `28_evolution_e2e.md`, `28_evolution_e2e_log.txt`, script `scripts/piloto-evolution-e2e.ps1`.
+
+**Bloqueio piloto externo:** staging cloud + secret manager + evidências PNG.
 
 ---
 
@@ -106,7 +112,7 @@ Gitleaks: OK (CI + scan local). Evidências: `02_ci_head_verde.txt`, `03_gitleak
 | RBAC API 403 | OK (txt) | Revalidar |
 | Cross-tenant 403 | OK (txt) | Revalidar |
 | Agenda / bloqueio / outbox UI | Evidências MVP 03–13 | Pendente PNG 15–18 |
-| Outbox → Evolution E2E | Não | **Pendente** 18–21 |
+| Outbox → Evolution E2E | **Parcial** (script + log 28) | **Pendente** 18–21 PNG |
 
 Testes automatizados: **152** unit API + integração no CI; Web **40** testes.
 

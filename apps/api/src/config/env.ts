@@ -57,6 +57,8 @@ const schema = z.object({
   REDIS_URL: z.string().min(1),
   EVOLUTION_API_URL: z.string().optional(),
   EVOLUTION_API_KEY: z.string().optional(),
+  /** Instância Evolution (ex.: `teste`). Usada quando `tenant_integrations.config.instance_name` não estiver definido ou para override local via env. */
+  EVOLUTION_INSTANCE: z.string().optional(),
   OUTBOX_POLL_INTERVAL_MS: z.coerce.number().default(5000),
   OUTBOX_CONCURRENCY: z.coerce.number().default(5),
   CORS_ORIGIN: z.string().default('*'),

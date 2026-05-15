@@ -124,7 +124,8 @@
   "staticData": null,
   "meta": {
     "templateCredsSetupCompleted": true,
-    "instanceId": "barbearia-saas-v4"
+    "instanceId": "barbearia-saas-v4",
+    "description": "Inbound Evolution -> Core API. Sem POST Evolution de envio. active=false. QA: substituir SUBSTITUIR_PELO_ID_DO_WORKFLOW_02 pelo ID do workflow 02 (docs/PILOTO_STAGING_01_N8N.md)."
   },
   "tags": [{"name": "whatsapp"}, {"name": "router"}, {"name": "v4"}]
 }

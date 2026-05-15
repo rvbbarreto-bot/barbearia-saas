@@ -2,7 +2,7 @@
   "name": "03_QA_Barbearia_Evolution_SendText_Smoke",
   "active": false,
   "meta": {
-    "description": "Smoke QA isolado — envio SendText via Evolution API. NAO e workflow de producao. Manter active=false. Variaveis n8n: EVOLUTION_API_URL, EVOLUTION_INSTANCE, EVOLUTION_API_KEY, QA_WHATSAPP_NUMBER (55DDDNUMERO)."
+    "description": "Smoke QA isolado — envio SendText via Evolution API. NAO e workflow de producao. Manter active=false. Variaveis no container n8n (docker-compose): EVOLUTION_API_URL, EVOLUTION_INSTANCE, EVOLUTION_API_KEY, QA_WHATSAPP_NUMBER."
   },
   "nodes": [
     {
@@ -15,7 +15,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const required = ['EVOLUTION_API_URL', 'EVOLUTION_INSTANCE', 'EVOLUTION_API_KEY', 'QA_WHATSAPP_NUMBER'];\nconst missing = required.filter((k) => !$env[k] || String($env[k]).trim() === '');\nif (missing.length) {\n  throw new Error('Configuracao ausente no n8n: ' + missing.join(', '));\n}\nconst number = String($env.QA_WHATSAPP_NUMBER).replace(/\\D/g, '');\nif (!/^55\\d{10,11}$/.test(number)) {\n  throw new Error('QA_WHATSAPP_NUMBER invalido — use formato 55DDDNUMERO');\n}\nreturn [{ json: { number, instance: $env.EVOLUTION_INSTANCE, baseUrl: $env.EVOLUTION_API_URL } }];"
+        "jsCode": "const required = ['EVOLUTION_API_URL', 'EVOLUTION_INSTANCE', 'EVOLUTION_API_KEY', 'QA_WHATSAPP_NUMBER'];\nconst missing = required.filter((k) => !$env[k] || String($env[k]).trim() === '');\nif (missing.length) {\n  throw new Error(\n    'Configuracao ausente no container n8n (nao basta na API): ' +\n      missing.join(', ') +\n      '. Preencha no .env da raiz e recrie o servico n8n (docker compose ... up -d --force-recreate n8n).'\n  );\n}\nconst number = String($env.QA_WHATSAPP_NUMBER).replace(/\\D/g, '');\nif (!/^55\\d{10,11}$/.test(number)) {\n  throw new Error('QA_WHATSAPP_NUMBER invalido no container n8n — use formato 55DDDNUMERO');\n}\nreturn [{ json: { number, instance: $env.EVOLUTION_INSTANCE, baseUrl: $env.EVOLUTION_API_URL } }];"
       },
       "id": "validate-env",
       "name": "Validar variaveis obrigatorias",

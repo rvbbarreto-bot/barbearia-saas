@@ -1,0 +1,24 @@
+PILOTO-STAGING-01 — validação env Evolution no container n8n
+Data: 2026-05-15
+Branch: piloto-staging-01
+
+Comando:
+docker compose -f docker-compose.yml -f docker-compose.evolution-local.yml exec n8n sh -lc 'echo EVOLUTION_API_URL=$EVOLUTION_API_URL; echo EVOLUTION_INSTANCE=$EVOLUTION_INSTANCE; echo QA_WHATSAPP_NUMBER=$QA_WHATSAPP_NUMBER; if [ -n "$EVOLUTION_API_KEY" ]; then echo EVOLUTION_API_KEY=SET; else echo EVOLUTION_API_KEY=MISSING; fi'
+
+Saída (API key mascarada):
+EVOLUTION_API_URL=http://evolution.test
+EVOLUTION_INSTANCE=teste
+QA_WHATSAPP_NUMBER=5511973305448
+EVOLUTION_API_KEY=SET
+
+Critério 1 (quatro variáveis no n8n): OK
+Nó Validar variaveis obrigatorias: OK (variáveis presentes)
+
+Nota operador: se .env tiver EVOLUTION_API_URL=http://evolution.test (placeholder CI), o smoke falha após validação com fetch/404.
+Corrigir no .env: EVOLUTION_API_URL=http://host.docker.internal:8081 e recriar n8n.
+
+Workflow smoke: reimportar 03_QA_Barbearia_Evolution_SendText_Smoke.json após pull (mensagem de erro atualizada).
+
+Testes API: typecheck OK, test:unit 155 passed, build OK
+n8n-validate-workflow-import.mjs: OK
+audit-n8n-workflows.ps1: OK (smoke 03 com sendText esperado)
