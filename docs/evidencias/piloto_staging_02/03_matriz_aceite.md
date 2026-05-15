@@ -10,8 +10,10 @@
 | 6 | RBAC positivo/negativo | OK (+ confirm rota) |
 | 7 | Cross-tenant negativo | OK (+ lifecycle) |
 | 8 | Happy + failure path testes | OK |
-| 9 | CI verde | Gatilhos em `ci.yml`; verificar run após próximo push (`06_pr_e_ci_github.md`) |
+| 9 | CI verde (GitHub Actions) | **PEND** até haver run na branch/PR com jobs API, Web, Security e Gitleaks em sucesso (`06_pr_e_ci_github.md`) |
 | 10 | Sem secrets no Git | OK |
 | 11 | Sem dependência Evolution/n8n | OK |
-| 12 | Documentação `docs/evidencias/piloto_staging_02/` | OK |
-| 13 | PR aberto para `piloto-staging-01` sem merge | Abrir via `06_pr_e_ci_github.md` |
+| 12 | Documentação `docs/evidencias/piloto_staging_02/` | OK (alinhada ao estado real da entrega) |
+| 13 | PR aberto para `piloto-staging-01` sem merge | **PEND** — compare link não substitui PR; abrir PR formal (`06_pr_e_ci_github.md`) |
+| 14 | Cancelamento: `assertAppointmentMutationScope` antes do retorno idempotente + rota repassa `professional_id` | OK (código + testes) |
+| 15 | Create/walk-in: profissional não agenda para outro `professional_id` (`assertProfessionalBookingBodyScope`) | OK (código + testes) |

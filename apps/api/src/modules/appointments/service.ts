@@ -46,6 +46,7 @@ import { validateImplicitAppointmentConfirmation } from './explicit-confirmation
 import { assertAppointmentStartsNotInPast } from './appointment-scheduling-rules.js';
 import {
   assertAppointmentMutationScope,
+  assertProfessionalBookingBodyScope,
   type AppointmentMutationCaller,
 } from './assert-appointment-mutation-scope.js';
 
@@ -291,6 +292,8 @@ export async function createAppointment(
   caller?: AppointmentCaller,
 ) {
   const data = createAppointmentSchema.parse(input);
+
+  await assertProfessionalBookingBodyScope(tenantId, data.professional_id, caller);
 
   validateImplicitAppointmentConfirmation(
     { explicit_confirmation: data.explicit_confirmation, source: data.source },
@@ -655,6 +658,7 @@ export async function cancelAppointment(
       );
       if (!current.rowCount) throw new AppError('APPOINTMENT_NOT_FOUND', 'Agendamento não encontrado', 404);
       const appointment = current.rows[0];
+      await assertAppointmentMutationScope(tenantId, appointment, caller);
       if (appointment.status === 'cancelled') return appointment;
 
       const st = String(appointment.status);

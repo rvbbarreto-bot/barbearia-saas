@@ -21,6 +21,10 @@ O workflow `.github/workflows/ci.yml` inclui:
 
 Assim o critério “CI verde” aplica ao PR contra `piloto-staging-01`.
 
+## Hash de referência (auditoria PO)
+
+O commit de entrega original citado na validação técnica mantém o SHA completo **`4222ba9b7d941e41714bfb3ffecc35158186d941`** (prefixo curto `4222ba9`). Commits corretivos posteriores ficam em cima desta linha; usar `git rev-parse HEAD` na branch após cada push para o pacote de evidências.
+
 ## Como colar evidência CI verde (PO)
 
 1. Abrir Actions no repositório: https://github.com/rvbbarreto-bot/barbearia-saas/actions

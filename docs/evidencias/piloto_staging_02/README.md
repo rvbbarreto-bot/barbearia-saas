@@ -3,6 +3,8 @@
 **Branch:** `feature/piloto-staging-02-agenda-operacional`  
 **Base:** `piloto-staging-01`
 
+**Aceite formal:** exige PR aberto para `piloto-staging-01`, CI GitHub verde (API, Web, auditoria, Gitleaks) e matriz `03_matriz_aceite.md` sem itens críticos em PEND.
+
 ## Conteúdo
 
 | Arquivo | Descrição |

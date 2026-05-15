@@ -1,31 +1,31 @@
 /**
- * Integração: ciclo de vida agenda (confirm, cancel, reschedule, escopo profissional, tenant).
+ * Ciclo de vida agenda (confirm, cancel, reschedule, escopo profissional, tenant).
+ *
+ * Import dinâmico do `service.js`: sem DATABASE_URL/JWT_SECRET/REDIS_URL o Vitest pode carregar este ficheiro
+ * para agregar testes sem executar integração — evita grafo pesado até `beforeAll` só quando env está completa.
  */
 import { randomUUID } from 'node:crypto';
+import type pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../commission/service.js', () => ({
   createCommissionEntryForCompletedAppointment: vi.fn(async () => undefined),
 }));
 
-import pg from 'pg';
 import { withAppTenant } from '../../test-utils/with-app-tenant.js';
-import {
-  cancelAppointment,
-  confirmAppointment,
-  createAppointment,
-  rescheduleAppointment,
-} from './service.js';
 
-const run =
+const runEnv =
   Boolean(process.env.DATABASE_URL) && Boolean(process.env.JWT_SECRET) && Boolean(process.env.REDIS_URL);
 
-describe.skipIf(!run)('appointments lifecycle integration', () => {
-  const pool = new pg.Pool({
-    connectionString: process.env.DATABASE_URL,
-    connectionTimeoutMillis: 8000,
-    max: 5,
-  });
+type ServiceMod = typeof import('./service.js');
+
+describe.skipIf(!runEnv)('appointments lifecycle integration', () => {
+  let createAppointment!: ServiceMod['createAppointment'];
+  let confirmAppointment!: ServiceMod['confirmAppointment'];
+  let cancelAppointment!: ServiceMod['cancelAppointment'];
+  let rescheduleAppointment!: ServiceMod['rescheduleAppointment'];
+
+  let pool!: pg.Pool;
 
   const tenantA = randomUUID();
   const tenantB = randomUUID();
@@ -53,6 +53,18 @@ describe.skipIf(!run)('appointments lifecycle integration', () => {
   }
 
   beforeAll(async () => {
+    const mod = await import('./service.js');
+    createAppointment = mod.createAppointment;
+    confirmAppointment = mod.confirmAppointment;
+    cancelAppointment = mod.cancelAppointment;
+    rescheduleAppointment = mod.rescheduleAppointment;
+
+    pool = new (await import('pg')).Pool({
+      connectionString: process.env.DATABASE_URL,
+      connectionTimeoutMillis: 8000,
+      max: 5,
+    });
+
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date('2026-05-13T12:00:00.000Z'));
     await purge();
@@ -68,7 +80,7 @@ describe.skipIf(!run)('appointments lifecycle integration', () => {
           `INSERT INTO professionals (id, tenant_id, name, slug, timezone, active) VALUES
            ($1,$2,'PA',$3,'America/Sao_Paulo',true),
            ($4,$2,'PB',$5,'America/Sao_Paulo',true)`,
-          [profA, tenantA, `sl-${profA.slice(0, 6)}`, profB, tenantA, `sl-${profB.slice(0, 6)}`],
+          [profA, tenantA, `sl-${profA.slice(0, 6)}`, profB, `sl-${profB.slice(0, 6)}`],
         );
         await c.query(
           `INSERT INTO customers (id, tenant_id, name, phone, whatsapp_opt_in, is_vip)
@@ -101,11 +113,9 @@ describe.skipIf(!run)('appointments lifecycle integration', () => {
             tenantA,
             `att-${attendantUserId}@t.local`,
             profUserA,
-            tenantA,
             `pra-${profUserA}@t.local`,
             profA,
             profUserB,
-            tenantA,
             `prb-${profUserB}@t.local`,
             profB,
           ],
@@ -188,7 +198,7 @@ describe.skipIf(!run)('appointments lifecycle integration', () => {
     ).rejects.toMatchObject({ code: 'APPOINTMENT_IN_PAST' });
   });
 
-  it('professional não cancela agendamento de outro profissional', async () => {
+  it('professional não cancela agendamento de outro professional_id', async () => {
     const row = await createAwaiting({
       start: '2026-05-13T17:00:00.000Z',
       end: '2026-05-13T17:30:00.000Z',
@@ -199,6 +209,25 @@ describe.skipIf(!run)('appointments lifecycle integration', () => {
         tenantA,
         row.id,
         { reason: 'Tentativa cross-prof' },
+        { sub: profUserB, role: 'professional', professional_id: profB },
+      ),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN', statusCode: 403 });
+  });
+
+  it('professional não cria agendamento para outro professional_id', async () => {
+    await expect(
+      createAppointment(
+        tenantA,
+        {
+          customer_id: customerA,
+          professional_id: profA,
+          service_id: serviceA,
+          starts_at: '2026-05-13T18:00:00.000Z',
+          ends_at: '2026-05-13T18:30:00.000Z',
+          source: 'api',
+          idempotency_key: `idem-profcross-${randomUUID().slice(0, 8)}`,
+          explicit_confirmation: true,
+        },
         { sub: profUserB, role: 'professional', professional_id: profB },
       ),
     ).rejects.toMatchObject({ code: 'FORBIDDEN', statusCode: 403 });

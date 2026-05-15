@@ -14,7 +14,7 @@ Credenciais demo: `admin@demo.local` / `admin12345` — tenant `00000000-0000-00
 1. **Conflito** — criar dois agendamentos no mesmo horário/profissional → segundo retorna erro de horário indisponível.
 2. **Bloqueio** — `POST /api/v1/calendar-blocks` (manager) e tentar agendar no intervalo → 409.
 3. **Remarcação passado** — `PATCH …/reschedule` com `starts_at` no passado → 422.
-4. **Profissional** — login `fred.barbeiro@demo.local` e tentar cancelar agendamento de outro profissional → 403.
+4. **Profissional** — login `fred.barbeiro@demo.local` e tentar cancelar agendamento de outro profissional → 403; tentar criar agendamento ou walk-in para outro `professional_id` → 403.
 5. **Portal** — `http://localhost:3001/agenda` — criar, confirmar, cancelar; verificar mensagens de erro.
 
 ## Automatizado

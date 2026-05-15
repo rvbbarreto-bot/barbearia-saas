@@ -79,6 +79,7 @@ export async function appointmentRoutes(app: FastifyInstance) {
       const created = await createAppointment(request.tenantId, request.body, {
         sub: request.user?.sub,
         role: (request.user as { role?: string })?.role,
+        professional_id: (request.user as { professional_id?: string })?.professional_id,
         requestId: request.id,
       });
       return reply.code(201).send(created);
@@ -92,6 +93,8 @@ export async function appointmentRoutes(app: FastifyInstance) {
       const created = await createWalkInAppointment(request.tenantId, request.body, {
         sub: request.user?.sub,
         role: (request.user as { role?: string })?.role,
+        professional_id: (request.user as { professional_id?: string })?.professional_id,
+        requestId: request.id,
       });
       return reply.code(201).send(created);
     },
@@ -128,6 +131,7 @@ export async function appointmentRoutes(app: FastifyInstance) {
       cancelAppointment(request.tenantId, request.params.appointmentId, request.body ?? {}, {
         sub: request.user?.sub,
         role: (request.user as { role?: string })?.role,
+        professional_id: (request.user as { professional_id?: string })?.professional_id,
         requestId: request.id,
       }),
   );
