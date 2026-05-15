@@ -9,8 +9,8 @@ Consolidação pós-QA negativo: **resolução de tenant (CT-020)**, **criação
 ## 2. Branch e commit
 
 - **Branch:** `feature/p1-inbound-outbox-hardening`
-- **HEAD após fecho da evidência (2026-05-14):** `f997647ebb7a74a563aa6c370c827bbe244e226c` — mensagem: `docs(p1): align report HEAD metadata with final commit`
 - **Commit do pacote de evidência (script + CSV + relatório + logs + docker ps):** `2261c73bde4f92ac1e939963b9faf89e978d9836` — mensagem: `chore(p1): stack validation evidence, QA script fixes, CSV and report update`
+- **HEAD da branch:** executar `git rev-parse HEAD` após checkout (inclui commits de documentação posteriores ao pacote acima).
 
 ## 3. Hierarquia de papéis (ressalva PO 1)
 
@@ -112,33 +112,22 @@ Get-Content -Raw database/migrations/099_demo_seed_qa.sql |
 
 ## 10. Git — estado final
 
-### `git log -1` (instantâneo)
+### `git log -1`
 
-```
-commit f997647ebb7a74a563aa6c370c827bbe244e226c
-Author:     Barbearia SaaS P0 <dev@barbearia-saas.local>
-AuthorDate: Thu May 14 21:08:19 2026 -0300
-Commit:     Barbearia SaaS P0 <dev@barbearia-saas.local>
-CommitDate: Thu May 14 21:08:19 2026 -0300
+Executar na raiz do repositório (com a branch actual):
 
-    docs(p1): align report HEAD metadata with final commit
-    
-    Co-authored-by: Cursor <cursoragent@cursor.com>
+```bash
+git log -1 --format=fuller
 ```
 
 ### `git status`
 
-```
-On branch feature/p1-inbound-outbox-hardening
-Untracked files:
-  (use "git add <file>..." to include in what will be committed)
-	.env.backup_qa
-	QA_PACKAGE_BARBEARIA.zip
-
-nothing added to commit but untracked files present (use "git add" to track)
+```bash
+git status
 ```
 
-**Nota:** `.env.backup_qa` e `QA_PACKAGE_BARBEARIA.zip` permanecem propositadamente **fora** do controlo de versão.
+**Última verificação local:** working tree **limpo** para ficheiros rastreados; apenas **não rastreados** `.env.backup_qa` e `QA_PACKAGE_BARBEARIA.zip` (fora do repositório por decisão de segurança).
+
 ## 11. Recomendação da fábrica
 
 **Pronto para reavaliação do PO como fechamento P1** após revisão deste relatório e dos anexos — sujeito apenas à política interna de não considerar isto homologação final de produção.
