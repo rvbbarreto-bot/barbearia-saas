@@ -12,6 +12,7 @@
 | `03_matriz_aceite.md` | Critérios de aceite |
 | `04_testes_locais.txt` | Saída dos comandos locais |
 | `05_qa_local.md` | Como QA valida sem Evolution/n8n |
+| `06_pr_e_ci_github.md` | Link compare PR + CI |
 
 ## Fora de escopo desta entrega
 

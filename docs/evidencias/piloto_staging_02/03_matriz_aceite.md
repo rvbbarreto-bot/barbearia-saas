@@ -10,8 +10,8 @@
 | 6 | RBAC positivo/negativo | OK (+ confirm rota) |
 | 7 | Cross-tenant negativo | OK (+ lifecycle) |
 | 8 | Happy + failure path testes | OK |
-| 9 | CI verde | Pendente run GitHub pós-push |
+| 9 | CI verde | Gatilhos em `ci.yml`; verificar run após próximo push (`06_pr_e_ci_github.md`) |
 | 10 | Sem secrets no Git | OK |
 | 11 | Sem dependência Evolution/n8n | OK |
 | 12 | Documentação `docs/evidencias/piloto_staging_02/` | OK |
-| 13 | PR aberto para `piloto-staging-01` sem merge | OK |
+| 13 | PR aberto para `piloto-staging-01` sem merge | Abrir via `06_pr_e_ci_github.md` |

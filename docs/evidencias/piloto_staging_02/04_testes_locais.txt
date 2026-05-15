@@ -1,21 +1,28 @@
 PILOTO-STAGING-02 — testes locais (2026-05-15)
 Branch: feature/piloto-staging-02-agenda-operacional
-Base: piloto-staging-01 @ 3a6fc04
+Base: piloto-staging-01 @ 3a6fc049214641a46cba0242fde5afd236c2a512
+HEAD exemplo: 4222ba9b7d941e41714bfb3ffecc35158186d941 (ver git rev-parse)
 
 apps/api:
   npm run typecheck — OK
-  npm run lint — OK (0 errors, warnings preexistentes)
+  npm run lint — OK (0 errors, warnings pré-existentes)
   npm run test:unit — 36 files, 163 tests passed
+  npm run test — igual ao CI apenas com Postgres/Redis+migrations como em .github/workflows/ci.yml
+                      (DATABASE_URL usuário barbearia_app etc.; sem isso falham integrações esperadas).
   npm run build — OK
+  npm audit --audit-level=high — pode reportar moderate (ex. @fastify/static); alto=0 onde aplicável.
 
 apps/web:
+  npm run lint — OK (0 errors, warnings pré-existentes)
   npm run typecheck — OK
   npm run test — 10 files, 42 tests passed
   npm run build — OK
 
-Novos testes API:
+Gitleaks: binário opcional na máquina local; obrigatório no job CI GitHub Actions.
+
+Novos testes API (entrega PILOTO-STAGING-02):
   appointment-scheduling-rules.test.ts
   assert-appointment-mutation-scope.test.ts
-  appointments.lifecycle.integration.test.ts (requer DATABASE_URL+JWT+REDIS no CI)
+  appointments.lifecycle.integration.test.ts (skip sem DB conforme outros integration tests)
 
-CI GitHub: aguardar run pós-push na branch feature.
+CI: pull_request contra piloto-staging-01 deve disparar o workflow (lista em .github/workflows/ci.yml).
