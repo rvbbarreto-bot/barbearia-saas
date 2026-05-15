@@ -10,6 +10,8 @@
 
 **Bateria negativa API + fecho PO:** relatório `docs/RELATORIO_QA_API_TESTES_NEGATIVOS_2026-05-14.md`, anexo `docs/FECHO_QA_API_NEGATIVOS_PO_2026-05-14.md`, script `scripts/qa-api-negative-battery.ps1`.
 
+**Fase P2 (MVP operacional / piloto controlado):** branch `feature/p2-operational-mvp-pilot` — relatório mestre `docs/P2_RELATORIO_MVP_OPERACIONAL.md`; decisões de produto `docs/P2_DECISOES_PRODUTO.md`; QA `docs/P2_QA_EXECUCAO.md`; runbook `docs/P2_RUNBOOK_SUPORTE.md`; WhatsApp/n8n `docs/P2_FLUXO_WHATSAPP_N8N.md`; outbox `docs/P2_OUTBOX_OPERACIONAL.md`; appointments `docs/P2_APPOINTMENT_LIFECYCLE.md`.
+
 1. [Baseline oficial V4 (PO)](#baseline-oficial-v4-po)
 2. [Pré-requisitos](#pré-requisitos)
 3. [Configuração de variáveis de ambiente](#configuração-de-variáveis-de-ambiente)

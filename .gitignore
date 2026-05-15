@@ -102,3 +102,7 @@ audit-report.json
 
 # ── Evidências geradas localmente (anexar ao PR manualmente) ──
 artifacts/
+
+# ── Backups / pacotes QA locais (nunca versionar) ──
+.env.backup_qa
+QA_PACKAGE_*.zip
