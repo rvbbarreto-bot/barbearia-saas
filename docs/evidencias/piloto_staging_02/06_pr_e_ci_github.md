@@ -2,7 +2,7 @@
 
 ## Push corretivo (2026-05-15) — SHA e CI
 
-- **Commit corretivo (código + docs embarcadas nesse momento):** `2d964122ddd661124091637e50ee1c2a3c1c2c7e`.
+- **Commit principal com correções de agenda (`fix(agenda): …`):** `2d964122ddd661124091637e50ee1c2a3c1c2c7e`.
 - **CI (evento push, workflow CI run #18):** https://github.com/rvbbarreto-bot/barbearia-saas/actions/runs/25944290957  
   **Conclusion:** `success`. **Jobs:** API (typecheck, lint, test, build); Web idem; Security npm audit; Gitleaks.
 - **Pull Request formal:** até a criação no GitHub, a API lista vazio para `base=piloto-staging-01` + head desta branch — **substituir esta linha pelo URL do PR** após clicar “Create pull request” no compare abaixo (ex.: `https://github.com/rvbbarreto-bot/barbearia-saas/pull/<número>`).
