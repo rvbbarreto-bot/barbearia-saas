@@ -1,0 +1,9 @@
+﻿commit 2261c73bde4f92ac1e939963b9faf89e978d9836
+Author:     Barbearia SaaS P0 <dev@barbearia-saas.local>
+AuthorDate: Thu May 14 21:06:45 2026 -0300
+Commit:     Barbearia SaaS P0 <dev@barbearia-saas.local>
+CommitDate: Thu May 14 21:06:45 2026 -0300
+
+    chore(p1): stack validation evidence, QA script fixes, CSV and report update
+    
+    Co-authored-by: Cursor <cursoragent@cursor.com>
