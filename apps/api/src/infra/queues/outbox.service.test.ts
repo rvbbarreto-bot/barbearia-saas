@@ -11,12 +11,18 @@ import { nextRetryDelayMs, RETRY_DELAYS_MS, processRow } from './outbox-worker.j
 
 // ── Mock do pool ──────────────────────────────────────────────────────────────
 
-const { mockQuery } = vi.hoisted(() => ({
-  mockQuery: vi.fn(),
-}));
+const { mockQuery, mockWithTenant } = vi.hoisted(() => {
+  const mockQuery = vi.fn();
+  const mockWithTenant = vi.fn(
+    async (_tenantId: string, fn: (client: { query: typeof mockQuery }) => Promise<unknown>) =>
+      fn({ query: mockQuery }),
+  );
+  return { mockQuery, mockWithTenant };
+});
 
 vi.mock('../db/pool.js', () => ({
   pool: { query: mockQuery },
+  withTenant: mockWithTenant,
 }));
 
 // ── Mock do env ───────────────────────────────────────────────────────────────
