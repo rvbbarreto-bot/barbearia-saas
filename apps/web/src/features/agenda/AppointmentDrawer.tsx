@@ -74,7 +74,6 @@ function AppointmentDrawerBody({
 }) {
   const qc = useQueryClient();
   const user = useAuthStore((s) => s.user);
-  const isManager = useRoleGate('manager');
   const isProfessional = useRoleGate('professional');
 
   const canDesk =
@@ -215,7 +214,7 @@ function AppointmentDrawerBody({
   const canCompleteFlow = isProfessional && appointment.status === 'in_service';
 
   const canMarkNoShow =
-    isManager &&
+    canOperateAttendance &&
     !['checked_in', 'in_service', 'completed', 'cancelled', 'no_show'].includes(appointment.status);
 
   return (

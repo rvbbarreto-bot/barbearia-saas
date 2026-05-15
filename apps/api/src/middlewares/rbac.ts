@@ -21,6 +21,8 @@ export const permissionPolicy = {
     checkIn: 'attendant',
     start: 'attendant',
     complete: 'professional',
+    /** Registo manual de falta (portal / operação). */
+    noShow: 'attendant',
     /** Balcão: atendimento walk-in rápido (confirma na mesma transação). */
     walkIn: 'attendant',
     /** Encaixe que pode ignorar overlap GiST — apenas gerência. */

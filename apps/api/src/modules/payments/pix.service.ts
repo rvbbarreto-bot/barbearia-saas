@@ -399,7 +399,9 @@ export async function applyPixWebhookPaid(
     payload: { provider_charge_id: providerChargeId, pix_payment_id: row.id },
   });
 
-  await confirmAppointmentInDb(client, tenantId, String(row.appointment_id), actorUserId);
+  await confirmAppointmentInDb(client, tenantId, String(row.appointment_id), {
+    sub: actorUserId ?? undefined,
+  });
 
   await recordFinancialDepositPaid(
     client,

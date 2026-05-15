@@ -4,6 +4,7 @@ import { PoolClient } from 'pg';
 import { withTenant } from '../../infra/db/pool.js';
 import { AppError } from '../../shared/errors.js';
 import { writeAuditLog } from '../../shared/audit.js';
+import { writeOperationalAuditEvent } from '../../shared/operational-audit.js';
 import { hasRequiredRole } from '../../middlewares/rbac.js';
 import {
   cancelAllPendingNotificationJobsForAppointment,
@@ -37,6 +38,7 @@ import {
 } from './customer-restrictions.service.js';
 import { releaseHoldForBooking } from './appointment-holds.service.js';
 import { assertAppointmentFitsBusinessHours } from './assert-appointment-business-hours.js';
+import { assertAppointmentFootprintClearOfCalendarBlocks } from './assert-appointment-footprint-clear-of-calendar-blocks.js';
 import { tryEnqueueWaitlistOnSlotFreed } from '../waitlist/service.js';
 import { ensureFinancialOnServiceCompleted } from '../finance/service.js';
 import { createCommissionEntryForCompletedAppointment } from '../commission/service.js';
@@ -98,7 +100,7 @@ export async function writeAppointmentEvent(
   );
 }
 
-export type AppointmentCaller = { sub?: string; role?: string };
+export type AppointmentCaller = { sub?: string; role?: string; requestId?: string; correlationId?: string };
 
 /**
  * Confirma agendamento em transação aberta (status → `confirmed`), recalcula disponibilidade e enfileira WhatsApp.
@@ -108,8 +110,9 @@ export async function confirmAppointmentInDb(
   client: PoolClient,
   tenantId: string,
   appointmentId: string,
-  actorUserId: string | null | undefined,
+  caller?: AppointmentCaller | null,
 ): Promise<Record<string, unknown>> {
+  const actorUserId = caller?.sub;
   const cur = await client.query(
     `SELECT * FROM appointments WHERE tenant_id = $1 AND id = $2 FOR UPDATE`,
     [tenantId, appointmentId],
@@ -163,6 +166,14 @@ export async function confirmAppointmentInDb(
     throw new AppError('SLOT_UNAVAILABLE', 'Horário deixou de estar disponível', 409);
   }
 
+  await assertAppointmentFootprintClearOfCalendarBlocks(
+    client,
+    tenantId,
+    appointment.professional_id as string,
+    footprintStartIso,
+    footprintEndIso,
+  );
+
   let updated;
   try {
     updated = await client.query(
@@ -210,6 +221,18 @@ export async function confirmAppointmentInDb(
     after: { status: 'confirmed' },
   });
 
+  await writeOperationalAuditEvent(client, {
+    tenantId,
+    entityType: 'appointment',
+    entityId: appointmentId,
+    eventType: 'appointment_confirmed',
+    actorUserId: actorUserId ?? null,
+    actorRole: caller?.role ?? null,
+    requestId: caller?.requestId ?? null,
+    correlationId: caller?.correlationId ?? null,
+    metadata: { previous_status: appointment.status },
+  });
+
   return row;
 }
 
@@ -231,12 +254,12 @@ async function enqueuePostCompletionBackgroundJobs(
 export async function confirmAppointment(
   tenantId: string,
   appointmentId: string,
-  actorUserId?: string | null,
+  caller?: AppointmentCaller,
 ) {
   const lockKey = `lock:appointment:${tenantId}:${appointmentId}:confirm`;
   return withAppointmentLock(lockKey, async () =>
     withTenant(tenantId, async (client) =>
-      confirmAppointmentInDb(client, tenantId, appointmentId, actorUserId),
+      confirmAppointmentInDb(client, tenantId, appointmentId, caller),
     ),
   );
 }
@@ -345,6 +368,14 @@ export async function createAppointment(
         svc.buffer_after_minutes,
       );
 
+      await assertAppointmentFootprintClearOfCalendarBlocks(
+        client,
+        tenantId,
+        data.professional_id,
+        footprintStartIso,
+        footprintEndIso,
+      );
+
       const conflict = await client.query(
         `SELECT a.id FROM appointments a
            LEFT JOIN services s ON s.id = a.service_id AND s.tenant_id = a.tenant_id
@@ -416,8 +447,35 @@ export async function createAppointment(
         },
       });
 
+      await writeOperationalAuditEvent(client, {
+        tenantId,
+        entityType: 'appointment',
+        entityId: created.id as string,
+        eventType: 'appointment_created',
+        actorUserId: actorUserId ?? null,
+        actorRole: caller?.role ?? null,
+        requestId: caller?.requestId ?? null,
+        correlationId: caller?.correlationId ?? null,
+        metadata: {
+          explicit_confirmation: data.explicit_confirmation,
+          source: data.source,
+        },
+      });
+
       if (!data.explicit_confirmation) {
-        return confirmAppointmentInDb(client, tenantId, created.id as string, actorUserId);
+        const confirmed = await confirmAppointmentInDb(client, tenantId, created.id as string, caller);
+        await writeOperationalAuditEvent(client, {
+          tenantId,
+          entityType: 'appointment',
+          entityId: created.id as string,
+          eventType: 'appointment_manual_created_without_client_confirmation',
+          actorUserId: actorUserId ?? null,
+          actorRole: caller?.role ?? null,
+          requestId: caller?.requestId ?? null,
+          correlationId: caller?.correlationId ?? null,
+          metadata: { appointment_id: created.id },
+        });
+        return confirmed;
       }
 
       return created;
@@ -566,7 +624,7 @@ export async function createManualOverrideAppointment(
       });
 
       if (!data.explicit_confirmation) {
-        return confirmAppointmentInDb(client, tenantId, created.id as string, actorUserId);
+        return confirmAppointmentInDb(client, tenantId, created.id as string, caller);
       }
 
       return created;
@@ -574,27 +632,37 @@ export async function createManualOverrideAppointment(
   );
 }
 
-const cancelAppointmentSchema = z.object({
-  appointment_id: z.string().uuid(),
-  reason: z.string().min(3).max(500),
+const cancelAppointmentBodySchema = z.object({
+  reason: z.string().min(3).max(500).optional(),
 });
 
 export async function cancelAppointment(
   tenantId: string,
-  input: z.infer<typeof cancelAppointmentSchema>,
-  actorUserId?: string,
+  appointmentId: string,
+  body: unknown,
+  caller?: AppointmentCaller,
 ) {
-  const data = cancelAppointmentSchema.parse(input);
-  const lockKey = `lock:appointment:${tenantId}:${data.appointment_id}:cancel`;
+  const { reason } = cancelAppointmentBodySchema.parse(body ?? {});
+  const actorUserId = caller?.sub;
+  const lockKey = `lock:appointment:${tenantId}:${appointmentId}:cancel`;
   return withAppointmentLock(lockKey, async () =>
     withTenant(tenantId, async (client) => {
       const current = await client.query(
         `SELECT * FROM appointments WHERE tenant_id = $1 AND id = $2 LIMIT 1`,
-        [tenantId, data.appointment_id],
+        [tenantId, appointmentId],
       );
       if (!current.rowCount) throw new AppError('APPOINTMENT_NOT_FOUND', 'Agendamento não encontrado', 404);
       const appointment = current.rows[0];
       if (appointment.status === 'cancelled') return appointment;
+
+      const st = String(appointment.status);
+      if (st === 'completed' || st === 'no_show') {
+        throw new AppError(
+          'INVALID_STATUS_TRANSITION',
+          'Não é possível cancelar um agendamento finalizado ou marcado como falta.',
+          409,
+        );
+      }
 
       const updated = await client.query(
         `UPDATE appointments
@@ -604,27 +672,39 @@ export async function cancelAppointment(
                 updated_at = now()
           WHERE tenant_id = $1 AND id = $2
           RETURNING *`,
-        [tenantId, data.appointment_id, data.reason ?? null],
+        [tenantId, appointmentId, reason ?? null],
       );
 
       await writeAppointmentEvent(client, {
         tenantId,
-        appointmentId: data.appointment_id,
+        appointmentId,
         eventType: 'CANCELLED',
         actorUserId: actorUserId ?? null,
-        payload: { reason: data.reason ?? null, previous_status: appointment.status },
+        payload: { reason: reason ?? null, previous_status: appointment.status },
       });
       await writeAuditLog(client, {
         tenantId,
         actorUserId: actorUserId ?? null,
         action: 'APPOINTMENT_CANCELLED',
         entity: 'appointment',
-        entityId: data.appointment_id,
+        entityId: appointmentId,
         before: { status: appointment.status, starts_at: appointment.starts_at, ends_at: appointment.ends_at },
-        after: { status: 'cancelled', reason: data.reason ?? null },
+        after: { status: 'cancelled', reason: reason ?? null },
       });
 
-      await cancelAllPendingNotificationJobsForAppointment(client, tenantId, data.appointment_id);
+      await writeOperationalAuditEvent(client, {
+        tenantId,
+        entityType: 'appointment',
+        entityId: appointmentId,
+        eventType: 'appointment_cancelled',
+        actorUserId: actorUserId ?? null,
+        actorRole: caller?.role ?? null,
+        requestId: caller?.requestId ?? null,
+        correlationId: caller?.correlationId ?? null,
+        metadata: { reason: reason ?? null, previous_status: appointment.status },
+      });
+
+      await cancelAllPendingNotificationJobsForAppointment(client, tenantId, appointmentId);
 
       const svcId = appointment.service_id as string | null;
       const profId = appointment.professional_id as string;
@@ -634,7 +714,7 @@ export async function cancelAppointment(
           serviceId: svcId,
           freedStartsAtIso: String(appointment.starts_at),
           freedEndsAtIso: String(appointment.ends_at),
-          sourceAppointmentId: data.appointment_id,
+          sourceAppointmentId: appointmentId,
           reason: 'cancelled',
         });
       }
@@ -644,8 +724,7 @@ export async function cancelAppointment(
   );
 }
 
-const rescheduleAppointmentSchema = z.object({
-  appointment_id: z.string().uuid(),
+const rescheduleAppointmentBodySchema = z.object({
   starts_at: z.string().datetime(),
   ends_at: z.string().datetime(),
   reason: z.string().min(3).max(500),
@@ -653,21 +732,32 @@ const rescheduleAppointmentSchema = z.object({
 
 export async function rescheduleAppointment(
   tenantId: string,
-  input: z.infer<typeof rescheduleAppointmentSchema>,
-  actorUserId?: string,
+  appointmentId: string,
+  body: unknown,
+  caller?: AppointmentCaller,
 ) {
-  const data = rescheduleAppointmentSchema.parse(input);
-  const lockKey = `lock:appointment:${tenantId}:${data.appointment_id}:reschedule`;
+  const data = rescheduleAppointmentBodySchema.parse(body);
+  const actorUserId = caller?.sub;
+  const lockKey = `lock:appointment:${tenantId}:${appointmentId}:reschedule`;
   return withAppointmentLock(lockKey, async () =>
     withTenant(tenantId, async (client) => {
       const current = await client.query(
         `SELECT * FROM appointments WHERE tenant_id = $1 AND id = $2 LIMIT 1`,
-        [tenantId, data.appointment_id],
+        [tenantId, appointmentId],
       );
       if (!current.rowCount) throw new AppError('APPOINTMENT_NOT_FOUND', 'Agendamento não encontrado', 404);
       const appointment = current.rows[0];
       if (appointment.status === 'cancelled') {
         throw new AppError('APPOINTMENT_CANCELLED', 'Não é possível remarcar um agendamento cancelado', 409);
+      }
+
+      const st = String(appointment.status);
+      if (['completed', 'no_show', 'expired', 'rescheduled'].includes(st)) {
+        throw new AppError(
+          'INVALID_STATUS_TRANSITION',
+          `Remarcação não permitida para status '${st}'.`,
+          409,
+        );
       }
 
       if (!appointment.service_id) {
@@ -690,11 +780,27 @@ export async function rescheduleAppointment(
         durationMinutes: svc.duration_minutes,
       });
 
+      await assertAppointmentFitsBusinessHours(
+        client,
+        tenantId,
+        appointment.professional_id as string,
+        data.starts_at,
+        data.ends_at,
+      );
+
       const { footprintStartIso, footprintEndIso } = expandFootprintUtc(
         data.starts_at,
         data.ends_at,
         svc.buffer_before_minutes,
         svc.buffer_after_minutes,
+      );
+
+      await assertAppointmentFootprintClearOfCalendarBlocks(
+        client,
+        tenantId,
+        appointment.professional_id as string,
+        footprintStartIso,
+        footprintEndIso,
       );
 
       const conflict = await client.query(
@@ -709,7 +815,7 @@ export async function rescheduleAppointment(
               '[)'
             ) && tstzrange($4::timestamptz, $5::timestamptz, '[)')
           LIMIT 1`,
-        [tenantId, appointment.professional_id, data.appointment_id, footprintStartIso, footprintEndIso],
+        [tenantId, appointment.professional_id, appointmentId, footprintStartIso, footprintEndIso],
       );
       if (conflict.rowCount) throw new AppError('SLOT_UNAVAILABLE', 'Horário indisponível', 409);
 
@@ -726,7 +832,7 @@ export async function rescheduleAppointment(
               SET starts_at = $3, ends_at = $4, notes = COALESCE($5, notes), updated_at = now()
             WHERE tenant_id = $1 AND id = $2
             RETURNING *`,
-          [tenantId, data.appointment_id, data.starts_at, data.ends_at, data.reason ?? null],
+          [tenantId, appointmentId, data.starts_at, data.ends_at, data.reason ?? null],
         );
       } catch (e) {
         throwIfExclusionViolation(e);
@@ -739,18 +845,18 @@ export async function rescheduleAppointment(
           serviceId: prevSvc,
           freedStartsAtIso: prevStarts,
           freedEndsAtIso: prevEnds,
-          sourceAppointmentId: data.appointment_id,
+          sourceAppointmentId: appointmentId,
           reason: 'rescheduled',
         });
       }
 
       await writeAppointmentEvent(client, {
         tenantId,
-        appointmentId: data.appointment_id,
+        appointmentId,
         eventType: 'RESCHEDULED',
         actorUserId: actorUserId ?? null,
         payload: {
-          appointment_id: data.appointment_id,
+          appointment_id: appointmentId,
           previous_starts_at: appointment.starts_at,
           previous_ends_at: appointment.ends_at,
           new_starts_at: data.starts_at,
@@ -763,9 +869,26 @@ export async function rescheduleAppointment(
         actorUserId: actorUserId ?? null,
         action: 'APPOINTMENT_RESCHEDULED',
         entity: 'appointment',
-        entityId: data.appointment_id,
+        entityId: appointmentId,
         before: { starts_at: appointment.starts_at, ends_at: appointment.ends_at, status: appointment.status },
         after: { starts_at: data.starts_at, ends_at: data.ends_at, reason: data.reason ?? null },
+      });
+
+      await writeOperationalAuditEvent(client, {
+        tenantId,
+        entityType: 'appointment',
+        entityId: appointmentId,
+        eventType: 'appointment_rescheduled',
+        actorUserId: actorUserId ?? null,
+        actorRole: caller?.role ?? null,
+        requestId: caller?.requestId ?? null,
+        correlationId: caller?.correlationId ?? null,
+        metadata: {
+          previous_starts_at: appointment.starts_at,
+          previous_ends_at: appointment.ends_at,
+          new_starts_at: data.starts_at,
+          new_ends_at: data.ends_at,
+        },
       });
 
       const rowAfter = updated.rows[0];
@@ -884,8 +1007,9 @@ export async function startAppointmentService(
 export async function completeAppointment(
   tenantId: string,
   appointmentId: string,
-  actorUserId?: string,
+  caller?: AppointmentCaller,
 ) {
+  const actorUserId = caller?.sub;
   const lockKey = `lock:appointment:${tenantId}:${appointmentId}:complete`;
   return withAppointmentLock(lockKey, async () =>
     withTenant(tenantId, async (client) => {
@@ -936,6 +1060,18 @@ export async function completeAppointment(
         after: { status: 'completed' },
       });
 
+      await writeOperationalAuditEvent(client, {
+        tenantId,
+        entityType: 'appointment',
+        entityId: appointmentId,
+        eventType: 'appointment_completed',
+        actorUserId: actorUserId ?? null,
+        actorRole: caller?.role ?? null,
+        requestId: caller?.requestId ?? null,
+        correlationId: caller?.correlationId ?? null,
+        metadata: { previous_status: appointment.status },
+      });
+
       await enqueuePostCompletionBackgroundJobs(
         client,
         tenantId,
@@ -955,10 +1091,11 @@ const noShowBodySchema = z.object({
 export async function noShowAppointment(
   tenantId: string,
   appointmentId: string,
-  rawReason: unknown,
-  actorUserId?: string,
+  body: unknown,
+  caller?: AppointmentCaller,
 ) {
-  const { reason } = noShowBodySchema.parse({ reason: rawReason });
+  const { reason } = noShowBodySchema.parse(body ?? {});
+  const actorUserId = caller?.sub;
   const lockKey = `lock:appointment:${tenantId}:${appointmentId}:no_show`;
   return withAppointmentLock(lockKey, async () =>
     withTenant(tenantId, async (client) => {
@@ -1002,6 +1139,18 @@ export async function noShowAppointment(
         entityId: appointmentId,
         before: { status: appointment.status },
         after: { status: 'no_show', reason },
+      });
+
+      await writeOperationalAuditEvent(client, {
+        tenantId,
+        entityType: 'appointment',
+        entityId: appointmentId,
+        eventType: 'appointment_no_show',
+        actorUserId: actorUserId ?? null,
+        actorRole: caller?.role ?? null,
+        requestId: caller?.requestId ?? null,
+        correlationId: caller?.correlationId ?? null,
+        metadata: { reason },
       });
 
       await refreshCustomerRestrictionsAfterNoShow(client, tenantId, appointment.customer_id as string);

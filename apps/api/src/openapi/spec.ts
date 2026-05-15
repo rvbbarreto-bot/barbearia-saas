@@ -268,7 +268,9 @@ export const openApiDocument = {
       patch: {
         tags: ['appointments'],
         summary: 'Remarcar agendamento',
-        description: 'RBAC: `appointments.reschedule` (mín. `attendant`). Corpo JSON: `starts_at`, `ends_at`, `reason`.',
+        description:
+          'RBAC: `appointments.reschedule` (mín. `attendant`). Valida expediente, bloqueios (`calendar_blocks`) e conflitos. ' +
+          'Não remarca `completed`, `no_show`, `expired` ou `rescheduled`.',
         parameters: [{ name: 'appointmentId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
         requestBody: {
           required: true,
@@ -301,13 +303,18 @@ export const openApiDocument = {
       patch: {
         tags: ['appointments'],
         summary: 'Cancelar agendamento',
-        description: 'RBAC: `appointments.cancel` (mín. `attendant`). Corpo JSON: `reason` (obrigatório).',
+        description:
+          'RBAC: `appointments.cancel` (mín. `attendant`). Corpo JSON opcional: `reason` (≥3 caracteres quando enviado). ' +
+          'Não cancela agendamentos `completed` ou `no_show`.',
         parameters: [{ name: 'appointmentId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
         requestBody: {
-          required: true,
+          required: false,
           content: {
             'application/json': {
-              schema: { type: 'object', required: ['reason'], properties: { reason: { type: 'string' } } },
+              schema: {
+                type: 'object',
+                properties: { reason: { type: 'string', minLength: 3, maxLength: 500 } },
+              },
             },
           },
         },
@@ -317,6 +324,46 @@ export const openApiDocument = {
           '403': { description: 'Sem permissão' },
           '404': { description: 'APPOINTMENT_NOT_FOUND' },
           '409': { description: 'Transição inválida' },
+        },
+        security: [{ bearerAuth: [], tenantHeader: [] }],
+      },
+    },
+    '/api/v1/appointments/{appointmentId}/complete': {
+      patch: {
+        tags: ['appointments'],
+        summary: 'Marcar agendamento como concluído',
+        description: 'RBAC: `appointments.complete` (mín. `professional`). Apenas com status `in_service`.',
+        parameters: [{ name: 'appointmentId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        responses: {
+          '200': { description: 'Concluído' },
+          '401': { description: 'Não autenticado' },
+          '403': { description: 'Sem permissão' },
+          '404': { description: 'APPOINTMENT_NOT_FOUND' },
+          '409': { description: 'INVALID_STATUS_TRANSITION' },
+        },
+        security: [{ bearerAuth: [], tenantHeader: [] }],
+      },
+    },
+    '/api/v1/appointments/{appointmentId}/no-show': {
+      patch: {
+        tags: ['appointments'],
+        summary: 'Registrar no-show',
+        description: 'RBAC: `appointments.noShow` (mín. `attendant`). Corpo: `reason` (obrigatório, ≥3).',
+        parameters: [{ name: 'appointmentId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { type: 'object', required: ['reason'], properties: { reason: { type: 'string', minLength: 3 } } },
+            },
+          },
+        },
+        responses: {
+          '200': { description: 'Atualizado' },
+          '401': { description: 'Não autenticado' },
+          '403': { description: 'Sem permissão' },
+          '404': { description: 'APPOINTMENT_NOT_FOUND' },
+          '409': { description: 'INVALID_STATUS_TRANSITION' },
         },
         security: [{ bearerAuth: [], tenantHeader: [] }],
       },
@@ -633,6 +680,25 @@ export const openApiDocument = {
           { name: 'entity_id', in: 'query', schema: { type: 'string', format: 'uuid' } },
         ],
         responses: { '200': { description: 'Lista' }, '401': { description: 'Não autenticado' }, '403': { description: 'Sem papel' } },
+      },
+    },
+    '/api/v1/operational-audit-events': {
+      get: {
+        tags: ['audit'],
+        summary: 'Listar eventos operacionais (P2)',
+        description:
+          'RBAC: `tenant_admin`. Filtros: `event_type`, `entity_type`, `entity_id`, `from`/`to` (ISO), paginação `page`/`limit`.',
+        parameters: [
+          { name: 'page', in: 'query', schema: { type: 'string' } },
+          { name: 'limit', in: 'query', schema: { type: 'string' } },
+          { name: 'event_type', in: 'query', schema: { type: 'string' } },
+          { name: 'entity_type', in: 'query', schema: { type: 'string' } },
+          { name: 'entity_id', in: 'query', schema: { type: 'string', format: 'uuid' } },
+          { name: 'from', in: 'query', schema: { type: 'string', format: 'date-time' } },
+          { name: 'to', in: 'query', schema: { type: 'string', format: 'date-time' } },
+        ],
+        responses: { '200': { description: 'Lista' }, '401': { description: 'Não autenticado' }, '403': { description: 'Sem papel' } },
+        security: [{ bearerAuth: [], tenantHeader: [] }],
       },
     },
     '/api/v1/finance/appointments': {

@@ -108,6 +108,21 @@ Detalhe funcional: ver brief interno da fase (secções 4–21 do kickoff PO).
 
 ---
 
+## 3.1 Marco P2.1 — Backend appointments + availability + auditoria
+
+Entrega incremental (branch `feature/p2-operational-mvp-pilot`):
+
+- Validação de **`calendar_blocks`** (bloqueios manuais já existentes) na **criação**, **confirmação** e **remarcação** de agendamentos, usando o **footprint** (slot + buffers) coerente com a availability.
+- **Transições:** cancelamento recusado (`409`) para `completed` / `no_show`; remarcação recusada para `completed`, `no_show`, `expired`, `rescheduled`; remarcação exige **expediente** (`assertAppointmentFitsBusinessHours`).
+- **Auditoria operacional:** tabela `operational_audit_events` (migration `103_operational_audit_events.sql`), RLS por tenant, eventos nas mutações críticas de appointment; leitura **`GET /api/v1/operational-audit-events`** (RBAC `tenant_admin`).
+- **RBAC no-show:** permissão `appointments.noShow` com mínimo **`attendant`** (substitui `requireRole('manager')` na rota); UI da agenda alinha o botão a `canOperateAttendance`.
+- **Cancelamento:** `reason` opcional no corpo (quando enviado, ≥3 caracteres).
+- **OpenAPI:** actualizado (cancel opcional, `complete`, `no-show`, operational audit).
+- **Testes:** `appointments-calendar-blocks.integration.test.ts` (requer `DATABASE_URL` + `JWT_SECRET` + `REDIS_URL` na stack de integração).
+- **Nota de modelo:** bloqueios por profissional são **`calendar_blocks`** com `professional_id` — equivalente funcional ao `professional_time_blocks` do brief; availability já os consumia; faltava alinhar **writes** de appointments.
+
+---
+
 ## 4. Critérios de aceite e reprovação
 
 Resumo: integração ponta a ponta obrigatória; sem regressão P1; sem 500 em regra de negócio; OpenAPI alinhada; `git status` limpo para ficheiros rastreados na entrega; evidências anexadas neste relatório ou em `docs/` referenciados.

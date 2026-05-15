@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { requirePermission, requireRole } from '../../middlewares/rbac.js';
+import { requirePermission } from '../../middlewares/rbac.js';
 import {
   cancelAppointment,
   checkInAppointment,
@@ -79,6 +79,7 @@ export async function appointmentRoutes(app: FastifyInstance) {
       const created = await createAppointment(request.tenantId, request.body, {
         sub: request.user?.sub,
         role: (request.user as { role?: string })?.role,
+        requestId: request.id,
       });
       return reply.code(201).send(created);
     },
@@ -112,18 +113,22 @@ export async function appointmentRoutes(app: FastifyInstance) {
     '/appointments/:appointmentId/confirm',
     { preHandler: requirePermission('appointments', 'confirm') },
     async (request: any) =>
-      confirmAppointment(request.tenantId, request.params.appointmentId, request.user?.sub),
+      confirmAppointment(request.tenantId, request.params.appointmentId, {
+        sub: request.user?.sub,
+        role: (request.user as { role?: string })?.role,
+        requestId: request.id,
+      }),
   );
 
   app.patch(
     '/appointments/:appointmentId/cancel',
     { preHandler: requirePermission('appointments', 'cancel') },
     async (request: any) =>
-      cancelAppointment(
-        request.tenantId,
-        { appointment_id: request.params.appointmentId, reason: request.body?.reason },
-        request.user?.sub,
-      ),
+      cancelAppointment(request.tenantId, request.params.appointmentId, request.body ?? {}, {
+        sub: request.user?.sub,
+        role: (request.user as { role?: string })?.role,
+        requestId: request.id,
+      }),
   );
 
   app.patch(
@@ -132,13 +137,13 @@ export async function appointmentRoutes(app: FastifyInstance) {
     async (request: any) =>
       rescheduleAppointment(
         request.tenantId,
+        request.params.appointmentId,
+        request.body ?? {},
         {
-          appointment_id: request.params.appointmentId,
-          starts_at: request.body?.starts_at,
-          ends_at: request.body?.ends_at,
-          reason: request.body?.reason,
+          sub: request.user?.sub,
+          role: (request.user as { role?: string })?.role,
+          requestId: request.id,
         },
-        request.user?.sub,
       ),
   );
 
@@ -160,18 +165,21 @@ export async function appointmentRoutes(app: FastifyInstance) {
     '/appointments/:appointmentId/complete',
     { preHandler: requirePermission('appointments', 'complete') },
     async (request: any) =>
-      completeAppointment(request.tenantId, request.params.appointmentId, request.user?.sub),
+      completeAppointment(request.tenantId, request.params.appointmentId, {
+        sub: request.user?.sub,
+        role: (request.user as { role?: string })?.role,
+        requestId: request.id,
+      }),
   );
 
   app.patch(
     '/appointments/:appointmentId/no-show',
-    { preHandler: requireRole('manager') },
+    { preHandler: requirePermission('appointments', 'noShow') },
     async (request: any) =>
-      noShowAppointment(
-        request.tenantId,
-        request.params.appointmentId,
-        request.body?.reason,
-        request.user?.sub,
-      ),
+      noShowAppointment(request.tenantId, request.params.appointmentId, request.body ?? {}, {
+        sub: request.user?.sub,
+        role: (request.user as { role?: string })?.role,
+        requestId: request.id,
+      }),
   );
 }

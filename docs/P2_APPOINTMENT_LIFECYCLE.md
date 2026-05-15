@@ -16,6 +16,18 @@
 - **cancelled**, **completed**, **no_show** não regressam a **pending** sem regra explícita.
 - Cancelamento em estado final indevido deve ser rejeitado com erro de negócio (não 500).
 
+## Status alvo (produto) vs modelo actual (DB)
+
+| Produto (P2) | Valor típico na base (`appointment_status`) |
+|--------------|-----------------------------------------------|
+| pending (aguarda confirmação) | `awaiting_confirmation`, `awaiting_payment`, `offered`, `hold` |
+| confirmed | `confirmed` |
+| cancelled | `cancelled` |
+| completed | `completed` |
+| no_show | `no_show` |
+
+*(Estados intermédios operacionais, ex.: `checked_in`, `in_service`, mantêm-se para fluxo de cadeira.)*
+
 ## Endpoints alvo (API)
 
 Ver especificação P2: `GET/POST /api/v1/appointments`, `PATCH .../cancel|reschedule|complete|no-show`.
