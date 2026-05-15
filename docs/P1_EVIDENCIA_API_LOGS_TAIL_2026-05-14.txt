@@ -1,0 +1,86 @@
+﻿{"level":30,"time":1778803527526,"pid":1,"hostname":"afbef3553f0f","reqId":"81077d0c-8354-41f1-ae7b-5785aede54ee","req":{"method":"POST","url":"/api/v1/appointments","requestId":"81077d0c-8354-41f1-ae7b-5785aede54ee"},"msg":"incoming request"}
+{"level":30,"time":1778803527529,"pid":1,"hostname":"afbef3553f0f","reqId":"81077d0c-8354-41f1-ae7b-5785aede54ee","res":{"statusCode":422},"responseTime":2.6636869981884956,"msg":"request completed"}
+{"level":30,"time":1778803527532,"pid":1,"hostname":"afbef3553f0f","reqId":"ff3e8d2a-d2b2-48a9-9325-181cbf07d09c","req":{"method":"POST","url":"/api/v1/appointments","requestId":"ff3e8d2a-d2b2-48a9-9325-181cbf07d09c"},"msg":"incoming request"}
+{"level":30,"time":1778803527536,"pid":1,"hostname":"afbef3553f0f","reqId":"ff3e8d2a-d2b2-48a9-9325-181cbf07d09c","res":{"statusCode":400},"responseTime":3.825889002531767,"msg":"request completed"}
+{"level":30,"time":1778803527541,"pid":1,"hostname":"afbef3553f0f","reqId":"b544c00d-2966-4786-be7f-eafbc4be9077","req":{"method":"POST","url":"/auth/login","requestId":"b544c00d-2966-4786-be7f-eafbc4be9077"},"msg":"incoming request"}
+{"level":30,"time":1778803527651,"pid":1,"hostname":"afbef3553f0f","reqId":"b544c00d-2966-4786-be7f-eafbc4be9077","res":{"statusCode":200},"responseTime":110.45638500154018,"msg":"request completed"}
+{"level":30,"time":1778803527675,"pid":1,"hostname":"afbef3553f0f","reqId":"37492513-08bb-4b20-9bfe-236498c48a18","req":{"method":"POST","url":"/api/v1/appointments","requestId":"37492513-08bb-4b20-9bfe-236498c48a18"},"msg":"incoming request"}
+{"level":30,"time":1778803527677,"pid":1,"hostname":"afbef3553f0f","reqId":"37492513-08bb-4b20-9bfe-236498c48a18","res":{"statusCode":403},"responseTime":2.308600001037121,"msg":"request completed"}
+{"level":30,"time":1778803527680,"pid":1,"hostname":"afbef3553f0f","reqId":"6f66c527-0ec3-4c2b-90ba-532415f0b75d","req":{"method":"POST","url":"/api/v1/appointments","requestId":"6f66c527-0ec3-4c2b-90ba-532415f0b75d"},"msg":"incoming request"}
+{"level":30,"time":1778803527726,"pid":1,"hostname":"afbef3553f0f","reqId":"6f66c527-0ec3-4c2b-90ba-532415f0b75d","res":{"statusCode":201},"responseTime":45.62649900093675,"msg":"request completed"}
+{"level":30,"time":1778803527751,"pid":1,"hostname":"afbef3553f0f","reqId":"87117d61-7430-4294-b770-4ce70fc95b18","req":{"method":"POST","url":"/api/v1/appointments","requestId":"87117d61-7430-4294-b770-4ce70fc95b18"},"msg":"incoming request"}
+{"level":30,"time":1778803527754,"pid":1,"hostname":"afbef3553f0f","reqId":"87117d61-7430-4294-b770-4ce70fc95b18","res":{"statusCode":400},"responseTime":2.3916389979422092,"msg":"request completed"}
+{"level":30,"time":1778803527757,"pid":1,"hostname":"afbef3553f0f","reqId":"d068a9a4-0d77-43ca-a9f1-610acd387120","req":{"method":"POST","url":"/api/v1/appointments","requestId":"d068a9a4-0d77-43ca-a9f1-610acd387120"},"msg":"incoming request"}
+{"level":30,"time":1778803527769,"pid":1,"hostname":"afbef3553f0f","reqId":"d068a9a4-0d77-43ca-a9f1-610acd387120","res":{"statusCode":409},"responseTime":12.802027001976967,"msg":"request completed"}
+{"level":30,"time":1778803527772,"pid":1,"hostname":"afbef3553f0f","reqId":"96493690-a65d-4b2b-9c43-63df92f851d3","req":{"method":"POST","url":"/api/v1/appointments","requestId":"96493690-a65d-4b2b-9c43-63df92f851d3"},"msg":"incoming request"}
+{"level":30,"time":1778803527790,"pid":1,"hostname":"afbef3553f0f","reqId":"96493690-a65d-4b2b-9c43-63df92f851d3","res":{"statusCode":201},"responseTime":17.64588699862361,"msg":"request completed"}
+{"level":30,"time":1778803527812,"pid":1,"hostname":"afbef3553f0f","reqId":"e57e3602-1573-43ba-981f-fbf0f74c4f56","req":{"method":"POST","url":"/api/v1/appointments","requestId":"e57e3602-1573-43ba-981f-fbf0f74c4f56"},"msg":"incoming request"}
+{"level":30,"time":1778803527823,"pid":1,"hostname":"afbef3553f0f","reqId":"e57e3602-1573-43ba-981f-fbf0f74c4f56","res":{"statusCode":409},"responseTime":11.227517999708652,"msg":"request completed"}
+{"level":30,"time":1778803527826,"pid":1,"hostname":"afbef3553f0f","reqId":"aa000f5a-892b-4889-9df4-b4373d6fa750","req":{"method":"POST","url":"/api/v1/appointments","requestId":"aa000f5a-892b-4889-9df4-b4373d6fa750"},"msg":"incoming request"}
+{"level":30,"time":1778803527838,"pid":1,"hostname":"afbef3553f0f","reqId":"aa000f5a-892b-4889-9df4-b4373d6fa750","res":{"statusCode":409},"responseTime":11.214491002261639,"msg":"request completed"}
+{"level":30,"time":1778803527840,"pid":1,"hostname":"afbef3553f0f","reqId":"fab6960d-cee9-4bac-9a67-6cf515306d15","req":{"method":"POST","url":"/api/v1/appointments","requestId":"fab6960d-cee9-4bac-9a67-6cf515306d15"},"msg":"incoming request"}
+{"level":30,"time":1778803527859,"pid":1,"hostname":"afbef3553f0f","reqId":"fab6960d-cee9-4bac-9a67-6cf515306d15","res":{"statusCode":201},"responseTime":18.415906000882387,"msg":"request completed"}
+{"level":30,"time":1778803527880,"pid":1,"hostname":"afbef3553f0f","reqId":"bb895593-161f-4a51-9bc8-c370376fa392","req":{"method":"POST","url":"/api/v1/appointments","requestId":"bb895593-161f-4a51-9bc8-c370376fa392"},"msg":"incoming request"}
+{"level":30,"time":1778803527886,"pid":1,"hostname":"afbef3553f0f","reqId":"bb895593-161f-4a51-9bc8-c370376fa392","res":{"statusCode":201},"responseTime":5.618572000414133,"msg":"request completed"}
+{"level":30,"time":1778803527917,"pid":1,"hostname":"afbef3553f0f","reqId":"29ef2239-737b-4173-8c73-72b2d0331542","req":{"method":"POST","url":"/api/v1/appointments","requestId":"29ef2239-737b-4173-8c73-72b2d0331542"},"msg":"incoming request"}
+{"level":30,"time":1778803527934,"pid":1,"hostname":"afbef3553f0f","reqId":"29ef2239-737b-4173-8c73-72b2d0331542","res":{"statusCode":201},"responseTime":16.9320719987154,"msg":"request completed"}
+{"level":30,"time":1778803527962,"pid":1,"hostname":"afbef3553f0f","reqId":"e2ae495f-62e6-4e4f-a09d-40683fefb27d","req":{"method":"POST","url":"/api/v1/appointments","requestId":"e2ae495f-62e6-4e4f-a09d-40683fefb27d"},"msg":"incoming request"}
+{"level":30,"time":1778803527968,"pid":1,"hostname":"afbef3553f0f","reqId":"e2ae495f-62e6-4e4f-a09d-40683fefb27d","res":{"statusCode":409},"responseTime":5.806334000080824,"msg":"request completed"}
+{"level":30,"time":1778803527971,"pid":1,"hostname":"afbef3553f0f","reqId":"e278c20b-8cb1-4def-846f-f2e15aee74f0","req":{"method":"POST","url":"/webhooks/whatsapp/inbound","requestId":"e278c20b-8cb1-4def-846f-f2e15aee74f0"},"msg":"incoming request"}
+{"level":40,"time":1778803527975,"pid":1,"hostname":"afbef3553f0f","reqId":"e278c20b-8cb1-4def-846f-f2e15aee74f0","event":"whatsapp_inbound_rejected","code":"WEBHOOK_INSTANCE_UNKNOWN","instance_key":"nao-existe-qa","correlation_id":"fc6cbd38-3c15-465d-844e-05dc69f14700"}
+{"level":30,"time":1778803527976,"pid":1,"hostname":"afbef3553f0f","reqId":"e278c20b-8cb1-4def-846f-f2e15aee74f0","res":{"statusCode":404},"responseTime":5.159671001136303,"msg":"request completed"}
+{"level":30,"time":1778803527979,"pid":1,"hostname":"afbef3553f0f","reqId":"fb05a497-76ad-428c-acef-927101b8293b","req":{"method":"POST","url":"/webhooks/whatsapp/inbound","requestId":"fb05a497-76ad-428c-acef-927101b8293b"},"msg":"incoming request"}
+{"level":30,"time":1778803527981,"pid":1,"hostname":"afbef3553f0f","reqId":"fb05a497-76ad-428c-acef-927101b8293b","res":{"statusCode":400},"responseTime":1.5250860005617142,"msg":"request completed"}
+{"level":30,"time":1778803527984,"pid":1,"hostname":"afbef3553f0f","reqId":"72a0e6eb-210d-4319-aca8-629cab60ba75","req":{"method":"POST","url":"/webhooks/whatsapp/inbound","requestId":"72a0e6eb-210d-4319-aca8-629cab60ba75"},"msg":"incoming request"}
+{"level":40,"time":1778803527986,"pid":1,"hostname":"afbef3553f0f","reqId":"72a0e6eb-210d-4319-aca8-629cab60ba75","event":"whatsapp_inbound_rejected","code":"INVALID_WEBHOOK_TOKEN","instance_key":"demo-qa-inbound","correlation_id":"422ca8a1-9464-459a-9851-c83d2ea18241"}
+{"level":30,"time":1778803527986,"pid":1,"hostname":"afbef3553f0f","reqId":"72a0e6eb-210d-4319-aca8-629cab60ba75","res":{"statusCode":401},"responseTime":2.2656110003590584,"msg":"request completed"}
+{"level":30,"time":1778803527988,"pid":1,"hostname":"afbef3553f0f","reqId":"772e3128-b7f8-4466-9b39-741bb02af49b","req":{"method":"POST","url":"/webhooks/whatsapp/inbound","requestId":"772e3128-b7f8-4466-9b39-741bb02af49b"},"msg":"incoming request"}
+{"level":30,"time":1778803527990,"pid":1,"hostname":"afbef3553f0f","reqId":"772e3128-b7f8-4466-9b39-741bb02af49b","res":{"statusCode":400},"responseTime":1.6237999983131886,"msg":"request completed"}
+{"level":30,"time":1778803527995,"pid":1,"hostname":"afbef3553f0f","reqId":"7e610cfe-b1cb-4079-acde-3ead1a00f4c6","req":{"method":"POST","url":"/webhooks/whatsapp/inbound","requestId":"7e610cfe-b1cb-4079-acde-3ead1a00f4c6"},"msg":"incoming request"}
+{"level":30,"time":1778803528012,"pid":1,"hostname":"afbef3553f0f","reqId":"7e610cfe-b1cb-4079-acde-3ead1a00f4c6","event":"whatsapp_inbound","instance_key":"demo-qa-inbound","correlation_id":"4ab66525-d5b7-47d8-ab8c-af9a4c1f6e57","duplicate":false,"tenant_id":"00000000-0000-0000-0000-000000000001","customer_id":"28eff7a4-fe08-4bee-85a7-fd48407ce641","message_id":"9c6d54a2-085a-4228-a8da-cda1b6039380"}
+{"level":30,"time":1778803528013,"pid":1,"hostname":"afbef3553f0f","reqId":"7e610cfe-b1cb-4079-acde-3ead1a00f4c6","res":{"statusCode":200},"responseTime":18.206980999559164,"msg":"request completed"}
+{"level":30,"time":1778803528033,"pid":1,"hostname":"afbef3553f0f","reqId":"2123e7b1-7a01-4897-bb5b-dfecd1ca8e15","req":{"method":"POST","url":"/webhooks/whatsapp/inbound","requestId":"2123e7b1-7a01-4897-bb5b-dfecd1ca8e15"},"msg":"incoming request"}
+{"level":30,"time":1778803528035,"pid":1,"hostname":"afbef3553f0f","reqId":"2123e7b1-7a01-4897-bb5b-dfecd1ca8e15","event":"whatsapp_inbound","instance_key":"demo-qa-inbound","correlation_id":"c0b532af-92c9-4450-a869-9b2862596684","duplicate":true}
+{"level":30,"time":1778803528036,"pid":1,"hostname":"afbef3553f0f","reqId":"2123e7b1-7a01-4897-bb5b-dfecd1ca8e15","res":{"statusCode":200},"responseTime":2.8405870012938976,"msg":"request completed"}
+{"level":30,"time":1778803528062,"pid":1,"hostname":"afbef3553f0f","reqId":"1ba2c138-6055-4759-a37b-660dddf462cc","req":{"method":"POST","url":"/api/v1/integrations/outbound/whatsapp-text","requestId":"1ba2c138-6055-4759-a37b-660dddf462cc"},"msg":"incoming request"}
+{"level":30,"time":1778803528073,"pid":1,"hostname":"afbef3553f0f","reqId":"1ba2c138-6055-4759-a37b-660dddf462cc","res":{"statusCode":202},"responseTime":10.764885000884533,"msg":"request completed"}
+{"level":30,"time":1778803528093,"pid":1,"hostname":"afbef3553f0f","reqId":"13d2c1b1-5710-4598-91ff-fe827c0f273e","req":{"method":"POST","url":"/api/v1/integrations/outbound/whatsapp-text","requestId":"13d2c1b1-5710-4598-91ff-fe827c0f273e"},"msg":"incoming request"}
+{"level":30,"time":1778803528099,"pid":1,"hostname":"afbef3553f0f","reqId":"13d2c1b1-5710-4598-91ff-fe827c0f273e","res":{"statusCode":200},"responseTime":5.519582003355026,"msg":"request completed"}
+{"level":30,"time":1778803528119,"pid":1,"hostname":"afbef3553f0f","reqId":"e27975f8-6795-42da-9e6c-9406d880e432","req":{"method":"POST","url":"/api/v1/integrations/outbound/whatsapp-text","requestId":"e27975f8-6795-42da-9e6c-9406d880e432"},"msg":"incoming request"}
+{"level":30,"time":1778803528129,"pid":1,"hostname":"afbef3553f0f","reqId":"e27975f8-6795-42da-9e6c-9406d880e432","res":{"statusCode":202},"responseTime":10.031268000602722,"msg":"request completed"}
+{"level":30,"time":1778803528149,"pid":1,"hostname":"afbef3553f0f","reqId":"8f6baa06-c12a-4898-9b24-4ee025351be7","req":{"method":"GET","url":"/health","requestId":"8f6baa06-c12a-4898-9b24-4ee025351be7"},"msg":"incoming request"}
+{"level":30,"time":1778803528150,"pid":1,"hostname":"afbef3553f0f","reqId":"8f6baa06-c12a-4898-9b24-4ee025351be7","res":{"statusCode":200},"responseTime":0.5540519990026951,"msg":"request completed"}
+{"level":30,"time":1778803528172,"pid":1,"hostname":"afbef3553f0f","reqId":"328771b0-a4ce-4089-8d3b-9b2b855fcad8","req":{"method":"GET","url":"/database/health","requestId":"328771b0-a4ce-4089-8d3b-9b2b855fcad8"},"msg":"incoming request"}
+{"level":30,"time":1778803528173,"pid":1,"hostname":"afbef3553f0f","reqId":"328771b0-a4ce-4089-8d3b-9b2b855fcad8","res":{"statusCode":200},"responseTime":1.325383998453617,"msg":"request completed"}
+{"level":30,"time":1778803528194,"pid":1,"hostname":"afbef3553f0f","reqId":"221297a4-a883-43fb-8896-06c727beba1b","req":{"method":"GET","url":"/api/v1/services","requestId":"221297a4-a883-43fb-8896-06c727beba1b"},"msg":"incoming request"}
+{"level":30,"time":1778803528200,"pid":1,"hostname":"afbef3553f0f","reqId":"221297a4-a883-43fb-8896-06c727beba1b","res":{"statusCode":200},"responseTime":6.490379001945257,"msg":"request completed"}
+{"level":30,"time":1778803528222,"pid":1,"hostname":"afbef3553f0f","reqId":"1f76d26c-0d34-406f-a7c0-5fc48c176ea2","req":{"method":"GET","url":"/api/v1/availability?professional_id=00000000-0000-4000-8000-000000004011&service_id=00000000-0000-4000-8000-000000004021&date=2026-12-15","requestId":"1f76d26c-0d34-406f-a7c0-5fc48c176ea2"},"msg":"incoming request"}
+{"level":30,"time":1778803528235,"pid":1,"hostname":"afbef3553f0f","reqId":"1f76d26c-0d34-406f-a7c0-5fc48c176ea2","res":{"statusCode":200},"responseTime":12.717578999698162,"msg":"request completed"}
+{"level":30,"time":1778803528257,"pid":1,"hostname":"afbef3553f0f","reqId":"68192b23-730a-4b3e-ba7c-7e5ef8fd8294","req":{"method":"POST","url":"/api/v1/appointments","requestId":"68192b23-730a-4b3e-ba7c-7e5ef8fd8294"},"msg":"incoming request"}
+{"level":30,"time":1778803528275,"pid":1,"hostname":"afbef3553f0f","reqId":"68192b23-730a-4b3e-ba7c-7e5ef8fd8294","res":{"statusCode":201},"responseTime":17.6928579993546,"msg":"request completed"}
+{"level":30,"time":1778803528295,"pid":1,"hostname":"afbef3553f0f","reqId":"2caecd05-dd59-4cb9-9823-f97dd60620cd","req":{"method":"POST","url":"/api/v1/appointments","requestId":"2caecd05-dd59-4cb9-9823-f97dd60620cd"},"msg":"incoming request"}
+{"level":30,"time":1778803528306,"pid":1,"hostname":"afbef3553f0f","reqId":"2caecd05-dd59-4cb9-9823-f97dd60620cd","res":{"statusCode":409},"responseTime":11.318164996802807,"msg":"request completed"}
+docker : [outbox-worker] failed (retry agendado) {
+No C:\Users\Ricardo\AppData\Local\Temp\ps-script-d3bf1a38-faad-4bf5-9860-003861123e4b.ps1:86 caractere:237
++ ... _PS_2026-05-14.txt"; docker logs barbearia-api --tail 80 2>&1 | Out-F ...
++                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([outbox-worker]...try agendado) {:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  outbox_id: 'ab490d48-7946-4ba3-baad-374df3741ffd',
+  tenant_id: '00000000-0000-0000-0000-000000000001',
+  correlation_id: null,
+  attempts: 0,
+  provider: 'evolution',
+  error: 'fetch failed',
+  next_retry_in_ms: 120000
+}
+[outbox-worker] failed (retry agendado) {
+  outbox_id: 'c46c04e7-c57c-4468-86e6-8c323be488e3',
+  tenant_id: '00000000-0000-0000-0000-000000000001',
+  correlation_id: null,
+  attempts: 0,
+  provider: 'evolution',
+  error: 'fetch failed',
+  next_retry_in_ms: 120000
+}

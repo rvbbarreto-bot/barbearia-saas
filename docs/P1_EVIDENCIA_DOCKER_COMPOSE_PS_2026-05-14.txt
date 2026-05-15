@@ -1,0 +1,6 @@
+﻿NAME                 IMAGE                COMMAND                  SERVICE    CREATED          STATUS                    PORTS
+barbearia-api        barbearia-saas-api   "docker-entrypoint.sÔÇª"   api        23 seconds ago   Up 20 seconds (healthy)   0.0.0.0:3000->3000/tcp, [::]:3000->3000/tcp
+barbearia-n8n        n8nio/n8n:1.91.3     "tini -- /docker-entÔÇª"   n8n        22 hours ago     Up 2 hours (healthy)      0.0.0.0:5679->5678/tcp, [::]:5679->5678/tcp
+barbearia-postgres   postgres:16-alpine   "docker-entrypoint.sÔÇª"   postgres   22 hours ago     Up 2 hours (healthy)      0.0.0.0:5432->5432/tcp, [::]:5432->5432/tcp
+barbearia-redis      redis:7-alpine       "docker-entrypoint.sÔÇª"   redis      22 hours ago     Up 2 hours (healthy)      0.0.0.0:6380->6379/tcp, [::]:6380->6379/tcp
+barbearia-web        barbearia-saas-web   "/docker-entrypoint.ÔÇª"   web        22 hours ago     Up 12 hours (healthy)     0.0.0.0:3001->80/tcp, [::]:3001->80/tcp

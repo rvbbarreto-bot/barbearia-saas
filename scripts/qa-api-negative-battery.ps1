@@ -269,9 +269,7 @@ $j72 = ($o72 | ConvertTo-Json -Compress)
 $x = Invoke-Api POST ($ApiRoot + '/appointments') $H $j72
 Add-Row 'CT-072' 'sem explicit_confirmation' 'POST' ($ApiRoot + '/appointments') '400' $x.Status $j72 $x.Content $(if ($x.Status -eq 400) { 'OK' } else { 'GAP' })
 
-$x, $b = Post-Appt @{ explicit_confirmation = $false; idempotency_key = "qa-ct073-$([guid]::NewGuid().ToString('N').Substring(0, 8))" }
-Add-Row 'CT-073' 'explicit_confirmation false (tenant_owner)' 'POST' ($ApiRoot + '/appointments') '201' $x.Status $b $x.Content $(if ($x.Status -eq 201) { 'OK' } elseif ($x.Status -in @(400, 403, 422)) { 'FALHA' } else { 'FALHA' }) 'Criação administrativa documentada'
-
+# CT-073-B antes de CT-073: o owner com explicit_confirmation=false ocupa o slot principal; senão o atendente recebe 409 por conflito em vez de 403.
 $loginAttBody = (@{ email = 'atendente@demo.local'; password = $AdminPassword; tenant_id = $tenantId } | ConvertTo-Json -Compress)
 $LAtt = Invoke-Api POST "$BaseUrl/auth/login" @{} $loginAttBody
 if ($LAtt.Status -ne 200) {
@@ -282,8 +280,11 @@ else {
   $HAtt = @{ Authorization = "Bearer $attendantToken"; 'x-tenant-id' = $tenantId }
   $jb = ApptJson @{ explicit_confirmation = $false; idempotency_key = "qa-ct073b-$([guid]::NewGuid().ToString('N').Substring(0, 10))" }
   $xb = Invoke-Api POST ($ApiRoot + '/appointments') $HAtt $jb
-  Add-Row 'CT-073-B' 'explicit_confirmation false (atendente)' 'POST' ($ApiRoot + '/appointments') '403' $xb.Status $jb $xb.Content $(if ($xb.Status -eq 403) { 'OK' } elseif ($xb.Status -eq 201) { 'FALHA' } else { 'FALHA' }) 'CT-073-B: comum/balcão sem privilégio administrativo'
+  Add-Row 'CT-073-B' 'explicit_confirmation false (atendente)' 'POST' ($ApiRoot + '/appointments') '403' $xb.Status $jb $xb.Content $(if ($xb.Status -eq 403) { 'OK' } elseif ($xb.Status -eq 201) { 'FALHA' } elseif ($xb.Status -eq 409) { 'FALHA' } else { 'FALHA' }) 'CT-073-B: comum/balcão sem privilégio administrativo'
 }
+
+$x, $b = Post-Appt @{ explicit_confirmation = $false; idempotency_key = "qa-ct073-$([guid]::NewGuid().ToString('N').Substring(0, 8))" }
+Add-Row 'CT-073' 'explicit_confirmation false (tenant_owner)' 'POST' ($ApiRoot + '/appointments') '201' $x.Status $b $x.Content $(if ($x.Status -eq 201) { 'OK' } elseif ($x.Status -in @(400, 403, 422)) { 'FALHA' } else { 'FALHA' }) 'Criação administrativa documentada'
 
 $x, $b = Post-Appt @{ source = 'origem_invalida'; idempotency_key = "qa-ct074-$([guid]::NewGuid().ToString('N').Substring(0, 8))" }
 Add-Row 'CT-074' 'source invalido' 'POST' ($ApiRoot + '/appointments') '400' $x.Status $b $x.Content $(if ($x.Status -eq 400) { 'OK' } else { 'FALHA' })
@@ -353,9 +354,9 @@ $whInst = 'demo-qa-inbound'
 $whTok = 'demo_webhook_token_change_me'
 $w = Invoke-Api POST $wh @{ 'x-webhook-instance' = 'nao-existe-qa' } (@{ phone = '5511999990001'; message = 'x'; external_message_id = 'e1' } | ConvertTo-Json -Compress)
 Add-Row 'CT-090' 'webhook instancia desconhecida' 'POST' $wh '404' $w.Status '' $w.Content $(if ($w.Status -eq 404) { 'OK' } else { 'FALHA' })
-$w = Invoke-Api POST $wh @{ 'x-webhook-instance' = 'demo' } '{}'
+$w = Invoke-Api POST $wh @{ 'x-webhook-instance' = $whInst; 'x-webhook-token' = $whTok } '{}'
 Add-Row 'CT-091' 'webhook payload vazio' 'POST' $wh '400' $w.Status '{}' $w.Content $(if ($w.Status -eq 400) { 'OK' } else { 'FALHA' })
-$w = Invoke-Api POST $wh @{ 'x-webhook-instance' = 'demo'; 'x-webhook-token' = 'wrong' } (@{ phone = '5511999990001'; message = 'sem phone ok' } | ConvertTo-Json -Compress)
+$w = Invoke-Api POST $wh @{ 'x-webhook-instance' = $whInst; 'x-webhook-token' = 'wrong' } (@{ phone = '5511999990001'; message = 'sem phone ok' } | ConvertTo-Json -Compress)
 Add-Row 'CT-092' 'webhook token invalido' 'POST' $wh '401' $w.Status '' $w.Content $(if ($w.Status -eq 401) { 'OK' } else { 'FALHA' })
 $w = Invoke-Api POST $wh @{ 'x-webhook-instance' = $whInst; 'x-webhook-token' = $whTok } (@{ message = 'sem phone' } | ConvertTo-Json -Compress)
 Add-Row 'CT-092b' 'webhook sem phone' 'POST' $wh '400' $w.Status '' $w.Content $(if ($w.Status -eq 400) { 'OK' } else { 'FALHA' })
