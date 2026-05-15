@@ -7,6 +7,8 @@ function integrationEnvForWorkers(): Record<string, string> {
     'DATABASE_URL_ADMIN',
     'JWT_SECRET',
     'REDIS_URL',
+    'EVOLUTION_API_URL',
+    'EVOLUTION_API_KEY',
     'RECALL_ENABLED',
     'PIX_REAL_PROVIDER_ENABLED',
     'WAITLIST_SLOT_NOTIFY_ENABLED',

@@ -32,6 +32,7 @@ if (!process.env.DATABASE_URL) {
   );
 }
 const DATABASE_URL = process.env.DATABASE_URL;
+const ADMIN_DATABASE_URL = process.env.DATABASE_URL_ADMIN ?? DATABASE_URL;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -94,31 +95,34 @@ describe('POST /webhooks/whatsapp/inbound (integration)', () => {
       }
     }
 
-    // Tenant de teste
-    await pool.query(
-      `INSERT INTO tenants (id, name, slug, status, webhook_token)
-       VALUES ($1, 'Tenant Webhook Test', $2, 'active', $3)
+    const adminPool = new pg.Pool({ connectionString: ADMIN_DATABASE_URL, connectionTimeoutMillis: 3000 });
+
+    await adminPool.query(
+      `INSERT INTO tenants (id, legal_name, trade_name, plan_code, status, slug, webhook_token)
+       VALUES ($1, 'Tenant Webhook Test', 'Tenant Webhook Test', 'trial', 'active', $2, $3)
        ON CONFLICT (id) DO NOTHING`,
       [tenantId, `tenant-wh-${tenantId.slice(0, 8)}`, TOKEN],
     );
 
-    // Integration: token fixo
-    await pool.query(
+    await adminPool.query(
       `INSERT INTO tenant_integrations
          (id, tenant_id, provider, config, is_active, hmac_secret)
        VALUES ($1, $2, 'evolution', $3::jsonb, true, NULL)
        ON CONFLICT DO NOTHING`,
       [randomUUID(), tenantId, JSON.stringify({ instance_name: INSTANCE })],
     );
+    await adminPool.end();
   });
 
   afterAll(async () => {
-    await pool.query(`DELETE FROM webhook_events   WHERE tenant_id = $1`, [tenantId]);
-    await pool.query(`DELETE FROM conversation_states WHERE tenant_id = $1`, [tenantId]);
-    await pool.query(`DELETE FROM messages         WHERE tenant_id = $1`, [tenantId]);
-    await pool.query(`DELETE FROM customers        WHERE tenant_id = $1`, [tenantId]);
-    await pool.query(`DELETE FROM tenant_integrations WHERE tenant_id = $1`, [tenantId]);
-    await pool.query(`DELETE FROM tenants          WHERE id = $1`,          [tenantId]);
+    const adminPool = new pg.Pool({ connectionString: ADMIN_DATABASE_URL, connectionTimeoutMillis: 3000 });
+    await adminPool.query(`DELETE FROM webhook_events   WHERE tenant_id = $1`, [tenantId]);
+    await adminPool.query(`DELETE FROM conversation_states WHERE tenant_id = $1`, [tenantId]);
+    await adminPool.query(`DELETE FROM messages         WHERE tenant_id = $1`, [tenantId]);
+    await adminPool.query(`DELETE FROM customers        WHERE tenant_id = $1`, [tenantId]);
+    await adminPool.query(`DELETE FROM tenant_integrations WHERE tenant_id = $1`, [tenantId]);
+    await adminPool.query(`DELETE FROM tenants WHERE id = $1`, [tenantId]);
+    await adminPool.end();
     await pool.end();
   });
 

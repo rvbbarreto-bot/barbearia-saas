@@ -52,20 +52,28 @@ type SendResult =
 
 // ── Envio via Evolution API ───────────────────────────────────────────────────
 
+function evolutionCredentials(): { apiUrl: string; apiKey: string } | null {
+  const apiUrl = process.env.EVOLUTION_API_URL ?? env.EVOLUTION_API_URL;
+  const apiKey = process.env.EVOLUTION_API_KEY ?? env.EVOLUTION_API_KEY;
+  if (!apiUrl || !apiKey) return null;
+  return { apiUrl, apiKey };
+}
+
 async function sendViaEvolution(
   instanceName: string,
   phone: string,
   text: string,
 ): Promise<unknown> {
-  if (!env.EVOLUTION_API_URL || !env.EVOLUTION_API_KEY) {
+  const creds = evolutionCredentials();
+  if (!creds) {
     throw new Error('Evolution API not configured (EVOLUTION_API_URL / EVOLUTION_API_KEY ausentes)');
   }
-  const url = `${env.EVOLUTION_API_URL}/message/sendText/${instanceName}`;
+  const url = `${creds.apiUrl}/message/sendText/${instanceName}`;
   const response = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      apikey: env.EVOLUTION_API_KEY,
+      apikey: creds.apiKey,
     },
     body: JSON.stringify({ number: phone, text }),
   });
@@ -110,14 +118,16 @@ export async function processRow(row: OutboxRow): Promise<void> {
         .join(', ')
     }`;
     console.error('[outbox-worker] dead (campos ausentes)', { ...logCtx, error });
-    await pool.query(
-      `UPDATE message_outbox
-          SET status           = 'dead',
-              last_error       = $2,
-              updated_at       = now()
-        WHERE id = $1`,
-      [row.id, error],
-    );
+    await withTenant(row.tenant_id, async (client) => {
+      await client.query(
+        `UPDATE message_outbox
+            SET status           = 'dead',
+                last_error       = $2,
+                updated_at       = now()
+          WHERE id = $1`,
+        [row.id, error],
+      );
+    });
     return;
   }
 
@@ -160,7 +170,7 @@ export async function processRow(row: OutboxRow): Promise<void> {
             SET status        = $2,
                 attempts      = $3,
                 last_error    = $4,
-                next_retry_at = CASE WHEN $5 THEN NULL
+                next_retry_at = CASE WHEN $5 THEN now()
                                      ELSE now() + ($6 || ' milliseconds')::interval
                                 END,
                 updated_at    = now()

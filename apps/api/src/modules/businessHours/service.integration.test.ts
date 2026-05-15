@@ -11,9 +11,11 @@ if (!process.env.DATABASE_URL) {
   );
 }
 const DATABASE_URL = process.env.DATABASE_URL;
+const ADMIN_DATABASE_URL = process.env.DATABASE_URL_ADMIN ?? DATABASE_URL;
 
 describe('business hours service integration with real database', () => {
   const pool = new pg.Pool({ connectionString: DATABASE_URL, connectionTimeoutMillis: 3000 });
+  const adminPool = new pg.Pool({ connectionString: ADMIN_DATABASE_URL, connectionTimeoutMillis: 3000 });
   const tenantId = randomUUID();
   const professionalId = randomUUID();
 
@@ -34,12 +36,12 @@ describe('business hours service integration with real database', () => {
       }
     }
 
-    await pool.query(
+    await adminPool.query(
       `INSERT INTO tenants (id, legal_name, trade_name, plan_code, status)
        VALUES ($1, 'Tenant Teste Integração', 'Tenant Teste', 'trial', 'active')`,
       [tenantId],
     );
-    await pool.query(
+    await adminPool.query(
       `INSERT INTO professionals (id, tenant_id, name, slug, active)
        VALUES ($1, $2, 'Profissional Integração', 'prof-integracao', true)`,
       [professionalId, tenantId],
@@ -47,8 +49,9 @@ describe('business hours service integration with real database', () => {
   });
 
   afterAll(async () => {
-    await pool.query('DELETE FROM professionals WHERE id = $1', [professionalId]).catch(() => {});
-    await pool.query('DELETE FROM tenants WHERE id = $1', [tenantId]).catch(() => {});
+    await adminPool.query('DELETE FROM professionals WHERE id = $1', [professionalId]).catch(() => {});
+    await adminPool.query('DELETE FROM tenants WHERE id = $1', [tenantId]).catch(() => {});
+    await adminPool.end();
     await pool.end();
   });
 

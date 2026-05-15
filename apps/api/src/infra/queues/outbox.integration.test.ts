@@ -342,7 +342,8 @@ describe('message_outbox integration', () => {
       const after = await getRow(pool, tenantId, id);
       expect(after?.status).toBe('dead');
       expect(after?.attempts).toBe(5);
-      expect(after?.next_retry_at).toBeNull();
+      // next_retry_at é NOT NULL no schema; dead usa `now()` para não ser reprocessado.
+      expect(after?.next_retry_at).not.toBeNull();
     });
 
     it('marca dead imediatamente se phone ausente no metadata', async () => {

@@ -66,6 +66,8 @@ jobs:
       WAITLIST_SWEEP_ENABLED: 'false'
       RECALL_ENABLED: 'false'
       PIX_REAL_PROVIDER_ENABLED: 'false'
+      EVOLUTION_API_URL: http://evolution.test
+      EVOLUTION_API_KEY: ci-test-evolution-key
 
     steps:
       - uses: actions/checkout@v4
