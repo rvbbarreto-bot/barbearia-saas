@@ -8,8 +8,13 @@ on:
       # Piloto P2.2: CI na branch de entrega até PR mergeado em develop
       - feature/p2-2-web-outbox-whatsapp-operational
       - piloto-staging-01
+      # PILOTO-STAGING-02+: CI na branch de entrega até PR em piloto-staging-01.
+      - feature/piloto-staging-02-agenda-operacional
   pull_request:
-    branches: [main, develop]
+    branches:
+      - main
+      - develop
+      - piloto-staging-01
 
 # ──────────────────────────────────────────────────────────────────────────────
 # JOB 1 — API: typecheck · lint · test:unit · test (integração) · build

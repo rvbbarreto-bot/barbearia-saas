@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   listAppointments: vi.fn(),
   getAppointmentById: vi.fn(),
   createAppointment: vi.fn(),
+  confirmAppointment: vi.fn(),
   cancelAppointment: vi.fn(),
   rescheduleAppointment: vi.fn(),
   getAvailability: vi.fn(),
@@ -18,6 +19,7 @@ vi.mock('../appointments/service.js', () => ({
   listAppointments: mocks.listAppointments,
   getAppointmentById: mocks.getAppointmentById,
   createAppointment: mocks.createAppointment,
+  confirmAppointment: mocks.confirmAppointment,
   cancelAppointment: mocks.cancelAppointment,
   rescheduleAppointment: mocks.rescheduleAppointment,
 }));
@@ -178,21 +180,66 @@ describe('authorization by endpoint policies', () => {
 
   it('allows attendant to cancel appointment', async () => {
     mocks.cancelAppointment.mockResolvedValueOnce({ id: 'appt-cancelled', status: 'cancelled' });
+    const tenantId = '11111111-1111-4111-8111-111111111111';
+    const apptId = '11111111-1111-4111-8111-111111111115';
     const token = await app.jwt.sign({
       sub: '11111111-1111-4111-8111-111111111111',
-      tenant_id: '11111111-1111-4111-8111-111111111111',
+      tenant_id: tenantId,
       role: 'attendant',
       jti: 'r6',
     });
 
     const response = await app.inject({
       method: 'PATCH',
-      url: '/api/v1/appointments/11111111-1111-4111-8111-111111111115/cancel',
+      url: `/api/v1/appointments/${apptId}/cancel`,
       headers: { authorization: `Bearer ${token}` },
       payload: { reason: 'Cliente pediu cancelamento' },
     });
 
     expect(response.statusCode).toBe(200);
+    expect(mocks.cancelAppointment).toHaveBeenCalledWith(
+      tenantId,
+      apptId,
+      { reason: 'Cliente pediu cancelamento' },
+      expect.objectContaining({
+        sub: '11111111-1111-4111-8111-111111111111',
+        role: 'attendant',
+      }),
+    );
+  });
+
+  it('cancel como professional repassa professional_id no caller ao serviço', async () => {
+    mocks.cancelAppointment.mockResolvedValueOnce({ id: 'appt-cancelled', status: 'cancelled' });
+    const tenantId = '11111111-1111-4111-8111-111111111111';
+    const apptId = '11111111-1111-4111-8111-111111111116';
+    const profId = '11111111-1111-4111-8111-111111111199';
+    const sub = '11111111-1111-4111-8111-111111111122';
+    const token = await app.jwt.sign({
+      sub,
+      tenant_id: tenantId,
+      role: 'professional',
+      professional_id: profId,
+      jti: 'r-cancel-prof',
+    });
+
+    const response = await app.inject({
+      method: 'PATCH',
+      url: `/api/v1/appointments/${apptId}/cancel`,
+      headers: { authorization: `Bearer ${token}` },
+      payload: { reason: 'Cliente pediu cancelamento' },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(mocks.cancelAppointment).toHaveBeenCalledWith(
+      tenantId,
+      apptId,
+      { reason: 'Cliente pediu cancelamento' },
+      expect.objectContaining({
+        sub,
+        role: 'professional',
+        professional_id: profId,
+      }),
+    );
   });
 
   it('allows attendant to reschedule appointment', async () => {
@@ -216,5 +263,44 @@ describe('authorization by endpoint policies', () => {
     });
 
     expect(response.statusCode).toBe(200);
+  });
+
+  it('denies viewer to confirm appointment', async () => {
+    const token = await app.jwt.sign({
+      sub: '11111111-1111-4111-8111-111111111111',
+      tenant_id: '11111111-1111-4111-8111-111111111111',
+      role: 'viewer',
+      jti: 'r8',
+    });
+
+    const response = await app.inject({
+      method: 'PATCH',
+      url: '/api/v1/appointments/11111111-1111-4111-8111-111111111115/confirm',
+      headers: { authorization: `Bearer ${token}` },
+      payload: {},
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(mocks.confirmAppointment).not.toHaveBeenCalled();
+  });
+
+  it('allows attendant to confirm appointment', async () => {
+    mocks.confirmAppointment.mockResolvedValueOnce({ id: 'appt-confirmed', status: 'confirmed' });
+    const token = await app.jwt.sign({
+      sub: '11111111-1111-4111-8111-111111111111',
+      tenant_id: '11111111-1111-4111-8111-111111111111',
+      role: 'attendant',
+      jti: 'r9',
+    });
+
+    const response = await app.inject({
+      method: 'PATCH',
+      url: '/api/v1/appointments/11111111-1111-4111-8111-111111111115/confirm',
+      headers: { authorization: `Bearer ${token}` },
+      payload: {},
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(mocks.confirmAppointment).toHaveBeenCalled();
   });
 });

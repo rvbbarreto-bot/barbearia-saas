@@ -1,0 +1,33 @@
+PILOTO-STAGING-02 — testes locais (2026-05-15)
+Branch: feature/piloto-staging-02-agenda-operacional
+Base: piloto-staging-01 @ 3a6fc049214641a46cba0242fde5afd236c2a512
+Commit baseline validado pelo PO (referência): 4222ba9b7d941e41714bfb3ffecc35158186d941
+Commit corretivo (escopo agenda / cancel): 2d964122ddd661124091637e50ee1c2a3c1c2c7e — mensagem `fix(agenda): enforce professional scope on booking and cancel`.
+HEAD atual da branch: `git rev-parse HEAD` no remoto local (último push pode acrescentar apenas commits de evidência).
+
+CI GitHub Actions (este corretivo, push na branch): https://github.com/rvbbarreto-bot/barbearia-saas/actions/runs/25944290957 — conclusão **success**.
+
+apps/api:
+  npm run typecheck — OK
+  npm run lint — OK (0 errors, warnings pré-existentes)
+  npm run test:unit — 36 files, 166 tests passed (Vitest sem `*.integration.test.ts`)
+  npm run test — igual ao CI apenas com Postgres/Redis+migrations como em .github/workflows/ci.yml
+                      (DATABASE_URL usuário barbearia_app etc.; sem isso falham integrações esperadas).
+  npm run build — OK
+  npm audit --audit-level=high — pode reportar moderate (ex. @fastify/static); alto=0 onde aplicável.
+
+apps/web:
+  npm run lint — OK (0 errors, warnings pré-existentes)
+  npm run typecheck — OK
+  npm run test — 10 files, 42 tests passed
+  npm run build — OK
+
+Gitleaks: binário opcional na máquina local; obrigatório no job CI GitHub Actions.
+
+Novos testes API (entrega PILOTO-STAGING-02):
+  appointment-scheduling-rules.test.ts
+  assert-appointment-mutation-scope.test.ts
+  appointments.lifecycle.integration.test.ts — `describe.skipIf` sem env; import dinâmico de `./service.js` só em `beforeAll` quando roda integração (não parte suíte `test:unit` sem Postgres/Redis)
+  authorization-routes.integration.test.ts — cancel repassa `professional_id` quando role é professional (arquivo corrido em `npm test`/CI)
+
+CI: pull_request contra piloto-staging-01 deve disparar o workflow (lista em .github/workflows/ci.yml).

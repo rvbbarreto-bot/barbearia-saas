@@ -79,6 +79,7 @@ export async function appointmentRoutes(app: FastifyInstance) {
       const created = await createAppointment(request.tenantId, request.body, {
         sub: request.user?.sub,
         role: (request.user as { role?: string })?.role,
+        professional_id: (request.user as { professional_id?: string })?.professional_id,
         requestId: request.id,
       });
       return reply.code(201).send(created);
@@ -92,6 +93,8 @@ export async function appointmentRoutes(app: FastifyInstance) {
       const created = await createWalkInAppointment(request.tenantId, request.body, {
         sub: request.user?.sub,
         role: (request.user as { role?: string })?.role,
+        professional_id: (request.user as { professional_id?: string })?.professional_id,
+        requestId: request.id,
       });
       return reply.code(201).send(created);
     },
@@ -116,6 +119,7 @@ export async function appointmentRoutes(app: FastifyInstance) {
       confirmAppointment(request.tenantId, request.params.appointmentId, {
         sub: request.user?.sub,
         role: (request.user as { role?: string })?.role,
+        professional_id: (request.user as { professional_id?: string })?.professional_id,
         requestId: request.id,
       }),
   );
@@ -127,6 +131,7 @@ export async function appointmentRoutes(app: FastifyInstance) {
       cancelAppointment(request.tenantId, request.params.appointmentId, request.body ?? {}, {
         sub: request.user?.sub,
         role: (request.user as { role?: string })?.role,
+        professional_id: (request.user as { professional_id?: string })?.professional_id,
         requestId: request.id,
       }),
   );
@@ -142,6 +147,7 @@ export async function appointmentRoutes(app: FastifyInstance) {
         {
           sub: request.user?.sub,
           role: (request.user as { role?: string })?.role,
+          professional_id: (request.user as { professional_id?: string })?.professional_id,
           requestId: request.id,
         },
       ),
@@ -151,14 +157,24 @@ export async function appointmentRoutes(app: FastifyInstance) {
     '/appointments/:appointmentId/check-in',
     { preHandler: requirePermission('appointments', 'checkIn') },
     async (request: any) =>
-      checkInAppointment(request.tenantId, request.params.appointmentId, request.user?.sub),
+      checkInAppointment(request.tenantId, request.params.appointmentId, {
+        sub: request.user?.sub,
+        role: (request.user as { role?: string })?.role,
+        professional_id: (request.user as { professional_id?: string })?.professional_id,
+        requestId: request.id,
+      }),
   );
 
   app.patch(
     '/appointments/:appointmentId/start',
     { preHandler: requirePermission('appointments', 'start') },
     async (request: any) =>
-      startAppointmentService(request.tenantId, request.params.appointmentId, request.user?.sub),
+      startAppointmentService(request.tenantId, request.params.appointmentId, {
+        sub: request.user?.sub,
+        role: (request.user as { role?: string })?.role,
+        professional_id: (request.user as { professional_id?: string })?.professional_id,
+        requestId: request.id,
+      }),
   );
 
   app.patch(
@@ -168,6 +184,7 @@ export async function appointmentRoutes(app: FastifyInstance) {
       completeAppointment(request.tenantId, request.params.appointmentId, {
         sub: request.user?.sub,
         role: (request.user as { role?: string })?.role,
+        professional_id: (request.user as { professional_id?: string })?.professional_id,
         requestId: request.id,
       }),
   );
@@ -179,6 +196,7 @@ export async function appointmentRoutes(app: FastifyInstance) {
       noShowAppointment(request.tenantId, request.params.appointmentId, request.body ?? {}, {
         sub: request.user?.sub,
         role: (request.user as { role?: string })?.role,
+        professional_id: (request.user as { professional_id?: string })?.professional_id,
         requestId: request.id,
       }),
   );
