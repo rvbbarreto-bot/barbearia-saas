@@ -1,83 +1,13 @@
 import { withTenant } from '../../infra/db/pool.js';
 import { AppError } from '../../shared/errors.js';
 import { parsePagination } from '../../shared/pagination.js';
+import { mapOutboxRow, type OutboxMessageRowDb } from './outbox-row-mapper.js';
 
 const OUTBOX_STATUSES = new Set(['pending', 'processing', 'sent', 'failed', 'dead']);
 
 export type OutboxMessageListQuery = Record<string, unknown>;
 
-export type OutboxMessageListItem = {
-  id: string;
-  tenant_id: string;
-  channel: string;
-  provider: string | null;
-  status: string;
-  destination: string | null;
-  payload_summary: { type: string | null; preview: string | null };
-  last_error: string | null;
-  attempts: number;
-  max_attempts: number;
-  correlation_id: string | null;
-  customer_id: string | null;
-  created_at: string;
-  updated_at: string;
-  sent_at: string | null;
-};
-
-function maskPhone(raw: string): string {
-  const digits = raw.replace(/\D/g, '');
-  if (digits.length <= 4) return '****';
-  return `****${digits.slice(-4)}`;
-}
-
-function summarizePayload(payload: unknown): { type: string | null; preview: string | null } {
-  if (!payload || typeof payload !== 'object') return { type: null, preview: null };
-  const p = payload as { type?: string; text?: string };
-  const type = typeof p.type === 'string' ? p.type : null;
-  const text = typeof p.text === 'string' ? p.text.trim() : '';
-  if (!text) return { type, preview: null };
-  const max = 120;
-  const preview = text.length > max ? `${text.slice(0, max)}…` : text;
-  return { type, preview };
-}
-
-function mapRow(row: {
-  id: string;
-  tenant_id: string;
-  channel: string;
-  status: string;
-  attempts: number;
-  max_attempts: number;
-  last_error: string | null;
-  correlation_id: string | null;
-  customer_id: string | null;
-  created_at: Date;
-  updated_at: Date;
-  sent_at: Date | null;
-  payload: unknown;
-  metadata: unknown;
-}): OutboxMessageListItem {
-  const meta = row.metadata && typeof row.metadata === 'object' ? (row.metadata as Record<string, unknown>) : {};
-  const phone = typeof meta.phone === 'string' ? meta.phone : null;
-  const provider = typeof meta.provider === 'string' ? meta.provider : null;
-  return {
-    id: row.id,
-    tenant_id: row.tenant_id,
-    channel: row.channel,
-    provider,
-    status: row.status,
-    destination: phone ? maskPhone(phone) : null,
-    payload_summary: summarizePayload(row.payload),
-    last_error: row.last_error,
-    attempts: row.attempts,
-    max_attempts: row.max_attempts,
-    correlation_id: row.correlation_id,
-    customer_id: row.customer_id,
-    created_at: row.created_at.toISOString(),
-    updated_at: row.updated_at.toISOString(),
-    sent_at: row.sent_at ? row.sent_at.toISOString() : null,
-  };
-}
+export type { OutboxMessageListItem } from './outbox-row-mapper.js';
 
 function optIsoTimestamptz(label: string, raw: unknown): string | null {
   if (raw === undefined || raw === null || raw === '') return null;
@@ -97,9 +27,10 @@ function optIsoTimestamptz(label: string, raw: unknown): string | null {
 export async function listOutboxMessages(tenantId: string, rawQuery: OutboxMessageListQuery) {
   const { limit, offset, page } = parsePagination(rawQuery);
 
-  const status = rawQuery.status !== undefined && rawQuery.status !== null && rawQuery.status !== ''
-    ? String(rawQuery.status).trim()
-    : '';
+  const status =
+    rawQuery.status !== undefined && rawQuery.status !== null && rawQuery.status !== ''
+      ? String(rawQuery.status).trim()
+      : '';
   if (status && !OUTBOX_STATUSES.has(status)) {
     throw new AppError('VALIDATION_ERROR', 'status inválido para outbox.', 400);
   }
@@ -167,7 +98,7 @@ export async function listOutboxMessages(tenantId: string, rawQuery: OutboxMessa
     const countSql = `SELECT COUNT(*)::int AS total FROM message_outbox mo WHERE ${where}`;
     const listSql = `
       SELECT mo.id, mo.tenant_id, mo.channel, mo.status, mo.attempts, mo.max_attempts, mo.last_error,
-             mo.correlation_id, mo.customer_id, mo.created_at, mo.updated_at, mo.sent_at,
+             mo.correlation_id, mo.customer_id, mo.idempotency_key, mo.created_at, mo.updated_at, mo.sent_at,
              mo.payload, mo.metadata
         FROM message_outbox mo
        WHERE ${where}
@@ -182,26 +113,7 @@ export async function listOutboxMessages(tenantId: string, rawQuery: OutboxMessa
     ]);
 
     const total = countR.rows[0]?.total ?? 0;
-    const data = dataR.rows.map((r) =>
-      mapRow(
-        r as {
-          id: string;
-          tenant_id: string;
-          channel: string;
-          status: string;
-          attempts: number;
-          max_attempts: number;
-          last_error: string | null;
-          correlation_id: string | null;
-          customer_id: string | null;
-          created_at: Date;
-          updated_at: Date;
-          sent_at: Date | null;
-          payload: unknown;
-          metadata: unknown;
-        },
-      ),
-    );
+    const data = dataR.rows.map((r) => mapOutboxRow(r as OutboxMessageRowDb));
 
     return { data, total, page, limit };
   });

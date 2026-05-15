@@ -665,7 +665,7 @@ export const openApiDocument = {
         tags: ['outbox'],
         summary: 'Listar mensagens da fila (sanitizado)',
         description:
-          'RBAC: `outbox.read` (mín. `manager`). Lista `message_outbox` do tenant com paginação. ' +
+          'RBAC: `outbox.read` (mín. `attendant`). Lista `message_outbox` do tenant com paginação. ' +
           'Não devolve `metadata`/`payload` completos nem `provider_response`. Telefone mascarado em `destination`.',
         parameters: [
           { name: 'page', in: 'query', schema: { type: 'string' } },
@@ -713,6 +713,13 @@ export const openApiDocument = {
                           attempts: { type: 'integer' },
                           max_attempts: { type: 'integer' },
                           correlation_id: { type: 'string', nullable: true },
+                          appointment_id: {
+                            type: 'string',
+                            format: 'uuid',
+                            nullable: true,
+                            description: 'Derivado de `correlation_id` quando for UUID de agendamento.',
+                          },
+                          idempotency_key: { type: 'string', nullable: true },
                           customer_id: { type: 'string', format: 'uuid', nullable: true },
                           created_at: { type: 'string', format: 'date-time' },
                           updated_at: { type: 'string', format: 'date-time' },
@@ -730,7 +737,86 @@ export const openApiDocument = {
           },
           '400': { description: 'VALIDATION_ERROR (filtros inválidos)' },
           '401': { description: 'Não autenticado' },
-          '403': { description: 'Sem permissão (inferior a manager)' },
+          '403': { description: 'Sem permissão (inferior a attendant)' },
+        },
+      },
+    },
+    '/api/v1/outbox/messages/{id}': {
+      get: {
+        tags: ['outbox'],
+        summary: 'Detalhe de mensagem outbox (sanitizado)',
+        description: 'RBAC: `outbox.read` (mín. `attendant`). Mesmo formato sanitizado da listagem.',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        security: [{ bearerAuth: [], tenantHeader: [] }],
+        responses: {
+          '200': {
+            description: 'Mensagem',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    id: { type: 'string', format: 'uuid' },
+                    tenant_id: { type: 'string', format: 'uuid' },
+                    channel: { type: 'string' },
+                    provider: { type: 'string', nullable: true },
+                    status: { type: 'string' },
+                    destination: { type: 'string', nullable: true },
+                    payload_summary: {
+                      type: 'object',
+                      properties: {
+                        type: { type: 'string', nullable: true },
+                        preview: { type: 'string', nullable: true },
+                      },
+                    },
+                    last_error: { type: 'string', nullable: true },
+                    attempts: { type: 'integer' },
+                    max_attempts: { type: 'integer' },
+                    correlation_id: { type: 'string', nullable: true },
+                    appointment_id: { type: 'string', format: 'uuid', nullable: true },
+                    idempotency_key: { type: 'string', nullable: true },
+                    customer_id: { type: 'string', format: 'uuid', nullable: true },
+                    created_at: { type: 'string', format: 'date-time' },
+                    updated_at: { type: 'string', format: 'date-time' },
+                    sent_at: { type: 'string', format: 'date-time', nullable: true },
+                  },
+                },
+              },
+            },
+          },
+          '401': { description: 'Não autenticado' },
+          '403': { description: 'Sem permissão' },
+          '404': { description: 'NOT_FOUND' },
+        },
+      },
+    },
+    '/api/v1/outbox/messages/{id}/retry': {
+      post: {
+        tags: ['outbox'],
+        summary: 'Re-enfileirar mensagem (retry manual)',
+        description:
+          'RBAC: `outbox.retry` (mín. `manager`). Apenas `failed` ou `dead` → `pending`; regista `operational_audit_events`.',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        security: [{ bearerAuth: [], tenantHeader: [] }],
+        responses: {
+          '200': {
+            description: '{ id, status: pending }',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    id: { type: 'string', format: 'uuid' },
+                    status: { type: 'string', enum: ['pending'] },
+                  },
+                },
+              },
+            },
+          },
+          '401': { description: 'Não autenticado' },
+          '403': { description: 'Sem permissão' },
+          '404': { description: 'NOT_FOUND' },
+          '409': { description: 'OUTBOX_RETRY_NOT_ALLOWED' },
         },
       },
     },

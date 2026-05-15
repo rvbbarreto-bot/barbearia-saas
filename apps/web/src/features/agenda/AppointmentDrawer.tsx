@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import axios from 'axios';
+import { getApiErrorMessage } from '@/lib/apiErrorMessage';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -39,17 +39,6 @@ const SOURCE_LABEL: Record<string, string> = {
   web: 'Web',
   api: 'API',
 };
-
-function parseApiMessage(err: unknown, fallback: string): string {
-  if (
-    axios.isAxiosError(err) &&
-    err.response?.data &&
-    typeof (err.response.data as { message?: string }).message === 'string'
-  ) {
-    return (err.response.data as { message: string }).message;
-  }
-  return fallback;
-}
 
 function eventLabel(type: string): string {
   const m: Record<string, string> = {
@@ -126,7 +115,7 @@ function AppointmentDrawerBody({
       toast.success('Agendamento cancelado.');
       invalidate();
     },
-    onError: () => toast.error('Erro ao cancelar.'),
+    onError: (err: unknown) => toast.error(getApiErrorMessage(err, 'Erro ao cancelar.')),
   });
 
   const rescheduleMut = useMutation({
@@ -140,7 +129,7 @@ function AppointmentDrawerBody({
       toast.success('Agendamento remarcado.');
       invalidate();
     },
-    onError: () => toast.error('Erro ao remarcar.'),
+    onError: (err: unknown) => toast.error(getApiErrorMessage(err, 'Erro ao remarcar.')),
   });
 
   const checkInMut = useMutation({
@@ -149,7 +138,7 @@ function AppointmentDrawerBody({
       toast.success('Check-in registado.');
       invalidateQueriesOnly();
     },
-    onError: (err: unknown) => toast.error(parseApiMessage(err, 'Erro no check-in.')),
+    onError: (err: unknown) => toast.error(getApiErrorMessage(err, 'Erro no check-in.')),
   });
 
   const startMut = useMutation({
@@ -158,7 +147,7 @@ function AppointmentDrawerBody({
       toast.success('Serviço iniciado.');
       invalidateQueriesOnly();
     },
-    onError: (err: unknown) => toast.error(parseApiMessage(err, 'Erro ao iniciar serviço.')),
+    onError: (err: unknown) => toast.error(getApiErrorMessage(err, 'Erro ao iniciar serviço.')),
   });
 
   const completeMut = useMutation({
@@ -167,7 +156,7 @@ function AppointmentDrawerBody({
       toast.success('Marcado como concluído.');
       invalidate();
     },
-    onError: (err: unknown) => toast.error(parseApiMessage(err, 'Erro ao concluir.')),
+    onError: (err: unknown) => toast.error(getApiErrorMessage(err, 'Erro ao concluir.')),
   });
 
   const confirmMut = useMutation({
@@ -176,7 +165,7 @@ function AppointmentDrawerBody({
       toast.success('Agendamento confirmado.');
       invalidate();
     },
-    onError: () => toast.error('Erro ao confirmar.'),
+    onError: (err: unknown) => toast.error(getApiErrorMessage(err, 'Erro ao confirmar.')),
   });
 
   const noShowMut = useMutation({
@@ -185,7 +174,7 @@ function AppointmentDrawerBody({
       toast.success('No-show registrado.');
       invalidate();
     },
-    onError: () => toast.error('Erro ao registrar no-show.'),
+    onError: (err: unknown) => toast.error(getApiErrorMessage(err, 'Erro ao registrar no-show.')),
   });
 
   const isActive = !['cancelled', 'completed', 'no_show'].includes(appointment.status);

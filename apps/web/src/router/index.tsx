@@ -153,7 +153,7 @@ export function AppRouter() {
               path="/operacao/mensagens"
               element={
                 <PageSuspense>
-                  <RoleGuard minRole="manager">
+                  <RoleGuard minRole="attendant">
                     <OutboxMessagesPage />
                   </RoleGuard>
                 </PageSuspense>

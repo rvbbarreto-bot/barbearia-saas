@@ -33,7 +33,15 @@ Set-Location <raiz-do-repo>
 
 O script cobre CT-P2-001, 002, 010, 020, 039–044, 030–035 (incl. RBAC: `professional` **não** pode `no-show`), 050.
 
-## Regressão P1
+## Bateria P2.2.1 (outbox + regressão)
+
+```powershell
+Set-Location <raiz-do-repo>
+.\scripts\qa-p2-2-web-outbox-whatsapp-battery.ps1
+```
+
+- **Saída:** `docs/QA_API_P2_2_OPERATIONAL_RESULTS.csv`
+- **Conteúdo:** health, auth, tenant mismatch, outbox (listagem, RBAC, sanitização), availability/time-blocks/appointments (fluxo alinhado à P2.1), regressão `qa-api-negative-battery.ps1` e `qa-api-p2-operational-battery.ps1` (CT-P2-219 e CT-P2-220 no CSV).
 
 Manter a bateria existente reprodutível:
 

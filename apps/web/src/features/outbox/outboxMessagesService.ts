@@ -29,3 +29,13 @@ export async function listOutboxMessages(q: OutboxMessagesQuery): Promise<Pagina
   });
   return data;
 }
+
+export async function getOutboxMessage(id: string): Promise<OutboxMessageRow> {
+  const { data } = await api.get<OutboxMessageRow>(`/api/v1/outbox/messages/${id}`);
+  return data;
+}
+
+export async function retryOutboxMessage(id: string): Promise<{ id: string; status: string }> {
+  const { data } = await api.post<{ id: string; status: string }>(`/api/v1/outbox/messages/${id}/retry`, {});
+  return data;
+}

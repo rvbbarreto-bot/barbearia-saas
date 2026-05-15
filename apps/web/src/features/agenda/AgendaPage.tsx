@@ -1,11 +1,10 @@
 import { useMemo, useState } from 'react';
-import { addDays, formatISO, startOfDay } from 'date-fns';
+import { addDays, formatISO, startOfDay, startOfWeek } from 'date-fns';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SkeletonRows } from '@/components/shared/SkeletonRows';
-import { useRoleGate } from '@/hooks/useRoleGate';
 import { hasMinRole } from '@/lib/rbac';
 import { useAuthStore } from '@/store/authStore';
 import type { Appointment, Professional } from '@/types/api';
@@ -21,6 +20,7 @@ import { Badge } from '@/components/ui/badge';
 
 const STATUS_FILTER_OPTIONS: { value: string; label: string }[] = [
   { value: 'all', label: 'Todos os status' },
+  { value: 'draft', label: 'Rascunho' },
   { value: 'awaiting_confirmation', label: 'Aguardando confirmação' },
   { value: 'confirmed', label: 'Confirmado' },
   { value: 'awaiting_payment', label: 'Aguardando pagamento' },
@@ -33,15 +33,16 @@ const STATUS_FILTER_OPTIONS: { value: string; label: string }[] = [
   { value: 'offered', label: 'Ofertado' },
 ];
 
-/** Agenda diária operacional — dados sempre via API; filtros por dia, profissional e status. */
+/** Agenda operacional — dados via API; vista dia ou semana; filtros por profissional e status. */
 export function AgendaPage() {
   const user = useAuthStore((s) => s.user);
   const canBook = !!user && user.role !== 'professional' && hasMinRole(user.role, 'attendant');
-  const canBlock = useRoleGate('manager');
+  const canBlock = !!user && user.role !== 'professional' && hasMinRole(user.role, 'attendant');
   const isProfessional = user?.role === 'professional';
   const lockedProfId = isProfessional ? user?.professional_id ?? null : null;
 
   const [calDate, setCalDate] = useState(() => new Date());
+  const [calView, setCalView] = useState<'day' | 'week'>('day');
   const [profFilter, setProfFilter] = useState<string>(() => (lockedProfId ? lockedProfId : 'all'));
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [newModalOpen, setNewModalOpen] = useState(false);
@@ -50,8 +51,12 @@ export function AgendaPage() {
 
   const dayStart = startOfDay(calDate);
   const dayEndExclusive = addDays(dayStart, 1);
-  const from = formatISO(dayStart);
-  const to = formatISO(dayEndExclusive);
+  const weekStart = startOfWeek(calDate, { weekStartsOn: 1 });
+  const weekEndExclusive = addDays(weekStart, 7);
+  const rangeStart = calView === 'week' ? weekStart : dayStart;
+  const rangeEndExclusive = calView === 'week' ? weekEndExclusive : dayEndExclusive;
+  const from = formatISO(rangeStart);
+  const to = formatISO(rangeEndExclusive);
 
   const profFilterResolved = useMemo(() => {
     if (lockedProfId) return lockedProfId;
@@ -61,7 +66,7 @@ export function AgendaPage() {
   const blockProfessionalWithoutLink = isProfessional && !lockedProfId;
 
   const { data: apptData, isLoading: apptLoading } = useQuery({
-    queryKey: ['appointments', from, to, profFilterResolved, statusFilter],
+    queryKey: ['appointments', from, to, profFilterResolved, statusFilter, calView],
     queryFn: () =>
       listAppointments({
         from,
@@ -83,7 +88,7 @@ export function AgendaPage() {
 
   /** Sem filtro server-side por profissional: bloqueios globais (`professional_id` null) têm de aparecer em qualquer filtro. */
   const { data: blocksRaw = [] } = useQuery({
-    queryKey: ['calendar-blocks', from, to],
+    queryKey: ['calendar-blocks', from, to, calView],
     queryFn: () => listCalendarBlocks({ from, to }),
     staleTime: 15_000,
     enabled: !blockProfessionalWithoutLink,
@@ -133,9 +138,10 @@ export function AgendaPage() {
     <div className="flex flex-col gap-6 p-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">Agenda diária</h1>
+          <h1 className="text-2xl font-semibold text-foreground">Agenda operacional</h1>
           <p className="text-sm text-muted-foreground">
-            {appointments.length} agendamento{appointments.length !== 1 ? 's' : ''} neste dia
+            {appointments.length} agendamento{appointments.length !== 1 ? 's' : ''}{' '}
+            {calView === 'week' ? 'nesta semana' : 'neste dia'}
             {calendarBlocks.length > 0 && ` · ${calendarBlocks.length} bloqueio(s)`}
           </p>
         </div>
@@ -155,8 +161,13 @@ export function AgendaPage() {
       </div>
 
       <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center">
-        <div className="flex items-center gap-1">
-          <Button variant="outline" size="icon" aria-label="Dia anterior" onClick={() => setCalDate((d) => addDays(d, -1))}>
+        <div className="flex flex-wrap items-center gap-1">
+          <Button
+            variant="outline"
+            size="icon"
+            aria-label={calView === 'week' ? 'Semana anterior' : 'Dia anterior'}
+            onClick={() => setCalDate((d) => addDays(d, calView === 'week' ? -7 : -1))}
+          >
             <ChevronLeft className="size-4" />
           </Button>
           <Input
@@ -168,12 +179,37 @@ export function AgendaPage() {
               if (v) setCalDate(startOfDay(new Date(`${v}T12:00:00`)));
             }}
           />
-          <Button variant="outline" size="icon" aria-label="Próximo dia" onClick={() => setCalDate((d) => addDays(d, 1))}>
+          <Button
+            variant="outline"
+            size="icon"
+            aria-label={calView === 'week' ? 'Próxima semana' : 'Próximo dia'}
+            onClick={() => setCalDate((d) => addDays(d, calView === 'week' ? 7 : 1))}
+          >
             <ChevronRight className="size-4" />
           </Button>
           <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => setCalDate(startOfDay(new Date()))}>
             Hoje
           </Button>
+          <div className="ml-1 flex gap-0.5 rounded-md border p-0.5">
+            <Button
+              type="button"
+              size="sm"
+              variant={calView === 'day' ? 'secondary' : 'ghost'}
+              className="h-8 px-3"
+              onClick={() => setCalView('day')}
+            >
+              Dia
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={calView === 'week' ? 'secondary' : 'ghost'}
+              className="h-8 px-3"
+              onClick={() => setCalView('week')}
+            >
+              Semana
+            </Button>
+          </div>
         </div>
 
         {lockedProfId ? (
@@ -212,7 +248,9 @@ export function AgendaPage() {
 
       {appointments.some((a) => (alertSummary.get(a.id)?.length ?? 0) > 0) && (
         <div className="flex flex-wrap gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm dark:border-amber-900/40 dark:bg-amber-950/30">
-          <span className="font-medium text-amber-900 dark:text-amber-100">Alertas no dia:</span>
+          <span className="font-medium text-amber-900 dark:text-amber-100">
+            Alertas {calView === 'week' ? 'no período' : 'no dia'}:
+          </span>
           {appointments.flatMap((a) =>
             (alertSummary.get(a.id) ?? []).map((msg, i) => (
               <Badge key={`${a.id}-${i}`} variant="outline" className="border-amber-400 text-amber-950 dark:text-amber-50">
@@ -232,6 +270,7 @@ export function AgendaPage() {
           appointments={appointments}
           calendarBlocks={calendarBlocks}
           date={calDate}
+          calendarView={calView}
           onNavigate={setCalDate}
           onSelectAppointment={setSelectedAppt}
         />

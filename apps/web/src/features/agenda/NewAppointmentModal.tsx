@@ -15,6 +15,7 @@ import { listServicos } from '../servicos/servicosService';
 import { listProfissionais } from '../profissionais/profissionaisService';
 import { createAppointment, getAvailability } from './agendaService';
 import axios from 'axios';
+import { getApiErrorMessage } from '@/lib/apiErrorMessage';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -105,18 +106,18 @@ function NewAppointmentModalInner({ onClose }: { onClose: () => void }) {
     },
     onError: (err) => {
       if (axios.isAxiosError(err) && err.response?.status === 409) {
-        const code = err.response.data?.error;
+        const code = (err.response.data as { error?: string } | undefined)?.error;
         if (code === 'SLOT_UNAVAILABLE') {
-          toast.warning('Horario indisponivel. Escolha outro slot.');
+          toast.warning(getApiErrorMessage(err, 'Horário indisponível. Escolha outro horário.'));
           refetchSlots();
         } else if (code === 'DUPLICATE_IDEMPOTENCY_KEY') {
-          toast.info('Agendamento ja registrado. Verifique sua lista.');
+          toast.info(getApiErrorMessage(err, 'Esta operação já foi processada. Atualize a tela.'));
           onClose();
         } else {
-          toast.error('Conflito ao criar agendamento.');
+          toast.error(getApiErrorMessage(err, 'Conflito ao criar agendamento.'));
         }
       } else {
-        toast.error('Erro ao criar agendamento.');
+        toast.error(getApiErrorMessage(err, 'Erro ao criar agendamento.'));
       }
     },
   });

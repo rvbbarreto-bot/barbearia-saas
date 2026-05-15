@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Inbox } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Inbox, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,11 +11,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { DataTable, type Column } from '@/components/shared/DataTable';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { formatDate } from '@/lib/utils';
+import { getApiErrorMessage } from '@/lib/apiErrorMessage';
+import { hasMinRole } from '@/lib/rbac';
+import { useAuthStore } from '@/store/authStore';
 import type { OutboxMessageRow } from '@/types/api';
-import { listOutboxMessages } from './outboxMessagesService';
+import { getOutboxMessage, listOutboxMessages, retryOutboxMessage } from './outboxMessagesService';
+import { toast } from 'sonner';
 
 const STATUS_OPTS = ['__all__', 'pending', 'processing', 'sent', 'failed', 'dead'] as const;
 
@@ -34,35 +45,11 @@ function statusBadgeClass(status: string): string {
   }
 }
 
-const columns: Column<OutboxMessageRow>[] = [
-  { key: 'created_at', header: 'Criado', cell: (r) => formatDate(r.created_at) },
-  { key: 'status', header: 'Estado', cell: (r) => (
-      <span className={`rounded px-2 py-0.5 text-xs font-medium ${statusBadgeClass(r.status)}`}>{r.status}</span>
-    ) },
-  { key: 'provider', header: 'Provider', cell: (r) => r.provider ?? '—' },
-  { key: 'destination', header: 'Destino', cell: (r) => r.destination ?? '—' },
-  {
-    key: 'preview',
-    header: 'Pré-visualização',
-    cell: (r) => (
-      <span className="line-clamp-2 text-muted-foreground text-sm">{r.payload_summary.preview ?? '—'}</span>
-    ),
-  },
-  { key: 'attempts', header: 'Tent.', cell: (r) => `${r.attempts}/${r.max_attempts}` },
-  {
-    key: 'last_error',
-    header: 'Último erro',
-    cell: (r) => (
-      <span className="line-clamp-2 max-w-xs text-xs text-destructive">{r.last_error ?? '—'}</span>
-    ),
-  },
-  { key: 'correlation_id', header: 'correlation', cell: (r) => (
-      <span className="font-mono text-xs text-muted-foreground">{r.correlation_id ?? '—'}</span>
-    ) },
-  { key: 'sent_at', header: 'Enviado', cell: (r) => (r.sent_at ? formatDate(r.sent_at) : '—') },
-];
-
 export function OutboxMessagesPage() {
+  const qc = useQueryClient();
+  const user = useAuthStore((s) => s.user);
+  const canRetry = !!user && hasMinRole(user.role, 'manager');
+
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState<string>('__all__');
   const [provider, setProvider] = useState('');
@@ -71,6 +58,8 @@ export function OutboxMessagesPage() {
   const [correlationId, setCorrelationId] = useState('');
   const [appointmentId, setAppointmentId] = useState('');
   const [destination, setDestination] = useState('');
+  const [detailId, setDetailId] = useState<string | null>(null);
+  const [confirmRetryOpen, setConfirmRetryOpen] = useState(false);
   const limit = 20;
 
   const filters = useMemo(
@@ -88,18 +77,83 @@ export function OutboxMessagesPage() {
     [page, limit, status, provider, from, to, correlationId, appointmentId, destination],
   );
 
-  const { data, isLoading, isError, error, refetch } = useQuery({
+  const { data, isLoading, isError, error, refetch, isFetching } = useQuery({
     queryKey: ['outbox-messages', filters],
     queryFn: () => listOutboxMessages(filters),
   });
 
+  const { data: detail, isLoading: detailLoading } = useQuery({
+    queryKey: ['outbox-message', detailId],
+    queryFn: () => getOutboxMessage(detailId!),
+    enabled: !!detailId,
+  });
+
+  const retryMut = useMutation({
+    mutationFn: (id: string) => retryOutboxMessage(id),
+    onSuccess: async () => {
+      toast.success('Mensagem re-enfileirada para envio.');
+      setConfirmRetryOpen(false);
+      setDetailId(null);
+      await qc.invalidateQueries({ queryKey: ['outbox-messages'] });
+    },
+    onError: (e: unknown) => toast.error(getApiErrorMessage(e, 'Não foi possível re-enfileirar.')),
+  });
+
+  const columns: Column<OutboxMessageRow>[] = useMemo(
+    () => [
+      { key: 'created_at', header: 'Criado', cell: (r) => formatDate(r.created_at) },
+      {
+        key: 'status',
+        header: 'Estado',
+        cell: (r) => (
+          <span className={`rounded px-2 py-0.5 text-xs font-medium ${statusBadgeClass(r.status)}`}>{r.status}</span>
+        ),
+      },
+      { key: 'provider', header: 'Provider', cell: (r) => r.provider ?? '—' },
+      { key: 'destination', header: 'Destino', cell: (r) => r.destination ?? '—' },
+      {
+        key: 'preview',
+        header: 'Pré-visualização',
+        cell: (r) => (
+          <span className="line-clamp-2 text-muted-foreground text-sm">{r.payload_summary.preview ?? '—'}</span>
+        ),
+      },
+      { key: 'attempts', header: 'Tent.', cell: (r) => `${r.attempts}/${r.max_attempts}` },
+      {
+        key: 'last_error',
+        header: 'Último erro',
+        cell: (r) => (
+          <span className="line-clamp-2 max-w-xs text-xs text-destructive">{r.last_error ?? '—'}</span>
+        ),
+      },
+      {
+        key: 'correlation_id',
+        header: 'correlation',
+        cell: (r) => <span className="font-mono text-xs text-muted-foreground">{r.correlation_id ?? '—'}</span>,
+      },
+      {
+        key: 'idempotency_key',
+        header: 'idempotency',
+        cell: (r) => <span className="font-mono text-xs text-muted-foreground">{r.idempotency_key ?? '—'}</span>,
+      },
+      { key: 'sent_at', header: 'Enviado', cell: (r) => (r.sent_at ? formatDate(r.sent_at) : '—') },
+    ],
+    [],
+  );
+
   return (
     <div className="flex flex-col gap-6 p-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">Mensagens (outbox)</h1>
-        <p className="text-sm text-muted-foreground">
-          Fila de envio do tenant — dados sanitizados (sem tokens nem payload completo).
-        </p>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground">Mensagens (outbox)</h1>
+          <p className="text-sm text-muted-foreground">
+            Fila de envio do tenant — dados sanitizados (sem tokens nem payload completo).
+          </p>
+        </div>
+        <Button type="button" variant="secondary" disabled={isFetching} onClick={() => void refetch()}>
+          <RefreshCw className={`mr-2 size-4 ${isFetching ? 'animate-spin' : ''}`} />
+          Atualizar lista
+        </Button>
       </div>
 
       <div className="grid gap-4 rounded-xl border bg-card p-4 shadow-sm md:grid-cols-2 lg:grid-cols-3">
@@ -204,10 +258,7 @@ export function OutboxMessagesPage() {
 
       {isError && (
         <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
-          {(error as Error & { response?: { data?: { message?: string; error?: string } } })?.response?.data
-            ?.message ??
-            (error as Error)?.message ??
-            'Erro ao carregar mensagens.'}
+          {getApiErrorMessage(error, 'Erro ao carregar mensagens.')}
         </div>
       )}
 
@@ -225,9 +276,92 @@ export function OutboxMessagesPage() {
             onPageChange={setPage}
             emptyTitle="Sem resultados"
             emptyDescription="Tente outros filtros."
+            onRowClick={(row) => setDetailId(row.id)}
           />
         </div>
       )}
+
+      <Dialog open={!!detailId} onOpenChange={(o) => !o && setDetailId(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Detalhe da mensagem</DialogTitle>
+          </DialogHeader>
+          {detailLoading || !detail ? (
+            <p className="text-sm text-muted-foreground">A carregar…</p>
+          ) : (
+            <div className="flex flex-col gap-3 text-sm">
+              <DetailRow label="Estado" value={detail.status} />
+              <DetailRow label="Provider" value={detail.provider ?? '—'} />
+              <DetailRow label="Destino" value={detail.destination ?? '—'} />
+              <DetailRow label="Tentativas" value={`${detail.attempts} / ${detail.max_attempts}`} />
+              <DetailRow label="Último erro" value={detail.last_error ?? '—'} />
+              <DetailRow label="Criado" value={formatDate(detail.created_at)} />
+              <DetailRow label="Atualizado" value={formatDate(detail.updated_at)} />
+              <DetailRow label="Enviado" value={detail.sent_at ? formatDate(detail.sent_at) : '—'} />
+              <DetailRow label="correlation_id" value={detail.correlation_id ?? '—'} mono />
+              <DetailRow label="appointment_id" value={detail.appointment_id ?? '—'} mono />
+              <DetailRow label="idempotency_key" value={detail.idempotency_key ?? '—'} mono />
+              <div>
+                <span className="text-muted-foreground">Pré-visualização</span>
+                <p className="mt-1 rounded-md border bg-muted/30 p-2 text-muted-foreground">
+                  {detail.payload_summary.preview ?? '—'}
+                </p>
+              </div>
+            </div>
+          )}
+          <DialogFooter className="gap-2 sm:justify-between">
+            <Button type="button" variant="outline" onClick={() => setDetailId(null)}>
+              Fechar
+            </Button>
+            {canRetry && detail && (detail.status === 'failed' || detail.status === 'dead') && (
+              <Button type="button" onClick={() => setConfirmRetryOpen(true)}>
+                Tentar novamente
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={confirmRetryOpen} onOpenChange={setConfirmRetryOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Re-enfileirar envio?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            A mensagem volta para a fila como <strong>pending</strong>. O envio só é concluído após confirmação do
+            provider.
+          </p>
+          <DialogFooter className="gap-2">
+            <Button type="button" variant="outline" onClick={() => setConfirmRetryOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              disabled={!detailId || retryMut.isPending}
+              onClick={() => detailId && retryMut.mutate(detailId)}
+            >
+              Confirmar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function DetailRow({
+  label,
+  value,
+  mono,
+}: {
+  label: string;
+  value: string;
+  mono?: boolean;
+}) {
+  return (
+    <div className="flex flex-col gap-0.5 sm:flex-row sm:justify-between sm:gap-4">
+      <span className="text-muted-foreground">{label}</span>
+      <span className={`text-right font-medium ${mono ? 'font-mono text-xs break-all' : ''}`}>{value}</span>
     </div>
   );
 }

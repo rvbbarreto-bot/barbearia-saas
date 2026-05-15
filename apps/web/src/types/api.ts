@@ -335,6 +335,8 @@ export interface OutboxMessageRow {
   attempts: number;
   max_attempts: number;
   correlation_id: string | null;
+  appointment_id: string | null;
+  idempotency_key: string | null;
   customer_id: string | null;
   created_at: string;
   updated_at: string;

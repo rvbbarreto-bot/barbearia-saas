@@ -41,8 +41,9 @@ describe('listOutboxMessages', () => {
             attempts: 0,
             max_attempts: 5,
             last_error: null,
-            correlation_id: 'corr-1',
+            correlation_id: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
             customer_id: null,
+            idempotency_key: 'idem-qa-1',
             created_at: new Date('2026-05-14T12:00:00.000Z'),
             updated_at: new Date('2026-05-14T12:00:00.000Z'),
             sent_at: null,
@@ -60,5 +61,7 @@ describe('listOutboxMessages', () => {
     expect(r.data[0].destination).toBe('****7766');
     expect(r.data[0].payload_summary.preview).toBe('Olá mundo');
     expect(r.data[0].provider).toBe('evolution');
+    expect(r.data[0].idempotency_key).toBe('idem-qa-1');
+    expect(r.data[0].appointment_id).toBe('a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d');
   });
 });

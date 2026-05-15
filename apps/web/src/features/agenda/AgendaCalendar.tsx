@@ -8,7 +8,7 @@ import type { Appointment, AppointmentStatus, CalendarBlock } from '@/types/api'
 const localizer = dateFnsLocalizer({
   format,
   parse,
-  startOfWeek: (d: Date) => startOfWeek(d, { weekStartsOn: 0 }),
+  startOfWeek: (d: Date) => startOfWeek(d, { weekStartsOn: 1 }),
   getDay,
   locales: { 'pt-BR': ptBR },
 });
@@ -54,15 +54,18 @@ interface Props {
   appointments: Appointment[];
   calendarBlocks: CalendarBlock[];
   date: Date;
+  /** Vista diária (P2.1) ou semanal simples (P2.2.1). */
+  calendarView?: 'day' | 'week';
   onNavigate: (d: Date) => void;
   onSelectAppointment: (appointment: Appointment) => void;
 }
 
-/** Agenda diária operacional: dia único, eventos + bloqueios de calendário. */
+/** Agenda operacional: dia ou semana, eventos + bloqueios de calendário. */
 export function AgendaCalendar({
   appointments,
   calendarBlocks,
   date,
+  calendarView = 'day',
   onNavigate,
   onSelectAppointment,
 }: Props) {
@@ -111,14 +114,17 @@ export function AgendaCalendar({
     };
   }, []);
 
+  const view = calendarView === 'week' ? Views.WEEK : Views.DAY;
+  const views = calendarView === 'week' ? { week: true } : { day: true };
+
   return (
     <div className="rbc-wrapper h-[720px] rounded-xl border bg-card p-4 shadow-sm">
       <Calendar
         localizer={localizer}
         events={events}
         date={date}
-        view={Views.DAY}
-        views={{ day: true }}
+        view={view}
+        views={views}
         onNavigate={onNavigate}
         onView={() => {}}
         toolbar
@@ -127,7 +133,7 @@ export function AgendaCalendar({
           if (ev.resource.kind === 'appointment') onSelectAppointment(ev.resource.appointment);
         }}
         eventPropGetter={eventStyleGetter}
-        defaultView={Views.DAY}
+        defaultView={view}
         culture="pt-BR"
         messages={{
           week: 'Semana',
@@ -137,7 +143,7 @@ export function AgendaCalendar({
           previous: 'Anterior',
           next: 'Proximo',
           showMore: (n: number) => `+${n} mais`,
-          noEventsInRange: 'Nenhum evento neste dia.',
+          noEventsInRange: 'Nenhum evento neste período.',
         }}
       />
     </div>
