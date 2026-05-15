@@ -152,7 +152,7 @@ Esta fase **não** constitui homologação final de produção ou piloto comerci
 **Data de registo (documentação):** 2026-05-14.
 
 - **Decisão:** aprovado com ressalvas obrigatórias; **não** representa fecho completo da P2, homologação final nem liberação de piloto.
-- **Pontos aprovados (resumo):** correção do mock `isOutboxForceSendFailureRuntime`; `npm run test:unit` na API (140 testes); bateria `scripts/qa-api-p2-operational-battery.ps1` com exit `0`; `docs/QA_API_P2_OPERATIONAL_RESULTS.csv` atualizado; correção do 500 em POST de time-blocks via migrations **103** e **104**; RBAC no-show com exclusão de `professional`; ajuste em `AppointmentDrawer.tsx`; `rbac.test.ts`, OpenAPI e `P2_APPOINTMENT_LIFECYCLE.md`; `npm run typecheck` no Web; commit de referência da entrega funcional **`a30b0fcd40049cd863f8769a4267a4d3de256e57`**. Fecho das ressalvas obrigatórias (fluxo de migrations, runbook, evidências neste relatório): **`9ffc7ba972adae420522069f6f32ae439a839b3d`**, refresh do CSV de QA **`d19dc8461e1b7cfeb03fa71be3fb78706fa9c512`**, alinhamento final de §8 em **`dd35c176346aee648eb2bcf22fdeeb9f730d7ca5`** (HEAD ao fechar documentação).
+- **Pontos aprovados (resumo):** correção do mock `isOutboxForceSendFailureRuntime`; `npm run test:unit` na API (140 testes); bateria `scripts/qa-api-p2-operational-battery.ps1` com exit `0`; `docs/QA_API_P2_OPERATIONAL_RESULTS.csv` atualizado; correção do 500 em POST de time-blocks via migrations **103** e **104**; RBAC no-show com exclusão de `professional`; ajuste em `AppointmentDrawer.tsx`; `rbac.test.ts`, OpenAPI e `P2_APPOINTMENT_LIFECYCLE.md`; `npm run typecheck` no Web; commit de referência da entrega funcional **`a30b0fcd40049cd863f8769a4267a4d3de256e57`**. Fecho das ressalvas obrigatórias (fluxo de migrations, runbook, evidências neste relatório): **`9ffc7ba972adae420522069f6f32ae439a839b3d`**, refresh do CSV de QA **`d19dc8461e1b7cfeb03fa71be3fb78706fa9c512`** (base do snapshot operacional em §8); commits posteriores podem ser só documentais — ver `git log`.
 
 ### 7.1 Ressalvas atendidas nesta versão do repositório
 
@@ -167,26 +167,26 @@ Consolidar migrations/runbook em todos os ambientes; avançar **P2.2** — porta
 
 ## 8. Evidências anexas — snapshot P2.1 (fábrica)
 
-Valores abaixo capturados na máquina da fábrica (podem divergir noutros clones/CI). **HEAD** do repositório ao fechar esta secção: **`dd35c176346aee648eb2bcf22fdeeb9f730d7ca5`**. Linha de commits relevante: **`a30b0fcd40049cd863f8769a4267a4d3de256e57`** (feat P2.1) → **`9ffc7ba972adae420522069f6f32ae439a839b3d`** (fluxo `npm run db:migrate` + backfill + runbooks) → **`d19dc8461e1b7cfeb03fa71be3fb78706fa9c512`** (CSV QA pós-bateria) → **`dd35c176346aee648eb2bcf22fdeeb9f730d7ca5`** (alinhamento de evidências em §8).
+Stack (Docker, health, logs, bateria QA) capturada na mesma sessão em que o repositório estava no commit **`d19dc8461e1b7cfeb03fa71be3fb78706fa9c512`** (`chore(qa): refresh P2 operational battery CSV`). Commits posteriores na branch tratam documentação / runbook (ex. **`9ffc7ba972adae420522069f6f32ae439a839b3d`** — fluxo `npm run db:migrate`); para o **tip** actual execute na raiz `git log -1` e `git rev-parse HEAD`.
 
-### 8.1 `git log -1`
+### 8.1 `git log -1` (congelado no commit da bateria QA)
 
 ```
-commit dd35c176346aee648eb2bcf22fdeeb9f730d7ca5
+commit d19dc8461e1b7cfeb03fa71be3fb78706fa9c512
 Author:     Barbearia SaaS P0 <dev@barbearia-saas.local>
-AuthorDate: Thu May 14 22:09:42 2026 -0300
+AuthorDate: Thu May 14 22:09:07 2026 -0300
 Commit:     Barbearia SaaS P0 <dev@barbearia-saas.local>
-CommitDate: Thu May 14 22:09:42 2026 -0300
+CommitDate: Thu May 14 22:09:07 2026 -0300
 
-    docs(p2): align relatório §8 evidence with HEAD and clean tree
+    chore(qa): refresh P2 operational battery CSV
     
     Co-authored-by: Cursor <cursoragent@cursor.com>
 ```
 
-### 8.2 `git rev-parse HEAD`
+### 8.2 `git rev-parse HEAD` (congelado no mesmo commit)
 
 ```
-dd35c176346aee648eb2bcf22fdeeb9f730d7ca5
+d19dc8461e1b7cfeb03fa71be3fb78706fa9c512
 ```
 
 ### 8.3 `git status`
