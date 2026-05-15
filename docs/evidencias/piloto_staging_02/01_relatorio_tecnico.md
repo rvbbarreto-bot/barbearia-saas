@@ -30,6 +30,11 @@ Endurecer o núcleo operacional de agenda (disponibilidade, conflitos, bloqueios
 
 - `apiErrorMessage.test.ts` — mapeamento `APPOINTMENT_IN_PAST` e `FORBIDDEN`.
 
+## Commit corretivo publicado
+
+- SHA **`2d964122ddd661124091637e50ee1c2a3c1c2c7e`** — `fix(agenda): enforce professional scope on booking and cancel` (push em `feature/piloto-staging-02-agenda-operacional`).
+- CI associado ao push: https://github.com/rvbbarreto-bot/barbearia-saas/actions/runs/25944290957 — **success** (API, Web, auditoria npm, Gitleaks).
+
 ## Comandos executados (local)
 
 Ver `04_testes_locais.txt`.

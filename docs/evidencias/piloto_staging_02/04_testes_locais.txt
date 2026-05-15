@@ -2,7 +2,10 @@ PILOTO-STAGING-02 — testes locais (2026-05-15)
 Branch: feature/piloto-staging-02-agenda-operacional
 Base: piloto-staging-01 @ 3a6fc049214641a46cba0242fde5afd236c2a512
 Commit baseline validado pelo PO (referência): 4222ba9b7d941e41714bfb3ffecc35158186d941
-HEAD após correções: executar `git rev-parse HEAD` após o último push (não substituir hash do relatório até commit publicado).
+Commit corretivo (escopo agenda / cancel): 2d964122ddd661124091637e50ee1c2a3c1c2c7e — mensagem `fix(agenda): enforce professional scope on booking and cancel`.
+HEAD atual da branch: `git rev-parse HEAD` no remoto local (último push pode acrescentar apenas commits de evidência).
+
+CI GitHub Actions (este corretivo, push na branch): https://github.com/rvbbarreto-bot/barbearia-saas/actions/runs/25944290957 — conclusão **success**.
 
 apps/api:
   npm run typecheck — OK

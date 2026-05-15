@@ -10,7 +10,7 @@
 | 6 | RBAC positivo/negativo | OK (+ confirm rota) |
 | 7 | Cross-tenant negativo | OK (+ lifecycle) |
 | 8 | Happy + failure path testes | OK |
-| 9 | CI verde (GitHub Actions) | **PEND** até haver run na branch/PR com jobs API, Web, Security e Gitleaks em sucesso (`06_pr_e_ci_github.md`) |
+| 9 | CI verde (GitHub Actions) | OK — trigger **push** no commit corretivo: [run success](https://github.com/rvbbarreto-bot/barbearia-saas/actions/runs/25944290957) — jobs API, Web, Security npm audit, Gitleaks em **success**. Após abrir PR, confirmar novo run nos checks da PR (`06_pr_e_ci_github.md`) |
 | 10 | Sem secrets no Git | OK |
 | 11 | Sem dependência Evolution/n8n | OK |
 | 12 | Documentação `docs/evidencias/piloto_staging_02/` | OK (alinhada ao estado real da entrega) |
