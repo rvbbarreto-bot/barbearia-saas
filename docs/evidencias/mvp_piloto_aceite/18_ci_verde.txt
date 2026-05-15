@@ -1,25 +1,24 @@
-CI remoto — gate v3 (workflow na branch de feature)
+CI remoto — VERDE (GitHub Actions)
 Data: 2026-05-15
 Repositório: https://github.com/rvbbarreto-bot/barbearia-saas
 Branch: feature/p2-2-web-outbox-whatsapp-operational
-Commit base: 3be9659 fix(mvp): complete pilot evidence, ci, and whatsapp readiness
+Commit: 7f154cf4ce63a9cadbd9cc1fe2c79b512897ac7a
+Mensagem: fix(whatsapp): RLS-safe inbound webhook tenant resolution
 
-Alteração gate v3:
-- .github/workflows/ci.yml passa a incluir push em feature/p2-2-web-outbox-whatsapp-operational
-- Objetivo: disparar GitHub Actions sem depender apenas de PR para develop
+Run CI #8 (Success, 1m 3s):
+https://github.com/rvbbarreto-bot/barbearia-saas/actions/runs/25929492356
 
-Actions (após push gate v3):
+Jobs:
+- API — typecheck · lint · test · build — OK (integração + unit)
+- Web — lint · typecheck · test · build — OK
+- Security — npm audit — OK
+- Security — Gitleaks — OK
+
+Workflow:
 https://github.com/rvbbarreto-bot/barbearia-saas/actions/workflows/ci.yml
 
-PR alternativo (também dispara CI em pull_request):
-https://github.com/rvbbarreto-bot/barbearia-saas/compare/develop...feature/p2-2-web-outbox-whatsapp-operational?expand=1
+Commits de estabilização CI nesta sessão:
+- 2222a46 fix(ci): green integration tests and outbox worker RLS
+- 7f154cf fix(whatsapp): RLS-safe inbound webhook tenant resolution
 
-Validação local equivalente (2026-05-15, pós-sync remoto):
-- apps/api: typecheck OK | test:unit 152/152 | build OK
-- apps/web: typecheck OK | test 40/40 | build OK
-- docker compose: 5/5 healthy
-- gitleaks (docker zricethezav/gitleaks): no leaks found
-- qa-api-negative-battery.ps1: exit 0
-- qa-p2-2-web-outbox-whatsapp-battery.ps1: exit 0
-
-Pendência PO: anexar screenshot run verde como 18_ci_verde.png na pasta deste pacote.
+Nota PO: capturar screenshot desta página como 18_ci_verde.png (opcional; run link acima é a evidência primária).

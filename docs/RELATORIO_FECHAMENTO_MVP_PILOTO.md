@@ -3,8 +3,8 @@
 **Data:** 2026-05-15  
 **Repositório:** https://github.com/rvbbarreto-bot/barbearia-saas  
 **Branch:** `feature/p2-2-web-outbox-whatsapp-operational`  
-**HEAD (base remota):** `3be96591ca8e63705b23bb1478712a5d352ab366`  
-**Último commit:** `3be9659` — `fix(mvp): complete pilot evidence, ci, and whatsapp readiness`
+**HEAD:** `7f154cf4ce63a9cadbd9cc1fe2c79b512897ac7a`  
+**Último commit:** `7f154cf` — `fix(whatsapp): RLS-safe inbound webhook tenant resolution`
 
 ---
 
@@ -14,13 +14,13 @@
 |---|------|--------|
 | 1 | Repositório | https://github.com/rvbbarreto-bot/barbearia-saas |
 | 2 | Branch | `feature/p2-2-web-outbox-whatsapp-operational` |
-| 3 | `git rev-parse HEAD` | `3be96591ca8e63705b23bb1478712a5d352ab366` (+ commit gate v3 após push) |
-| 4 | `git log -1` | `3be9659 fix(mvp): complete pilot evidence, ci, and whatsapp readiness` |
-| 5 | `git status` | Sincronizado com `origin/feature/p2-2-web-outbox-whatsapp-operational` (pós gate v3: working tree limpa) |
-| 6 | Push | `origin` → https://github.com/rvbbarreto-bot/barbearia-saas.git — branch publicada (`e4fcef5..3be9659`) |
-| 7 | CI | https://github.com/rvbbarreto-bot/barbearia-saas/actions — workflow `ci.yml` passa a disparar em **push** nesta branch (gate v3). Print: `18_ci_verde.png` após run verde. Enquanto isso: `18_ci_verde.txt` + validação local equivalente abaixo. PR opcional: https://github.com/rvbbarreto-bot/barbearia-saas/compare/develop...feature/p2-2-web-outbox-whatsapp-operational |
-| 8 | Gitleaks | `docs/evidencias/mvp_piloto_aceite/19_secret_scan_limpo.txt` — **no leaks found** (scan Docker, 2026-05-15) |
-| 9 | Ficheiros alterados (escopo MVP) | `apps/web` (pt-BR, outbox, agenda, RBAC UI), `apps/api` (customers, calendar), `scripts/capture-*.mjs`, `docs/evidencias/*`, `docs/DECLARACAO_PILOTO_EVOLUTION.md`, `.github/workflows/ci.yml` |
+| 3 | `git rev-parse HEAD` | `7f154cf4ce63a9cadbd9cc1fe2c79b512897ac7a` |
+| 4 | `git log -1` | `7f154cf fix(whatsapp): RLS-safe inbound webhook tenant resolution` |
+| 5 | `git status` | Sincronizado com `origin/feature/p2-2-web-outbox-whatsapp-operational` (working tree limpa) |
+| 6 | Push | `git push origin feature/p2-2-web-outbox-whatsapp-operational` → `4e7f938..7f154cf` |
+| 7 | CI | **VERDE** — [Actions run #8](https://github.com/rvbbarreto-bot/barbearia-saas/actions/runs/25929492356) (commit `7f154cf`). Evidência: `docs/evidencias/mvp_piloto_aceite/18_ci_verde.txt` |
+| 8 | Gitleaks | `docs/evidencias/mvp_piloto_aceite/19_secret_scan_limpo.txt` — **no leaks found** (Docker local + job CI #8) |
+| 9 | Ficheiros alterados (escopo MVP + gate CI) | `apps/web` (pt-BR, outbox, agenda, RBAC UI), `apps/api` (outbox-worker RLS, inbound webhook, testes integração), `.github/workflows/ci.yml`, `database/ci/grant_app_role.sql`, `docs/evidencias/*`, `docs/DECLARACAO_PILOTO_EVOLUTION.md` |
 | 10 | Veredito técnico | Ver § Parecer final |
 
 ---
@@ -28,7 +28,7 @@
 ## Resposta à decisão PO
 
 **Decisão PO:** Aprovação parcial com bloqueios.  
-**Posição da fábrica (atualizada):** gate técnico local e evidências 01–17/19 **fechados** no remoto; **merge, produção e piloto externo** permanecem **não aprovados** até CI remoto verde (18 PNG) e aceite formal Evolution (ou staging).
+**Posição da fábrica (atualizada):** gate técnico **local e remoto (CI #8 verde)** + evidências **01–17 e 19** versionadas; item **18** documentado com link de run verde (`18_ci_verde.txt`). **Merge, produção e piloto externo** permanecem **não aprovados** até aceite formal Evolution (staging ou waiver assinado) e decisão explícita do PO. **Não fazer merge em `main`.**
 
 ---
 
@@ -53,16 +53,23 @@
 | 15 | cross-tenant 403 | Aprovado | `15_cross_tenant_api_negado.txt` |
 | 16 | health | Aprovado | `16_health_api_ok.json` |
 | 17 | database health | Aprovado | `17_database_health_ok.json` |
-| 18 | CI verde | **Pendente PNG** | `18_ci_verde.txt` — run GitHub após push gate v3 |
+| 18 | CI verde | **Aprovado (link)** | `18_ci_verde.txt` → [run #8 Success](https://github.com/rvbbarreto-bot/barbearia-saas/actions/runs/25929492356). PNG opcional: `18_ci_verde.png` |
 | 19 | secret scan | Aprovado | `19_secret_scan_limpo.txt` |
-
-**Pendência governança restante:** apenas **18_ci_verde.png** (screenshot Actions após workflow verde no GitHub).
 
 ---
 
 ## Correção RBAC UI × API
 
 Atendente não vê mais «Bloquear horário» (`AgendaPage.tsx` — `canBlock` exige `manager`, alinhado a `POST /calendar-blocks`).
+
+---
+
+## Correções CI (sessão 2026-05-15)
+
+| Commit | Conteúdo |
+|--------|----------|
+| `2222a46` | Evolution env no CI, outbox worker RLS + `next_retry_at`, fixtures integração, Vitest env workers |
+| `7f154cf` | Webhook inbound: lookup via `DATABASE_URL_ADMIN`, dedup em `withTenant`, fixtures HMAC |
 
 ---
 
@@ -80,9 +87,9 @@ Declaração formal: [`docs/DECLARACAO_PILOTO_EVOLUTION.md`](DECLARACAO_PILOTO_E
 | `apps/api` typecheck + test:unit | OK (152/152) |
 | `apps/api` build | OK |
 | `apps/web` typecheck + test + build | OK (40/40) |
-| QA P2.1 / P2.2 / negativa | exit 0 (CSV atualizados) |
-| Migration 008 | idempotente (sessão anterior) |
-| Gitleaks | no leaks found |
+| **GitHub Actions CI #8** | **Success** (API integração + Web + Gitleaks) |
+| QA P2.1 / P2.2 / negativa | exit 0 |
+| Gitleaks local | no leaks found |
 
 ---
 
@@ -91,21 +98,23 @@ Declaração formal: [`docs/DECLARACAO_PILOTO_EVOLUTION.md`](DECLARACAO_PILOTO_E
 | Pergunta | Resposta |
 |----------|----------|
 | **Produção** | **Não** |
-| **Merge em `main`** | **Não** — aguardar PO após CI remoto + aceite Evolution |
-| **Piloto controlado externo** | **Não** — sem CI 18 PNG + sem Evolution staging ou waiver assinado |
-| **Aceite parcial UX/API** | **Sim**, com ressalvas documentadas |
+| **Merge em `main`** | **Não** — aguardar PO; não executar merge automático |
+| **Piloto controlado externo** | **Não** — sem Evolution staging ou waiver assinado |
+| **Aceite parcial UX/API + CI** | **Sim**, com ressalva Evolution |
 
 ### Bloqueios impeditivos (atualizados)
 
-1. **CI remoto** — capturar `18_ci_verde.png` após run verde em Actions (push gate v3 dispara workflow).  
-2. **Evolution** — staging **ou** aceite formal da declaração piloto sem WhatsApp real.  
-3. **Merge** — não executar sem aprovação explícita do PO.
+1. **Evolution** — staging **ou** aceite formal da [`DECLARACAO_PILOTO_EVOLUTION.md`](DECLARACAO_PILOTO_EVOLUTION.md).  
+2. **Merge** — somente com aprovação explícita do PO.
 
-### Não bloqueiam mais (fechados nesta entrega)
+### Fechados nesta entrega
 
-- Remote / push / PNGs 02, 04, 07, 08, 13 no GitHub.  
-- Gitleaks local (19).  
-- RBAC bloqueio UI × API.
+- Push remoto e branch publicada (`7f154cf`).  
+- **CI remoto verde** (run #8).  
+- Gitleaks (19) local + CI.  
+- PNGs 01–13, JSON/TXT 11–17.  
+- RBAC bloqueio UI × API.  
+- Testes de integração API sob role `barbearia_app` (RLS real).
 
 ---
 
