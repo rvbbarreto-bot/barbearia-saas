@@ -14,7 +14,7 @@
 
 import { createHash } from 'node:crypto';
 import pg from 'pg';
-import { pool as defaultPool, withTenant } from '../../infra/db/pool.js';
+import { getIntegrationLookupPool, pool as defaultPool, withTenant } from '../../infra/db/pool.js';
 import { AppError } from '../../shared/errors.js';
 import { writeAuditLog } from '../../shared/audit.js';
 import { writeOperationalAuditEvent } from '../../shared/operational-audit.js';
@@ -64,11 +64,11 @@ export function verifyHmac(
 export async function processInboundWebhook(
   body: InboundBody,
   ctx:  InboundContext,
-  db:   pg.Pool = defaultPool,
+  _db:  pg.Pool = defaultPool,
 ): Promise<InboundResult> {
 
   // ── 1. Resolver tenant (nunca confia em body.tenant_id) ────────────────────
-  const integration = await db.query<IntegrationRow>(
+  const integration = await getIntegrationLookupPool().query<IntegrationRow>(
     `SELECT ti.tenant_id::text AS tenant_id,
             t.webhook_token,
             ti.hmac_secret
@@ -117,13 +117,15 @@ export async function processInboundWebhook(
   // Usa external_message_id se disponível; caso contrário usa SHA-256 do payload
   const dedupKey = body.external_message_id ?? `sha256:${payloadSha}`;
 
-  const dedup = await db.query(
-    `INSERT INTO webhook_events
-       (tenant_id, provider, external_message_id, payload_sha256, processed_at)
-     VALUES ($1::uuid, $2, $3, $4, now())
-     ON CONFLICT (tenant_id, provider, external_message_id) DO NOTHING
-     RETURNING true AS inserted`,
-    [tenantId, PROVIDER, dedupKey, payloadSha],
+  const dedup = await withTenant(tenantId, async (client) =>
+    client.query(
+      `INSERT INTO webhook_events
+         (tenant_id, provider, external_message_id, payload_sha256, processed_at)
+       VALUES ($1::uuid, $2, $3, $4, now())
+       ON CONFLICT (tenant_id, provider, external_message_id) DO NOTHING
+       RETURNING true AS inserted`,
+      [tenantId, PROVIDER, dedupKey, payloadSha],
+    ),
   );
 
   if (!dedup.rowCount) {

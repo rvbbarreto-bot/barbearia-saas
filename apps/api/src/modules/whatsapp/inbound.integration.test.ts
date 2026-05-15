@@ -23,6 +23,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import pg from 'pg';
+import { withAppTenant } from '../../test-utils/with-app-tenant.js';
 import { processInboundWebhook, verifyHmac } from './inbound.service.js';
 
 if (!process.env.DATABASE_URL) {
@@ -75,6 +76,7 @@ function makeCtx(overrides: Partial<{
 
 describe('POST /webhooks/whatsapp/inbound (integration)', () => {
   const pool = new pg.Pool({ connectionString: DATABASE_URL, connectionTimeoutMillis: 3000 });
+  const adminPool = new pg.Pool({ connectionString: ADMIN_DATABASE_URL, connectionTimeoutMillis: 3000 });
   const tenantId   = randomUUID();
   const INSTANCE   = 'inst-test-01';
   const TOKEN      = 'tok-test-secret';
@@ -95,8 +97,6 @@ describe('POST /webhooks/whatsapp/inbound (integration)', () => {
       }
     }
 
-    const adminPool = new pg.Pool({ connectionString: ADMIN_DATABASE_URL, connectionTimeoutMillis: 3000 });
-
     await adminPool.query(
       `INSERT INTO tenants (id, legal_name, trade_name, plan_code, status, slug, webhook_token)
        VALUES ($1, 'Tenant Webhook Test', 'Tenant Webhook Test', 'trial', 'active', $2, $3)
@@ -111,11 +111,9 @@ describe('POST /webhooks/whatsapp/inbound (integration)', () => {
        ON CONFLICT DO NOTHING`,
       [randomUUID(), tenantId, JSON.stringify({ instance_name: INSTANCE })],
     );
-    await adminPool.end();
   });
 
   afterAll(async () => {
-    const adminPool = new pg.Pool({ connectionString: ADMIN_DATABASE_URL, connectionTimeoutMillis: 3000 });
     await adminPool.query(`DELETE FROM webhook_events   WHERE tenant_id = $1`, [tenantId]);
     await adminPool.query(`DELETE FROM conversation_states WHERE tenant_id = $1`, [tenantId]);
     await adminPool.query(`DELETE FROM messages         WHERE tenant_id = $1`, [tenantId]);
@@ -143,30 +141,31 @@ describe('POST /webhooks/whatsapp/inbound (integration)', () => {
     expect(result.customerId).toBeTruthy();
     expect(result.messageId).toBeTruthy();
 
-    // Valida customer persistido
-    const cust = await pool.query(
-      `SELECT phone FROM customers WHERE id = $1`,
-      [result.customerId],
-    );
-    expect(cust.rows[0].phone).toBe(body.phone);
+    const c = await pool.connect();
+    try {
+      await withAppTenant(c, tenantId, async () => {
+        const cust = await c.query(`SELECT phone FROM customers WHERE id = $1`, [result.customerId]);
+        expect(cust.rows[0].phone).toBe(body.phone);
 
-    // Valida message com payload + channel
-    const msg = await pool.query(
-      `SELECT direction, channel, body, payload FROM messages WHERE id = $1`,
-      [result.messageId],
-    );
-    expect(msg.rows[0].direction).toBe('in');
-    expect(msg.rows[0].channel).toBe('whatsapp');
-    expect(msg.rows[0].body).toBe(body.message);
-    expect(msg.rows[0].payload.type).toBe('text');
+        const msg = await c.query(
+          `SELECT direction, channel, body, payload FROM messages WHERE id = $1`,
+          [result.messageId],
+        );
+        expect(msg.rows[0].direction).toBe('in');
+        expect(msg.rows[0].channel).toBe('whatsapp');
+        expect(msg.rows[0].body).toBe(body.message);
+        expect(msg.rows[0].payload.type).toBe('text');
 
-    // Valida conversation_state
-    const conv = await pool.query(
-      `SELECT state_key FROM conversation_states
-        WHERE tenant_id = $1 AND customer_id = $2`,
-      [tenantId, result.customerId],
-    );
-    expect(conv.rows[0]?.state_key).toBe('awaiting_intent');
+        const conv = await c.query(
+          `SELECT state_key FROM conversation_states
+            WHERE tenant_id = $1 AND customer_id = $2`,
+          [tenantId, result.customerId],
+        );
+        expect(conv.rows[0]?.state_key).toBe('awaiting_intent');
+      });
+    } finally {
+      c.release();
+    }
   });
 
   // ── 2. Duplicata por external_message_id ──────────────────────────────────
@@ -234,12 +233,12 @@ describe('POST /webhooks/whatsapp/inbound (integration)', () => {
     const hmacTenantId = randomUUID();
     const hmacInstance = `inst-hmac-${randomUUID().slice(0, 8)}`;
 
-    await pool.query(
-      `INSERT INTO tenants (id, name, slug, status, webhook_token)
-       VALUES ($1, 'HMAC Tenant', $2, 'active', 'dummy-token')`,
+    await adminPool.query(
+      `INSERT INTO tenants (id, legal_name, trade_name, plan_code, status, slug, webhook_token)
+       VALUES ($1, 'HMAC Tenant', 'HMAC Tenant', 'trial', 'active', $2, 'dummy-token')`,
       [hmacTenantId, `hmac-${hmacTenantId.slice(0, 8)}`],
     );
-    await pool.query(
+    await adminPool.query(
       `INSERT INTO tenant_integrations (id, tenant_id, provider, config, is_active, hmac_secret)
        VALUES ($1, $2, 'evolution', $3::jsonb, true, $4)`,
       [randomUUID(), hmacTenantId, JSON.stringify({ instance_name: hmacInstance }), HMAC_SECRET],
@@ -253,8 +252,8 @@ describe('POST /webhooks/whatsapp/inbound (integration)', () => {
       ),
     ).rejects.toMatchObject({ code: 'WEBHOOK_SIGNATURE_REQUIRED', statusCode: 401 });
 
-    await pool.query(`DELETE FROM tenant_integrations WHERE tenant_id = $1`, [hmacTenantId]);
-    await pool.query(`DELETE FROM tenants WHERE id = $1`, [hmacTenantId]);
+    await adminPool.query(`DELETE FROM tenant_integrations WHERE tenant_id = $1`, [hmacTenantId]);
+    await adminPool.query(`DELETE FROM tenants WHERE id = $1`, [hmacTenantId]);
   });
 
   // ── 7. HMAC inválido ──────────────────────────────────────────────────────
@@ -262,12 +261,12 @@ describe('POST /webhooks/whatsapp/inbound (integration)', () => {
     const hmacTenantId = randomUUID();
     const hmacInstance = `inst-hmac2-${randomUUID().slice(0, 8)}`;
 
-    await pool.query(
-      `INSERT INTO tenants (id, name, slug, status, webhook_token)
-       VALUES ($1, 'HMAC Tenant 2', $2, 'active', 'dummy-token')`,
+    await adminPool.query(
+      `INSERT INTO tenants (id, legal_name, trade_name, plan_code, status, slug, webhook_token)
+       VALUES ($1, 'HMAC Tenant 2', 'HMAC Tenant 2', 'trial', 'active', $2, 'dummy-token')`,
       [hmacTenantId, `hmac2-${hmacTenantId.slice(0, 8)}`],
     );
-    await pool.query(
+    await adminPool.query(
       `INSERT INTO tenant_integrations (id, tenant_id, provider, config, is_active, hmac_secret)
        VALUES ($1, $2, 'evolution', $3::jsonb, true, $4)`,
       [randomUUID(), hmacTenantId, JSON.stringify({ instance_name: hmacInstance }), HMAC_SECRET],
@@ -281,8 +280,8 @@ describe('POST /webhooks/whatsapp/inbound (integration)', () => {
       ),
     ).rejects.toMatchObject({ code: 'WEBHOOK_SIGNATURE_INVALID', statusCode: 401 });
 
-    await pool.query(`DELETE FROM tenant_integrations WHERE tenant_id = $1`, [hmacTenantId]);
-    await pool.query(`DELETE FROM tenants WHERE id = $1`, [hmacTenantId]);
+    await adminPool.query(`DELETE FROM tenant_integrations WHERE tenant_id = $1`, [hmacTenantId]);
+    await adminPool.query(`DELETE FROM tenants WHERE id = $1`, [hmacTenantId]);
   });
 
   // ── 8. HMAC válido aceito ─────────────────────────────────────────────────
@@ -292,12 +291,12 @@ describe('POST /webhooks/whatsapp/inbound (integration)', () => {
     const rawBody      = JSON.stringify(makeBody());
     const sig          = 'sha256=' + createHmac('sha256', HMAC_SECRET).update(rawBody).digest('hex');
 
-    await pool.query(
-      `INSERT INTO tenants (id, name, slug, status, webhook_token)
-       VALUES ($1, 'HMAC Tenant 3', $2, 'active', 'dummy-token')`,
+    await adminPool.query(
+      `INSERT INTO tenants (id, legal_name, trade_name, plan_code, status, slug, webhook_token)
+       VALUES ($1, 'HMAC Tenant 3', 'HMAC Tenant 3', 'trial', 'active', $2, 'dummy-token')`,
       [hmacTenantId, `hmac3-${hmacTenantId.slice(0, 8)}`],
     );
-    await pool.query(
+    await adminPool.query(
       `INSERT INTO tenant_integrations (id, tenant_id, provider, config, is_active, hmac_secret)
        VALUES ($1, $2, 'evolution', $3::jsonb, true, $4)`,
       [randomUUID(), hmacTenantId, JSON.stringify({ instance_name: hmacInstance }), HMAC_SECRET],
@@ -310,12 +309,12 @@ describe('POST /webhooks/whatsapp/inbound (integration)', () => {
     );
     expect(r.duplicate).toBe(false);
 
-    await pool.query(`DELETE FROM conversation_states WHERE tenant_id = $1`, [hmacTenantId]);
-    await pool.query(`DELETE FROM messages WHERE tenant_id = $1`, [hmacTenantId]);
-    await pool.query(`DELETE FROM customers WHERE tenant_id = $1`, [hmacTenantId]);
-    await pool.query(`DELETE FROM webhook_events WHERE tenant_id = $1`, [hmacTenantId]);
-    await pool.query(`DELETE FROM tenant_integrations WHERE tenant_id = $1`, [hmacTenantId]);
-    await pool.query(`DELETE FROM tenants WHERE id = $1`, [hmacTenantId]);
+    await adminPool.query(`DELETE FROM conversation_states WHERE tenant_id = $1`, [hmacTenantId]);
+    await adminPool.query(`DELETE FROM messages WHERE tenant_id = $1`, [hmacTenantId]);
+    await adminPool.query(`DELETE FROM customers WHERE tenant_id = $1`, [hmacTenantId]);
+    await adminPool.query(`DELETE FROM webhook_events WHERE tenant_id = $1`, [hmacTenantId]);
+    await adminPool.query(`DELETE FROM tenant_integrations WHERE tenant_id = $1`, [hmacTenantId]);
+    await adminPool.query(`DELETE FROM tenants WHERE id = $1`, [hmacTenantId]);
   });
 
   // ── 9. tenant_id no body é ignorado ──────────────────────────────────────
