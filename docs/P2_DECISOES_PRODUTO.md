@@ -29,3 +29,9 @@ Fonte: kickoff Fase P2 — MVP operacional para piloto controlado. Alterações 
 ## 4. Fora de escopo da P2 (backlog)
 
 10. Pix antecipado, cobrança dinâmica, webhook de pagamento, remarketing, lembrete pós-serviço, relatórios financeiros avançados, multi-unidade avançada, app mobile, IA conversacional aberta, marketplace, integrações comerciais extra — **não iniciar** sem autorização expressa do PO.
+
+## 5. Bloqueios de agenda (P2.1)
+
+11. A persistência canónica continua a ser a tabela **`calendar_blocks`** (campos incl. `created_by` após migration `104_calendar_blocks_created_by.sql`).
+
+12. Os endpoints **`GET|POST /api/v1/professionals/{id}/time-blocks`** e **`DELETE …/time-blocks/{block_id}`** são o **contrato PO-facing**: fixam `professional_id` no path, aplicam RBAC `agendaTimeBlocks`, e geram auditoria operacional `time_block_created` / `time_block_deleted` (entidade `time_block`). O legado **`/calendar-blocks`** mantém-se para compatibilidade; o OpenAPI descreve ambos de forma coerente com a mesma origem de dados.

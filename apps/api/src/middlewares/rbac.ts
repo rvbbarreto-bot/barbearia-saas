@@ -41,6 +41,11 @@ export const permissionPolicy = {
   availability: {
     read: 'viewer',
   },
+  /** Bloqueios por profissional (`/professionals/:id/time-blocks` → `calendar_blocks`). */
+  agendaTimeBlocks: {
+    read: 'viewer',
+    manage: 'attendant',
+  },
   professionalTimeOff: {
     read: 'viewer',
     create: 'attendant',
@@ -115,6 +120,12 @@ export function canAccess<R extends PolicyResource>(
   resource: R,
   action: PolicyAction<R>,
 ): boolean {
+  /** No-show manual: balcão/gestão (`attendant`+), não o perfil `professional` (nível ≥ attendant mas papel distinto). */
+  if (resource === 'appointments' && action === 'noShow') {
+    if (!role || !(role in roleLevel)) return false;
+    if (role === 'professional') return false;
+    return hasRequiredRole(role, 'attendant');
+  }
   const requiredRole = permissionPolicy[resource][action] as keyof typeof roleLevel;
   return hasRequiredRole(role, requiredRole);
 }

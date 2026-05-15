@@ -1172,6 +1172,7 @@ export async function listAppointments(
     status,
     professional_id: queryProfessionalId,
     customer_id,
+    on_date: onDate,
   } = rawQuery as Record<string, string | undefined>;
 
   let effectiveProfessionalId: string | undefined = queryProfessionalId;
@@ -1189,6 +1190,15 @@ export async function listAppointments(
 
     if (from) { filters.push(`a.starts_at >= $${idx++}::timestamptz`); params.push(from); }
     if (to) { filters.push(`a.starts_at < $${idx++}::timestamptz`); params.push(to); }
+    if (onDate) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(onDate)) {
+        throw new AppError('VALIDATION_ERROR', 'Query on_date inválida (use YYYY-MM-DD).', 400);
+      }
+      filters.push(
+        `(a.starts_at AT TIME ZONE COALESCE((SELECT timezone FROM tenants WHERE id = $1 LIMIT 1), 'UTC'))::date = $${idx++}::date`,
+      );
+      params.push(onDate);
+    }
     if (status) { filters.push(`a.status = $${idx++}`); params.push(status); }
     if (effectiveProfessionalId) {
       filters.push(`a.professional_id = $${idx++}::uuid`);

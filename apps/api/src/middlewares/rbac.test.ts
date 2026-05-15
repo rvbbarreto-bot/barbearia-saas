@@ -35,4 +35,11 @@ describe('rbac role checks', () => {
     expect(canAccess('viewer', 'appointments', 'create')).toBe(false);
     expect(canAccess('attendant', 'appointments', 'create')).toBe(true);
   });
+
+  it('denies appointments noShow for professional (API alinhada ao balcão/gestão)', () => {
+    expect(canAccess('professional', 'appointments', 'noShow')).toBe(false);
+    expect(canAccess('attendant', 'appointments', 'noShow')).toBe(true);
+    expect(canAccess('manager', 'appointments', 'noShow')).toBe(true);
+    expect(canAccess('tenant_owner', 'appointments', 'noShow')).toBe(true);
+  });
 });

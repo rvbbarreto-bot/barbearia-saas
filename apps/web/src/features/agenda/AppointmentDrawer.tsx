@@ -214,7 +214,7 @@ function AppointmentDrawerBody({
   const canCompleteFlow = isProfessional && appointment.status === 'in_service';
 
   const canMarkNoShow =
-    canOperateAttendance &&
+    canDesk &&
     !['checked_in', 'in_service', 'completed', 'cancelled', 'no_show'].includes(appointment.status);
 
   return (

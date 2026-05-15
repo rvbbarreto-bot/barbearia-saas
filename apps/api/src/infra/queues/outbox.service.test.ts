@@ -28,6 +28,8 @@ vi.mock('../../config/env.js', () => ({
     OUTBOX_POLL_INTERVAL_MS: 5000,
     OUTBOX_CONCURRENCY: 2,
   },
+  /** `outbox-worker` importa esta função; sem ela o mock quebra em runtime. */
+  isOutboxForceSendFailureRuntime: () => false,
 }));
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { requireRole } from '../../middlewares/rbac.js';
+import { requirePermission, requireRole } from '../../middlewares/rbac.js';
 import {
   addProfessionalServices,
   createProfessional,
@@ -8,6 +8,11 @@ import {
   replaceProfessionalServices,
   updateProfessional,
 } from './service.js';
+import {
+  createProfessionalTimeBlock,
+  deleteProfessionalTimeBlock,
+  listProfessionalTimeBlocks,
+} from './professional-time-blocks.service.js';
 
 export async function professionalRoutes(app: FastifyInstance) {
   app.get(
@@ -68,6 +73,53 @@ export async function professionalRoutes(app: FastifyInstance) {
         request.user?.sub,
       );
       return reply.code(200).send(updated);
+    },
+  );
+
+  app.get(
+    '/professionals/:professionalId/time-blocks',
+    { preHandler: requirePermission('agendaTimeBlocks', 'read') },
+    async (request: any) =>
+      listProfessionalTimeBlocks(
+        request.tenantId,
+        request.params.professionalId,
+        request.query as Record<string, unknown>,
+      ),
+  );
+
+  app.post(
+    '/professionals/:professionalId/time-blocks',
+    { preHandler: requirePermission('agendaTimeBlocks', 'manage') },
+    async (request: any, reply) => {
+      const created = await createProfessionalTimeBlock(
+        request.tenantId,
+        request.params.professionalId,
+        request.body ?? {},
+        {
+          sub: request.user?.sub,
+          role: (request.user as { role?: string })?.role,
+          requestId: request.id,
+        },
+      );
+      return reply.code(201).send(created);
+    },
+  );
+
+  app.delete(
+    '/professionals/:professionalId/time-blocks/:blockId',
+    { preHandler: requirePermission('agendaTimeBlocks', 'manage') },
+    async (request: any, reply) => {
+      await deleteProfessionalTimeBlock(
+        request.tenantId,
+        request.params.professionalId,
+        request.params.blockId,
+        {
+          sub: request.user?.sub,
+          role: (request.user as { role?: string })?.role,
+          requestId: request.id,
+        },
+      );
+      return reply.code(204).send();
     },
   );
 }

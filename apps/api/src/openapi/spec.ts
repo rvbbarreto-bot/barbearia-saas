@@ -206,12 +206,32 @@ export const openApiDocument = {
     '/api/v1/appointments': {
       get: {
         tags: ['appointments'],
-        summary: 'Listar agendamentos (intervalo)',
+        summary: 'Listar agendamentos (intervalo e/ou dia civil)',
+        description:
+          'RBAC: `appointments.read` (mín. `viewer`). Filtro temporal: enviar `from`+`to` (ISO, intervalo em `starts_at`) e/ou `on_date` (YYYY-MM-DD, dia civil no fuso do tenant). ' +
+          'Outros filtros: `status`, `professional_id`, `customer_id`, paginação `page`/`limit`.',
         parameters: [
-          { name: 'from', in: 'query', required: true, schema: { type: 'string', format: 'date-time' } },
-          { name: 'to', in: 'query', required: true, schema: { type: 'string', format: 'date-time' } },
+          { name: 'from', in: 'query', required: false, schema: { type: 'string', format: 'date-time' } },
+          { name: 'to', in: 'query', required: false, schema: { type: 'string', format: 'date-time' } },
+          {
+            name: 'on_date',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', example: '2026-05-14', pattern: '^\\d{4}-\\d{2}-\\d{2}$' },
+            description: 'Dia civil (tenant timezone) para filtrar `starts_at`.',
+          },
+          { name: 'status', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'professional_id', in: 'query', required: false, schema: { type: 'string', format: 'uuid' } },
+          { name: 'customer_id', in: 'query', required: false, schema: { type: 'string', format: 'uuid' } },
+          { name: 'page', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'limit', in: 'query', required: false, schema: { type: 'string' } },
         ],
-        responses: { '200': { description: 'Lista paginada / dados de agenda' }, '401': { description: 'Não autenticado' } },
+        responses: {
+          '200': { description: '{ data, total, page, limit }' },
+          '400': { description: 'on_date inválida' },
+          '401': { description: 'Não autenticado' },
+        },
+        security: [{ bearerAuth: [], tenantHeader: [] }],
       },
       post: {
         tags: ['appointments'],
@@ -348,7 +368,8 @@ export const openApiDocument = {
       patch: {
         tags: ['appointments'],
         summary: 'Registrar no-show',
-        description: 'RBAC: `appointments.noShow` (mín. `attendant`). Corpo: `reason` (obrigatório, ≥3).',
+        description:
+          'RBAC: `appointments.noShow` — mínimo `attendant`, **exclui** o papel `professional` (marcação manual no balcão/gestão). Corpo: `reason` (obrigatório, ≥3).',
         parameters: [{ name: 'appointmentId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
         requestBody: {
           required: true,
@@ -662,6 +683,78 @@ export const openApiDocument = {
         summary: 'Criar profissional',
         requestBody: { content: { 'application/json': { schema: { type: 'object', additionalProperties: true } } } },
         responses: { '201': { description: 'Criado' } },
+      },
+    },
+    '/api/v1/professionals/{professionalId}/time-blocks': {
+      get: {
+        tags: ['professionals'],
+        summary: 'Listar bloqueios manuais do profissional',
+        description:
+          'Alias operacional P2.1 para `calendar_blocks` com `professional_id` fixo no path. RBAC: `agendaTimeBlocks.read` (mín. `viewer`). Query: `from`, `to`, `page`, `limit`.',
+        parameters: [
+          { name: 'professionalId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+          { name: 'from', in: 'query', schema: { type: 'string', format: 'date-time' } },
+          { name: 'to', in: 'query', schema: { type: 'string', format: 'date-time' } },
+          { name: 'page', in: 'query', schema: { type: 'string' } },
+          { name: 'limit', in: 'query', schema: { type: 'string' } },
+        ],
+        responses: {
+          '200': { description: '{ data, total, page, limit }' },
+          '401': { description: 'Não autenticado' },
+          '403': { description: 'Sem permissão' },
+        },
+        security: [{ bearerAuth: [], tenantHeader: [] }],
+      },
+      post: {
+        tags: ['professionals'],
+        summary: 'Criar bloqueio manual (time block)',
+        description:
+          'Persistência: tabela `calendar_blocks`. RBAC: `agendaTimeBlocks.manage` (mín. `attendant`). Gera auditoria operacional `time_block_created`.',
+        parameters: [{ name: 'professionalId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['starts_at', 'ends_at'],
+                properties: {
+                  starts_at: { type: 'string', format: 'date-time' },
+                  ends_at: { type: 'string', format: 'date-time' },
+                  kind: { type: 'string', enum: ['time_off', 'break', 'holiday', 'maintenance', 'manual'] },
+                  reason: { type: 'string', maxLength: 500 },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          '201': { description: 'Criado' },
+          '400': { description: 'Validação' },
+          '401': { description: 'Não autenticado' },
+          '403': { description: 'Sem permissão' },
+          '404': { description: 'Profissional inexistente ou inativo' },
+        },
+        security: [{ bearerAuth: [], tenantHeader: [] }],
+      },
+    },
+    '/api/v1/professionals/{professionalId}/time-blocks/{blockId}': {
+      delete: {
+        tags: ['professionals'],
+        summary: 'Remover bloqueio manual',
+        description:
+          'Elimina apenas se o bloqueio pertencer ao `professionalId` do path. RBAC: `agendaTimeBlocks.manage`. Evento `time_block_deleted`.',
+        parameters: [
+          { name: 'professionalId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+          { name: 'blockId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+        ],
+        responses: {
+          '204': { description: 'Removido' },
+          '401': { description: 'Não autenticado' },
+          '403': { description: 'Sem permissão' },
+          '404': { description: 'Bloqueio não encontrado para este profissional' },
+        },
+        security: [{ bearerAuth: [], tenantHeader: [] }],
       },
     },
     '/api/v1/audit-logs': {

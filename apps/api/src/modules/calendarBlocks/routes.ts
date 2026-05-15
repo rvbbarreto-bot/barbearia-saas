@@ -14,7 +14,10 @@ export async function calendarBlockRoutes(app: FastifyInstance) {
     '/calendar-blocks',
     { preHandler: requireRole('manager') },
     async (request: any, reply) => {
-      const created = await createCalendarBlock(request.tenantId, request.body, request.user?.sub);
+      const created = await createCalendarBlock(request.tenantId, request.body, request.user?.sub, {
+        role: (request.user as { role?: string })?.role,
+        requestId: request.id,
+      });
       return reply.code(201).send(created);
     },
   );
@@ -30,7 +33,9 @@ export async function calendarBlockRoutes(app: FastifyInstance) {
     '/calendar-blocks/:blockId',
     { preHandler: requireRole('manager') },
     async (request: any, reply) => {
-      await deleteCalendarBlock(request.tenantId, request.params.blockId, request.user?.sub);
+      await deleteCalendarBlock(request.tenantId, request.params.blockId, request.user?.sub, {
+        auditCaller: { role: (request.user as { role?: string })?.role, requestId: request.id },
+      });
       return reply.code(204).send();
     },
   );

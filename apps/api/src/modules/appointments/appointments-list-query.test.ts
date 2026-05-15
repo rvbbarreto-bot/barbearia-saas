@@ -45,6 +45,18 @@ describe('appointments list/detail SQL (schema alignment)', () => {
     expect(listSql).toContain('NULL::text AS customer_notes');
   });
 
+  it('listAppointments applies on_date filter using tenant timezone', async () => {
+    mockQuery
+      .mockResolvedValueOnce({ rows: [], rowCount: 0 })
+      .mockResolvedValueOnce({ rows: [{ total: 0 }], rowCount: 1 });
+
+    await listAppointments(tenantId, { page: '1', limit: '20', on_date: '2026-05-14' });
+
+    const listSql = String(mockQuery.mock.calls[0][0]);
+    expect(listSql).toMatch(/::date = \$\d+::date/);
+    expect(listSql).toMatch(/timezone FROM tenants/);
+  });
+
   it('getAppointmentById does not reference customers.notes', async () => {
     mockQuery.mockResolvedValueOnce({
       rows: [{ id: 'a1', customer_notes: null }],

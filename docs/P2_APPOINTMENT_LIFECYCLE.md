@@ -30,10 +30,19 @@
 
 ## Endpoints alvo (API)
 
-Ver especificação P2: `GET/POST /api/v1/appointments`, `PATCH .../cancel|reschedule|complete|no-show`.
+Ver especificação P2: `GET/POST /api/v1/appointments`, `PATCH …/cancel|reschedule|complete|no-show`. Listagem: `GET /api/v1/appointments` com `from`/`to` (ISO) e/ou `on_date=YYYY-MM-DD` (dia civil no fuso do tenant).
 
-## Quem pode fazer o quê
+## Quem pode fazer o quê (RBAC actual — `permissionPolicy`)
 
-Detalhar por papel (`tenant_owner`, `tenant_admin`, `attendant`, `professional`) no fecho da P2, alinhado com RBAC e auditoria.
+| Recurso | Acção | Papel mínimo |
+| ------- | ----- | ------------ |
+| `appointments` | read | `viewer` |
+| `appointments` | create, confirm, cancel, reschedule, checkIn, start, walkIn | `attendant` |
+| `appointments` | noShow | `attendant`+ **exceto** `professional` |
+| `appointments` | complete | `professional` |
+| `appointments` | manualOverride | `manager` |
+| `agendaTimeBlocks` | read | `viewer` |
+| `agendaTimeBlocks` | manage | `attendant` |
+| `availability` | read | `viewer` |
 
-*(Mapeamento exacto para o schema actual da base será documentado após análise das migrations existentes.)*
+`tenant_owner` / `tenant_admin` herdam níveis ≥ `attendant` e podem operar conforme a matriz acima. **`professional`**: pode `complete` na cadeira; **não** pode `noShow` nem `create` genérico com `explicit_confirmation=false` (ver política CT-073).

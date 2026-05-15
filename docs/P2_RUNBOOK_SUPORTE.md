@@ -25,4 +25,8 @@
 - Validar tenant: `tenant_id` em entidades.
 - Migrations: pasta `database/migrations/`.
 
-*(Secções WhatsApp/N8N, lembrete e queries SQL de verificação serão expandidas na entrega P2.)*
+## 5. QA P2.1 (API operacional)
+
+- Script: `scripts/qa-api-p2-operational-battery.ps1` (ver `docs/P2_QA_EXECUCAO.md`).
+- Resultados: `docs/QA_API_P2_OPERATIONAL_RESULTS.csv`.
+- Falhas frequentes: seed `099` não aplicado; `min_advance` esgota slots — o script usa `min_advance_minutes=0` na availability de teste.

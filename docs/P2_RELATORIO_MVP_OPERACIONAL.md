@@ -95,7 +95,7 @@ Após estes commits, `git status` na raiz do repositório estava **limpo** (fich
 | ----- | ---- |
 | A | Appointment lifecycle (status, cancel, reschedule, complete, no-show) |
 | B | Auditoria de eventos críticos |
-| C | Availability + `professional_time_blocks` |
+| C | Availability + bloqueios (`calendar_blocks`; REST `GET|POST|DELETE /api/v1/professionals/{id}/time-blocks`) |
 | D | Portal web operacional |
 | E | WhatsApp / N8N ponta a ponta |
 | F | Outbox operacional (listagem; retry opcional) |
