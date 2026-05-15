@@ -167,7 +167,7 @@ Consolidar migrations/runbook em todos os ambientes; avançar **P2.2** — porta
 
 ## 8. Evidências anexas — snapshot P2.1 (fábrica)
 
-Stack (Docker, health, logs, bateria QA) capturada na mesma sessão em que o repositório estava no commit **`d19dc8461e1b7cfeb03fa71be3fb78706fa9c512`** (`chore(qa): refresh P2 operational battery CSV`). Commits posteriores na branch tratam documentação / runbook (ex. **`9ffc7ba972adae420522069f6f32ae439a839b3d`** — fluxo `npm run db:migrate`); para o **tip** actual execute na raiz `git log -1` e `git rev-parse HEAD`.
+Stack (Docker, health, logs, bateria QA) capturada na mesma sessão em que o repositório estava no commit **`d19dc8461e1b7cfeb03fa71be3fb78706fa9c512`** (`chore(qa): refresh P2 operational battery CSV`). Ordem de integração na branch: **`a30b0fcd40049cd863f8769a4267a4d3de256e57`** (feat P2.1) → **`9ffc7ba972adae420522069f6f32ae439a839b3d`** (fluxo `npm run db:migrate` + backfill + runbooks) → **`d19dc8461e1b7cfeb03fa71be3fb78706fa9c512`** (CSV QA; base do snapshot §8) → commits posteriores possivelmente só documentais (ver `git log`). Para o **tip** actual execute na raiz `git log -1` e `git rev-parse HEAD`.
 
 ### 8.1 `git log -1` (congelado no commit da bateria QA)
 
