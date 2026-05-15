@@ -9,7 +9,8 @@ Consolidação pós-QA negativo: **resolução de tenant (CT-020)**, **criação
 ## 2. Branch e commit
 
 - **Branch:** `feature/p1-inbound-outbox-hardening`
-- **Commit de fecho desta evidência:** ver `docs/P1_EVIDENCIA_GIT_LOG_2026-05-14.txt` (última linha `commit …` após `git pull` / checkout da branch).
+- **HEAD após fecho da evidência (2026-05-14):** `269779de69b2864b51546d92289dbf9d9a81b050` — mensagem: `docs(p1): align git evidence files with HEAD and clean status`
+- **Commit do pacote de evidência (script + CSV + relatório + logs + docker ps):** `2261c73bde4f92ac1e939963b9faf89e978d9836` — mensagem: `chore(p1): stack validation evidence, QA script fixes, CSV and report update`
 
 ## 3. Hierarquia de papéis (ressalva PO 1)
 
@@ -111,9 +112,33 @@ Get-Content -Raw database/migrations/099_demo_seed_qa.sql |
 
 ## 10. Git — estado final
 
-- `git log -1`: `docs/P1_EVIDENCIA_GIT_LOG_2026-05-14.txt` (actualizar após o commit de fecho abaixo).
-- **Ficheiros não versionados intencionalmente:** `.env.backup_qa`, `QA_PACKAGE_BARBEARIA.zip` (não entram no repositório).
+### `git log -1` (instantâneo)
 
+```
+commit 269779de69b2864b51546d92289dbf9d9a81b050
+Author:     Barbearia SaaS P0 <dev@barbearia-saas.local>
+AuthorDate: Thu May 14 21:07:29 2026 -0300
+Commit:     Barbearia SaaS P0 <dev@barbearia-saas.local>
+CommitDate: Thu May 14 21:07:29 2026 -0300
+
+    docs(p1): align git evidence files with HEAD and clean status
+    
+    Co-authored-by: Cursor <cursoragent@cursor.com>
+```
+
+### `git status`
+
+```
+On branch feature/p1-inbound-outbox-hardening
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	.env.backup_qa
+	QA_PACKAGE_BARBEARIA.zip
+
+nothing added to commit but untracked files present (use "git add" to track)
+```
+
+**Nota:** `.env.backup_qa` e `QA_PACKAGE_BARBEARIA.zip` permanecem propositadamente **fora** do controlo de versão.
 ## 11. Recomendação da fábrica
 
 **Pronto para reavaliação do PO como fechamento P1** após revisão deste relatório e dos anexos — sujeito apenas à política interna de não considerar isto homologação final de produção.
