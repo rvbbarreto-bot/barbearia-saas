@@ -1,7 +1,7 @@
 PILOTO-STAGING-02 — testes locais (2026-05-15)
 Branch: feature/piloto-staging-02-agenda-operacional
 Base: piloto-staging-01 @ 3a6fc049214641a46cba0242fde5afd236c2a512
-HEAD exemplo: 4222ba9b7d941e41714bfb3ffecc35158186d941 (ver git rev-parse)
+HEAD: 97ec86e70ff1a8b9cf415f468605fefea924d8b3 (ver `git rev-parse HEAD` após último push)
 
 apps/api:
   npm run typecheck — OK
