@@ -1,0 +1,10 @@
+{
+    "database":  {
+                     "status":  "ok",
+                     "database":  "connected"
+                 },
+    "health":  {
+                   "status":  "ok"
+               },
+    "captured_at":  "2026-05-15T11:05:17.0655740-03:00"
+}

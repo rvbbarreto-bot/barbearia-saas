@@ -1,6 +1,9 @@
 # Pacote de evidências — MVP piloto (01–19)
 
-Gerar após `docker compose up -d --build` com commit UX aplicado (`fix(web): pilot UX...`).
+**Commit base:** `e138de8` — `fix(web): pt-BR UX, friendly outbox errors, and pilot acceptance docs`  
+**Captura:** 2026-05-15 — Docker `http://localhost:3001`, tenant `00000000-0000-0000-0000-000000000001`.
+
+Artefatos presentes nesta pasta: PNGs de portal + JSON/TXT de API. Ver matriz em `docs/RELATORIO_FECHAMENTO_MVP_PILOTO.md`.
 
 | Ficheiro | Perfil | Tenant | Resultado esperado |
 |----------|--------|--------|-------------------|
