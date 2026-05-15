@@ -51,7 +51,7 @@ Untracked files:
 nothing added to commit but untracked files present (use "git add" to track)
 ```
 
-**Nota:** `.env.backup_qa` e pacotes `QA_PACKAGE_*.zip` passam a ser ignorados pelo repositório (ver `.gitignore`) para evitar acidentes de commit.
+**Nota:** no primeiro commit P2, `.env.backup_qa` e `QA_PACKAGE_*.zip` passaram a constar do `.gitignore` para impedir commits acidentais.
 
 ### 2.4 `docker compose ps`
 
@@ -79,6 +79,13 @@ Corpo (HTTP 200):
 ```json
 {"status":"ok","database":"connected"}
 ```
+
+### 2.7 Primeiro commit na branch P2 (documentação de arranque)
+
+- **Commit:** `66893f57d8f39b087bd14a8a87b4302faeb9f987`
+- **Mensagem:** `chore(p2): kickoff branch, baseline evidence, P2 docs skeleton, gitignore QA artifacts`
+
+Após este commit, `git status` na raiz do repositório estava **limpo** (ficheiros `.env.backup_qa` e `QA_PACKAGE_*.zip` ignorados pelo `.gitignore`).
 
 ---
 
