@@ -92,7 +92,7 @@ export function LoginPage() {
             <Scissors className="size-6" />
           </div>
           <h1 className="text-xl font-bold tracking-tight text-foreground">Barbearia SaaS</h1>
-          <p className="text-sm text-muted-foreground">Sistema de gestao</p>
+          <p className="text-sm text-muted-foreground">Sistema de gestão</p>
         </div>
 
         <Card>

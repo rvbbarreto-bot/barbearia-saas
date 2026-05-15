@@ -29,6 +29,7 @@ function isUnsafeTechnicalMessage(msg: string): boolean {
     m.includes('axios') ||
     m.includes('network error') ||
     m.includes('request failed') ||
+    m.includes('fetch failed') ||
     m.includes('econnrefused') ||
     m.includes('timeout')
   );

@@ -314,7 +314,7 @@ function NewAppointmentModalInner({ onClose }: { onClose: () => void }) {
           </Button>
           {step < 3 ? (
             <Button onClick={() => setStep(step + 1)} disabled={!canProceed}>
-              Proximo
+              Próximo
             </Button>
           ) : (
             <Button

@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import type { Professional } from '@/types/api';
+import { getApiErrorMessage } from '@/lib/apiErrorMessage';
 import { createCalendarBlock } from './agendaService';
 
 interface Props {
@@ -63,7 +64,7 @@ function BlockTimeModalInner({
       qc.invalidateQueries({ queryKey: ['availability'] });
       onClose();
     },
-    onError: (e: Error) => toast.error(e.message || 'Erro ao bloquear.'),
+    onError: (e: unknown) => toast.error(getApiErrorMessage(e, 'Não foi possível bloquear o horário.')),
   });
 
   const canSubmit =
@@ -101,7 +102,11 @@ function BlockTimeModalInner({
                 type="datetime-local"
                 value={startsLocal}
                 onChange={(e) => setStartsLocal(e.target.value)}
+                aria-describedby="block-start-hint"
               />
+              <p id="block-start-hint" className="text-xs text-muted-foreground">
+                Data e hora (fuso America/Sao_Paulo).
+              </p>
             </div>
             <div className="flex flex-col gap-2">
               <Label>Fim</Label>
@@ -109,7 +114,11 @@ function BlockTimeModalInner({
                 type="datetime-local"
                 value={endsLocal}
                 onChange={(e) => setEndsLocal(e.target.value)}
+                aria-describedby="block-end-hint"
               />
+              <p id="block-end-hint" className="text-xs text-muted-foreground">
+                Deve ser posterior ao início.
+              </p>
             </div>
           </div>
           <div className="flex flex-col gap-2">

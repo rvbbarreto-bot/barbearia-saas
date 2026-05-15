@@ -22,6 +22,7 @@ import { DataTable, type Column } from '@/components/shared/DataTable';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { formatDate } from '@/lib/utils';
 import { getApiErrorMessage } from '@/lib/apiErrorMessage';
+import { formatOutboxLastError } from '@/lib/outboxErrorMessage';
 import { hasMinRole } from '@/lib/rbac';
 import { useAuthStore } from '@/store/authStore';
 import type { OutboxMessageRow } from '@/types/api';
@@ -29,6 +30,14 @@ import { getOutboxMessage, listOutboxMessages, retryOutboxMessage } from './outb
 import { toast } from 'sonner';
 
 const STATUS_OPTS = ['__all__', 'pending', 'processing', 'sent', 'failed', 'dead'] as const;
+
+const STATUS_LABELS: Record<string, string> = {
+  pending: 'Pendente',
+  processing: 'Processando',
+  sent: 'Enviada',
+  failed: 'Falhou',
+  dead: 'Encerrada',
+};
 
 function statusBadgeClass(status: string): string {
   switch (status) {
@@ -99,44 +108,34 @@ export function OutboxMessagesPage() {
     onError: (e: unknown) => toast.error(getApiErrorMessage(e, 'Não foi possível re-enfileirar.')),
   });
 
-  const columns: Column<OutboxMessageRow>[] = useMemo(
+  const columns: Column<OutboxMessageRow>[] = useMemo<Column<OutboxMessageRow>[]>(
     () => [
-      { key: 'created_at', header: 'Criado', cell: (r) => formatDate(r.created_at) },
+      { key: 'created_at', header: 'Data', cell: (r: OutboxMessageRow) => formatDate(r.created_at) },
       {
         key: 'status',
         header: 'Estado',
-        cell: (r) => (
-          <span className={`rounded px-2 py-0.5 text-xs font-medium ${statusBadgeClass(r.status)}`}>{r.status}</span>
+        cell: (r: OutboxMessageRow) => (
+          <span className={`rounded px-2 py-0.5 text-xs font-medium ${statusBadgeClass(r.status)}`}>
+            {STATUS_LABELS[r.status] ?? r.status}
+          </span>
         ),
       },
-      { key: 'provider', header: 'Provider', cell: (r) => r.provider ?? '—' },
-      { key: 'destination', header: 'Destino', cell: (r) => r.destination ?? '—' },
-      {
-        key: 'preview',
-        header: 'Pré-visualização',
-        cell: (r) => (
-          <span className="line-clamp-2 text-muted-foreground text-sm">{r.payload_summary.preview ?? '—'}</span>
-        ),
-      },
-      { key: 'attempts', header: 'Tent.', cell: (r) => `${r.attempts}/${r.max_attempts}` },
+      { key: 'destination', header: 'Destino', cell: (r: OutboxMessageRow) => r.destination ?? '—' },
+      { key: 'provider', header: 'Provider', cell: (r: OutboxMessageRow) => r.provider ?? '—' },
+      { key: 'attempts', header: 'Tent.', cell: (r: OutboxMessageRow) => `${r.attempts}/${r.max_attempts}` },
       {
         key: 'last_error',
         header: 'Último erro',
-        cell: (r) => (
-          <span className="line-clamp-2 max-w-xs text-xs text-destructive">{r.last_error ?? '—'}</span>
-        ),
+        cell: (r: OutboxMessageRow) => {
+          const { friendly } = formatOutboxLastError(r.last_error);
+          return <span className="line-clamp-2 max-w-[14rem] text-xs text-destructive">{friendly}</span>;
+        },
       },
       {
-        key: 'correlation_id',
-        header: 'correlation',
-        cell: (r) => <span className="font-mono text-xs text-muted-foreground">{r.correlation_id ?? '—'}</span>,
+        key: 'action',
+        header: 'Ação',
+        cell: () => <span className="text-xs text-muted-foreground">Ver detalhe</span>,
       },
-      {
-        key: 'idempotency_key',
-        header: 'idempotency',
-        cell: (r) => <span className="font-mono text-xs text-muted-foreground">{r.idempotency_key ?? '—'}</span>,
-      },
-      { key: 'sent_at', header: 'Enviado', cell: (r) => (r.sent_at ? formatDate(r.sent_at) : '—') },
     ],
     [],
   );
@@ -290,11 +289,22 @@ export function OutboxMessagesPage() {
             <p className="text-sm text-muted-foreground">A carregar…</p>
           ) : (
             <div className="flex flex-col gap-3 text-sm">
-              <DetailRow label="Estado" value={detail.status} />
+              <DetailRow label="Estado" value={STATUS_LABELS[detail.status] ?? detail.status} />
               <DetailRow label="Provider" value={detail.provider ?? '—'} />
               <DetailRow label="Destino" value={detail.destination ?? '—'} />
               <DetailRow label="Tentativas" value={`${detail.attempts} / ${detail.max_attempts}`} />
-              <DetailRow label="Último erro" value={detail.last_error ?? '—'} />
+              <DetailRow
+                label="Último erro (operacional)"
+                value={formatOutboxLastError(detail.last_error).friendly}
+              />
+              {formatOutboxLastError(detail.last_error).technical ? (
+                <div className="rounded-md border bg-muted/40 p-2 text-xs">
+                  <span className="text-muted-foreground">Diagnóstico técnico</span>
+                  <p className="mt-1 font-mono break-all text-muted-foreground">
+                    {formatOutboxLastError(detail.last_error).technical}
+                  </p>
+                </div>
+              ) : null}
               <DetailRow label="Criado" value={formatDate(detail.created_at)} />
               <DetailRow label="Atualizado" value={formatDate(detail.updated_at)} />
               <DetailRow label="Enviado" value={detail.sent_at ? formatDate(detail.sent_at) : '—'} />

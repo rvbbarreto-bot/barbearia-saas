@@ -141,7 +141,7 @@ export function AgendaCalendar({
           agenda: 'Lista',
           today: 'Hoje',
           previous: 'Anterior',
-          next: 'Proximo',
+          next: 'Próximo',
           showMore: (n: number) => `+${n} mais`,
           noEventsInRange: 'Nenhum evento neste período.',
         }}

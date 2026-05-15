@@ -348,7 +348,7 @@ export function DashboardPage() {
       )}
 
       <div className="flex flex-col gap-3">
-        <h2 className="text-base font-semibold text-foreground">Proximos agendamentos hoje</h2>
+        <h2 className="text-base font-semibold text-foreground">Próximos agendamentos hoje</h2>
         {todayQ.isLoading ? (
           <div className="flex flex-col gap-2">
             {Array.from({ length: 3 }).map((_, i) => (
