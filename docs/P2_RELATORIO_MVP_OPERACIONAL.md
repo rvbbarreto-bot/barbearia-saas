@@ -152,7 +152,7 @@ Esta fase **não** constitui homologação final de produção ou piloto comerci
 **Data de registo (documentação):** 2026-05-14.
 
 - **Decisão:** aprovado com ressalvas obrigatórias; **não** representa fecho completo da P2, homologação final nem liberação de piloto.
-- **Pontos aprovados (resumo):** correção do mock `isOutboxForceSendFailureRuntime`; `npm run test:unit` na API (140 testes); bateria `scripts/qa-api-p2-operational-battery.ps1` com exit `0`; `docs/QA_API_P2_OPERATIONAL_RESULTS.csv` atualizado; correção do 500 em POST de time-blocks via migrations **103** e **104**; RBAC no-show com exclusão de `professional`; ajuste em `AppointmentDrawer.tsx`; `rbac.test.ts`, OpenAPI e `P2_APPOINTMENT_LIFECYCLE.md`; `npm run typecheck` no Web; commit de referência **`a30b0fcd40049cd863f8769a4267a4d3de256e57`**.
+- **Pontos aprovados (resumo):** correção do mock `isOutboxForceSendFailureRuntime`; `npm run test:unit` na API (140 testes); bateria `scripts/qa-api-p2-operational-battery.ps1` com exit `0`; `docs/QA_API_P2_OPERATIONAL_RESULTS.csv` atualizado; correção do 500 em POST de time-blocks via migrations **103** e **104**; RBAC no-show com exclusão de `professional`; ajuste em `AppointmentDrawer.tsx`; `rbac.test.ts`, OpenAPI e `P2_APPOINTMENT_LIFECYCLE.md`; `npm run typecheck` no Web; commit de referência da entrega funcional **`a30b0fcd40049cd863f8769a4267a4d3de256e57`**. Fecho das ressalvas obrigatórias (fluxo de migrations, runbook, evidências neste relatório): **`9ffc7ba972adae420522069f6f32ae439a839b3d`**, refresh do CSV de QA **`d19dc8461e1b7cfeb03fa71be3fb78706fa9c512`**, alinhamento final de §8 em **`dd35c176346aee648eb2bcf22fdeeb9f730d7ca5`** (HEAD ao fechar documentação).
 
 ### 7.1 Ressalvas atendidas nesta versão do repositório
 
@@ -167,28 +167,18 @@ Consolidar migrations/runbook em todos os ambientes; avançar **P2.2** — porta
 
 ## 8. Evidências anexas — snapshot P2.1 (fábrica)
 
-Valores abaixo capturados na máquina da fábrica no momento da atualização deste relatório (podem divergir noutros clones/CI).
+Valores abaixo capturados na máquina da fábrica (podem divergir noutros clones/CI). **HEAD** do repositório ao fechar esta secção: **`dd35c176346aee648eb2bcf22fdeeb9f730d7ca5`**. Linha de commits relevante: **`a30b0fcd40049cd863f8769a4267a4d3de256e57`** (feat P2.1) → **`9ffc7ba972adae420522069f6f32ae439a839b3d`** (fluxo `npm run db:migrate` + backfill + runbooks) → **`d19dc8461e1b7cfeb03fa71be3fb78706fa9c512`** (CSV QA pós-bateria) → **`dd35c176346aee648eb2bcf22fdeeb9f730d7ca5`** (alinhamento de evidências em §8).
 
 ### 8.1 `git log -1`
 
 ```
-commit a30b0fcd40049cd863f8769a4267a4d3de256e57
-Author: Barbearia SaaS P0 <dev@barbearia-saas.local>
-Date:   Thu May 14 21:58:22 2026 -0300
+commit dd35c176346aee648eb2bcf22fdeeb9f730d7ca5
+Author:     Barbearia SaaS P0 <dev@barbearia-saas.local>
+AuthorDate: Thu May 14 22:09:42 2026 -0300
+Commit:     Barbearia SaaS P0 <dev@barbearia-saas.local>
+CommitDate: Thu May 14 22:09:42 2026 -0300
 
-    feat(p2.1): time-blocks REST, on_date list, QA battery, no-show RBAC
-    
-    - Expose GET/POST/DELETE /api/v1/professionals/:id/time-blocks (calendar_blocks + audit).
-    
-    - Appointments list: optional on_date filter (tenant timezone).
-    
-    - RBAC: appointments.noShow excludes professional; align web drawer with canDesk.
-    
-    - Fix outbox unit test env mock (isOutboxForceSendFailureRuntime).
-    
-    - QA script: safe GET without body, migrations note, CSV output; OpenAPI + P2 docs.
-    
-    - Migration 104: calendar_blocks.created_by.
+    docs(p2): align relatório §8 evidence with HEAD and clean tree
     
     Co-authored-by: Cursor <cursoragent@cursor.com>
 ```
@@ -196,29 +186,14 @@ Date:   Thu May 14 21:58:22 2026 -0300
 ### 8.2 `git rev-parse HEAD`
 
 ```
-a30b0fcd40049cd863f8769a4267a4d3de256e57
+dd35c176346aee648eb2bcf22fdeeb9f730d7ca5
 ```
 
 ### 8.3 `git status`
 
 ```
 On branch feature/p2-operational-mvp-pilot
-Changes not staged for commit:
-  (use "git add <file>..." to update what will be committed)
-  (use "git restore <file>..." to discard changes in working directory)
-	modified:   README.md
-	modified:   docs/P2_QA_EXECUCAO.md
-	modified:   docs/P2_RELATORIO_MVP_OPERACIONAL.md
-	modified:   docs/P2_RUNBOOK_SUPORTE.md
-	modified:   docs/QA_API_P2_OPERATIONAL_RESULTS.csv
-	modified:   migrate.sh
-	modified:   package.json
-
-Untracked files:
-  (use "git add <file>..." to include in what will be committed)
-	scripts/migrate-docker.mjs
-
-no changes added to commit (use "git add" and/or "git commit -a")
+nothing to commit, working tree clean
 ```
 
 ### 8.4 `docker compose ps`
@@ -248,7 +223,7 @@ Corpo **/database/health** (HTTP 200):
 
 ### 8.6 Nota sobre working tree
 
-**Interpretação (§8.3):** o working tree **não está limpo** para ficheiros rastreados: existem alterações locais não commitadas (documentação, `package.json`, `migrate.sh`, CSV de QA) e um ficheiro **novo não rastreado** (`scripts/migrate-docker.mjs`). Isto corresponde ao fecho das ressalvas PO (fluxo de migrations + runbook + evidências neste relatório), **posterior** ao commit de referência P2.1 **`a30b0fcd40049cd863f8769a4267a4d3de256e57`**. Após `git add` / commit dessas alterações, espera-se `git status` limpo para ficheiros rastreados; ficheiros só locais ou cobertos por `.gitignore` devem ser explicitados à parte.
+**Interpretação (§8.3):** o working tree está **limpo** para ficheiros rastreados (`nothing to commit, working tree clean`). Ficheiros ignorados pelo `.gitignore` ou artefactos locais não listados pelo `git status` podem existir noutros clones — tratar como **local-only** se aplicável.
 
 ### 8.7 Logs finais da API (trecho)
 
