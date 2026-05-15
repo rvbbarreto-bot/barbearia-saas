@@ -1,11 +1,11 @@
 # PILOTO-STAGING-02 — Núcleo operacional de agenda
 
-**Branch:** `feature/piloto-staging-02-agenda-operacional`  
-**Base:** `piloto-staging-01`
+**Estado:** **MERGED** em `piloto-staging-01` (2026-05-15) — [PR #3](https://github.com/rvbbarreto-bot/barbearia-saas/pull/3); merge `e5a0f0d282251faed2cd6597d3aceddf011dce4f`; [CI pós-merge run #23](https://github.com/rvbbarreto-bot/barbearia-saas/actions/runs/25946809629) verde.
 
-**Aceite formal:** exige PR aberto para `piloto-staging-01`, CI GitHub verde na branch/PR (API, Web, auditoria npm, Gitleaks) e matriz `03_matriz_aceite.md` atualizada.
+**Branch de entrega (histórico):** `feature/piloto-staging-02-agenda-operacional`  
+**Base do PR:** `piloto-staging-01`
 
-**Estado rápido (pós-push corretivo):** CI push no commit `2d964122ddd661124091637e50ee1c2a3c1c2c7e` — [run verde](https://github.com/rvbbarreto-bot/barbearia-saas/actions/runs/25944290957). Falta apenas **PR formal** (compare → “Create pull request”) para fechar aceite antes de decisão de merge (`06_pr_e_ci_github.md`).
+**Relatório de estado:** `07_status_report_pos_merge.md`
 
 ## Conteúdo
 
@@ -16,7 +16,8 @@
 | `03_matriz_aceite.md` | Critérios de aceite |
 | `04_testes_locais.txt` | Saída dos comandos locais |
 | `05_qa_local.md` | Como QA valida sem Evolution/n8n |
-| `06_pr_e_ci_github.md` | Link compare PR + CI |
+| `06_pr_e_ci_github.md` | PR #3, merge, CI pós-merge |
+| `07_status_report_pos_merge.md` | Status report pós-merge PO |
 
 ## Fora de escopo desta entrega
 

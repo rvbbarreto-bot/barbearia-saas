@@ -1,39 +1,56 @@
 # PR e evidência CI — PILOTO-STAGING-02
 
-## Push corretivo (2026-05-15) — SHA e CI
+## Merge em `piloto-staging-01` (2026-05-15) — PO aprovado
 
-- **Commit principal com correções de agenda (`fix(agenda): …`):** `2d964122ddd661124091637e50ee1c2a3c1c2c7e`.
-- **CI (evento push, workflow CI run #18):** https://github.com/rvbbarreto-bot/barbearia-saas/actions/runs/25944290957  
-  **Conclusion:** `success`. **Jobs:** API (typecheck, lint, test, build); Web idem; Security npm audit; Gitleaks.
-- **Pull Request formal:** até a criação no GitHub, a API lista vazio para `base=piloto-staging-01` + head desta branch — **substituir esta linha pelo URL do PR** após clicar “Create pull request” no compare abaixo (ex.: `https://github.com/rvbbarreto-bot/barbearia-saas/pull/<número>`).
+- **Pull Request:** [#3](https://github.com/rvbbarreto-bot/barbearia-saas/pull/3) — base **`piloto-staging-01`**, head **`feature/piloto-staging-02-agenda-operacional`**.  
+- **Estado:** **merged** (decisão PO; não usar PR contra `main`).  
+- **Merge commit em `piloto-staging-01`:** `e5a0f0d282251faed2cd6597d3aceddf011dce4f`  
+- **Último commit da feature no merge:** `d4d6936625440a8a25fdec1f9a3a24f2b43a5d9a`
 
-## Abrir Pull Request
+### CI pós-merge (push em `piloto-staging-01`)
 
-**Compare (base → head):**
+- **GitHub Actions run #23:** https://github.com/rvbbarreto-bot/barbearia-saas/actions/runs/25946809629  
+- **Conclusion:** `success`  
+- **Jobs:** API (typecheck, lint, test, build); Web (idem); Security npm audit; Gitleaks.
+
+### PR #2 (base incorreta)
+
+- [PR #2](https://github.com/rvbbarreto-bot/barbearia-saas/pull/2) apontava para **`main`** — **não mergear**; manter **fechado sem merge** (ação PO/fábrica).
+
+---
+
+## Histórico — CI na branch de entrega (pré-merge)
+
+- **Commit principal com correções de agenda (`fix(agenda): …`):** `2d964122ddd661124091637e50ee1c2a3c1c2c7e`.  
+- **CI (push na feature, run #18):** https://github.com/rvbbarreto-bot/barbearia-saas/actions/runs/25944290957 — **success**.
+
+---
+
+## Compare (referência / novas entregas)
 
 https://github.com/rvbbarreto-bot/barbearia-saas/compare/piloto-staging-01...feature/piloto-staging-02-agenda-operacional?expand=1
 
-- Base: **`piloto-staging-01`**
-- Cabeça: **`feature/piloto-staging-02-agenda-operacional`**
-- **Não** mesclar em `main` sem decisão PO.
+- **Linha oficial pós-merge:** desenvolver a partir de **`piloto-staging-01`** atualizado (`e5a0f0d` ou posterior).
 
-Na máquina de desenvolvimento sem `gh` CLI, abrir o PR pela URL acima.
+---
 
-## Gatilhos CI após este pacote de evidências
+## Gatilhos CI (`.github/workflows/ci.yml`)
 
-O workflow `.github/workflows/ci.yml` inclui:
+- `push` em `feature/piloto-staging-02-agenda-operacional` (entregas futuras na mesma convenção)  
+- `push` em `piloto-staging-01` (inclui **CI pós-merge**, run #23)  
+- `pull_request` com base em `piloto-staging-01`, `main` ou `develop`
 
-- `push` na branch `feature/piloto-staging-02-agenda-operacional`
-- `pull_request` com base em `piloto-staging-01` (além de `main` / `develop`)
-
-Assim o critério “CI verde” aplica ao PR contra `piloto-staging-01`.
+---
 
 ## Hash de referência (auditoria PO)
 
-O commit de entrega original citado na validação técnica mantém o SHA completo **`4222ba9b7d941e41714bfb3ffecc35158186d941`** (prefixo curto `4222ba9`). Commits corretivos posteriores ficam em cima desta linha; usar `git rev-parse HEAD` na branch após cada push para o pacote de evidências.
+- Entrega original citada na validação: **`4222ba9b7d941e41714bfb3ffecc35158186d941`**.  
+- Corretivos e docs na feature: ver histórico até **`d4d6936`**; merge em **`e5a0f0d`**.
+
+---
 
 ## Como colar evidência CI verde (PO)
 
-1. Abrir Actions no repositório: https://github.com/rvbbarreto-bot/barbearia-saas/actions
-2. Selecionar run da branch ou do PR PILOTO-STAGING-02 com jobs **API**, **Web**, **Security**, **Gitleaks** em sucesso.
-3. Anexar link do run ao pacote de aceite (opcionalmente screenshot da lista verde).
+1. Actions: https://github.com/rvbbarreto-bot/barbearia-saas/actions  
+2. Filtrar branch **`piloto-staging-01`** ou run **#23** (merge).  
+3. Confirmar jobs API, Web, Security, Gitleaks em sucesso (screenshot opcional no pacote de aceite).

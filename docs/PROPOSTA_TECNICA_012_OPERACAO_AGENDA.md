@@ -123,4 +123,12 @@ Complemento: typecheck API/Web; testes de integração com `DATABASE_URL` do DEV
 
 ---
 
+## Estado (2026-05-15) — alinhamento com merges em `piloto-staging-01`
+
+- Foi integrado em **`piloto-staging-01`** o pacote **PILOTO-STAGING-02** (agenda: passado, escopo profissional em cancel/create/walk-in, testes, CI) via [PR #3](https://github.com/rvbbarreto-bot/barbearia-saas/pull/3) — merge `e5a0f0d282251faed2cd6597d3aceddf011dce4f`; [CI run #23](https://github.com/rvbbarreto-bot/barbearia-saas/actions/runs/25946809629) verde.  
+- Este documento (**012**) descreve trabalho **adicional** (histórico rico, timestamps operacionais completos, novos PATCH, matriz de transições alargada) — **não** está concluído só com o merge acima; decisões pendentes na secção 7 mantêm-se.  
+- Evidências do merge piloto-02: `docs/evidencias/piloto_staging_02/07_status_report_pos_merge.md`.
+
+---
+
 *Documento vivo: atualizar após revisão do PO.*

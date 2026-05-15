@@ -30,10 +30,16 @@ Endurecer o núcleo operacional de agenda (disponibilidade, conflitos, bloqueios
 
 - `apiErrorMessage.test.ts` — mapeamento `APPOINTMENT_IN_PAST` e `FORBIDDEN`.
 
-## Commit corretivo publicado
+## Integração em `piloto-staging-01` (merge PO)
+
+- **PR [#3](https://github.com/rvbbarreto-bot/barbearia-saas/pull/3)** — merge em `piloto-staging-01` com commit **`e5a0f0d282251faed2cd6597d3aceddf011dce4f`**.  
+- **CI pós-merge** (push `piloto-staging-01`, workflow run **#23**): https://github.com/rvbbarreto-bot/barbearia-saas/actions/runs/25946809629 — **success** (API, Web, npm audit, Gitleaks).  
+- PR #2 (base `main`) não integrar — ver `06_pr_e_ci_github.md` e `07_status_report_pos_merge.md`.
+
+## Commit corretivo publicado (histórico na feature)
 
 - SHA **`2d964122ddd661124091637e50ee1c2a3c1c2c7e`** — `fix(agenda): enforce professional scope on booking and cancel` (push em `feature/piloto-staging-02-agenda-operacional`).
-- CI associado ao push: https://github.com/rvbbarreto-bot/barbearia-saas/actions/runs/25944290957 — **success** (API, Web, auditoria npm, Gitleaks).
+- CI associado a esse push: https://github.com/rvbbarreto-bot/barbearia-saas/actions/runs/25944290957 — **success** (API, Web, auditoria npm, Gitleaks).
 
 ## Comandos executados (local)
 
