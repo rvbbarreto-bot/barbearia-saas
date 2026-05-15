@@ -284,7 +284,7 @@ function NewAppointmentModalInner({ onClose }: { onClose: () => void }) {
               </div>
             ) : (
               <div className="grid max-h-52 grid-cols-3 gap-2 overflow-y-auto">
-                {(slotsData ?? []).filter((s: AvailabilitySlot) => s.available).map((s: AvailabilitySlot) => (
+                {(slotsData ?? []).filter((s: AvailabilitySlot) => s.available !== false).map((s: AvailabilitySlot) => (
                   <button
                     key={s.starts_at}
                     type="button"
@@ -296,7 +296,7 @@ function NewAppointmentModalInner({ onClose }: { onClose: () => void }) {
                     {format(new Date(s.starts_at), 'HH:mm')}
                   </button>
                 ))}
-                {!slotsLoading && (slotsData?.filter((s) => s.available).length ?? 0) === 0 && (
+                {!slotsLoading && (slotsData?.filter((s) => s.available !== false).length ?? 0) === 0 && (
                   <p className="col-span-3 py-6 text-center text-sm text-muted-foreground">Nenhum horario disponivel nesta data.</p>
                 )}
               </div>

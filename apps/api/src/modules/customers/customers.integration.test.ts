@@ -66,6 +66,10 @@ describe.skipIf(!run)('customers service integration', () => {
     const list = await listCustomers(tenantA, { page: '1', limit: '20' });
     expect(list.data.some((r: { id: string }) => r.id === created.id)).toBe(true);
 
+    const searched = await listCustomers(tenantA, { page: '1', limit: '20', search: 'Cliente A' });
+    expect(searched.total).toBeGreaterThanOrEqual(1);
+    expect(searched.data.some((r: { id: string }) => r.id === created.id)).toBe(true);
+
     const one = await getCustomerById(tenantA, created.id as string);
     expect(String(one.phone)).toBe(phone);
   });

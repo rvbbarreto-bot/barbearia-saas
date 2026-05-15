@@ -25,20 +25,26 @@ export async function listCustomers(tenantId: string, rawQuery: Record<string, u
   const search = rawQuery.search as string | undefined;
 
   return withTenant(tenantId, async (client) => {
-    const searchFilter = search ? `AND (name ILIKE $4 OR phone ILIKE $4 OR email ILIKE $4)` : '';
-    const params: unknown[] = [tenantId, limit, offset];
-    if (search) params.push(`%${search}%`);
+    const searchPattern = search ? `%${search}%` : undefined;
+    const listSearchFilter = searchPattern
+      ? `AND (name ILIKE $4 OR phone ILIKE $4 OR email ILIKE $4)`
+      : '';
+    const countSearchFilter = searchPattern
+      ? `AND (name ILIKE $2 OR phone ILIKE $2 OR email ILIKE $2)`
+      : '';
+    const listParams: unknown[] = [tenantId, limit, offset];
+    if (searchPattern) listParams.push(searchPattern);
 
     const [data, count] = await Promise.all([
       client.query(
         `SELECT id, name, phone, email, whatsapp_opt_in, whatsapp_opt_out, is_vip, last_interaction_at, created_at
-           FROM customers WHERE tenant_id = $1 ${searchFilter}
-          ORDER BY name ASC LIMIT $2 OFFSET $3`,
-        params,
+           FROM customers WHERE tenant_id = $1 ${listSearchFilter}
+          ORDER BY name ASC NULLS LAST LIMIT $2 OFFSET $3`,
+        listParams,
       ),
       client.query(
-        `SELECT COUNT(*)::int AS total FROM customers WHERE tenant_id = $1 ${searchFilter}`,
-        search ? [tenantId, `%${search}%`] : [tenantId],
+        `SELECT COUNT(*)::int AS total FROM customers WHERE tenant_id = $1 ${countSearchFilter}`,
+        searchPattern ? [tenantId, searchPattern] : [tenantId],
       ),
     ]);
     return { data: data.rows, total: count.rows[0].total as number, page, limit };

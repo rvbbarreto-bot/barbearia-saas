@@ -137,6 +137,6 @@ export async function getAvailability(params: {
   service_id: string;
   date: string;
 }): Promise<AvailabilitySlot[]> {
-  const { data } = await api.get<AvailabilitySlot[]>('/api/v1/availability', { params });
-  return data;
+  const { data } = await api.get<{ slots: AvailabilitySlot[] }>('/api/v1/availability', { params });
+  return data.slots ?? [];
 }
