@@ -80,12 +80,12 @@ Corpo (HTTP 200):
 {"status":"ok","database":"connected"}
 ```
 
-### 2.7 Primeiro commit na branch P2 (documentação de arranque)
+### 2.7 Commits iniciais na branch P2 (documentação de arranque)
 
-- **Commit:** `66893f57d8f39b087bd14a8a87b4302faeb9f987`
-- **Mensagem:** `chore(p2): kickoff branch, baseline evidence, P2 docs skeleton, gitignore QA artifacts`
+- **Kickoff:** `66893f57d8f39b087bd14a8a87b4302faeb9f987` — `chore(p2): kickoff branch, baseline evidence, P2 docs skeleton, gitignore QA artifacts`
+- **Relatório baseline:** `ac043f5c62f5eeebcc2c4451d05b3fac5eade0c1` — `docs(p2): baseline section order and gitignore note in relatório`
 
-Após este commit, `git status` na raiz do repositório estava **limpo** (ficheiros `.env.backup_qa` e `QA_PACKAGE_*.zip` ignorados pelo `.gitignore`).
+Após estes commits, `git status` na raiz do repositório estava **limpo** (ficheiros `.env.backup_qa` e `QA_PACKAGE_*.zip` ignorados pelo `.gitignore`).
 
 ---
 
