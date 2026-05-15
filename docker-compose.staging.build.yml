@@ -1,0 +1,21 @@
+# Overlay: build API + Web a partir do código (homologação local / VPS sem registry).
+# Uso:
+#   docker compose -f docker-compose.staging.yml -f docker-compose.staging.build.yml \
+#     --env-file .env.staging up -d --build
+#
+# Define imagens locais; ignora API_IMAGE/WEB_IMAGE do registry remoto.
+
+services:
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    image: barbearia-api:staging-local
+
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+      args:
+        VITE_DEFAULT_TENANT_ID: ${VITE_DEFAULT_TENANT_ID:-00000000-0000-0000-0000-000000000001}
+    image: barbearia-web:staging-local

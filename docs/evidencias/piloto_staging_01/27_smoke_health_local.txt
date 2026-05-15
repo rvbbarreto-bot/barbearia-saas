@@ -1,0 +1,5 @@
+piloto-staging-01-smoke.ps1 — 2026-05-15
+GET /health -> {"status":"ok"}
+GET /health/ready -> {"status":"ok"}
+GET /database/health -> {"status":"ok","database":"connected"}
+Docker: barbearia-api, barbearia-web, barbearia-postgres, barbearia-redis, barbearia-n8n — healthy

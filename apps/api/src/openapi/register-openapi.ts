@@ -3,9 +3,9 @@ import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 import { openApiDocument } from './spec.js';
 
-/** OpenAPI + Swagger UI em `/docs` (desativado em produção). */
+/** OpenAPI + Swagger UI em `/docs` (apenas development/test local). */
 export async function registerOpenApi(app: FastifyInstance, nodeEnv: string): Promise<void> {
-  if (nodeEnv === 'production') return;
+  if (nodeEnv === 'production' || nodeEnv === 'staging') return;
 
   await app.register(swagger, {
     openapi: openApiDocument as unknown as Record<string, unknown>,
