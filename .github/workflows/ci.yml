@@ -48,7 +48,8 @@ jobs:
     env:
       NODE_ENV: test
       PORT: 3000
-      DATABASE_URL: postgres://barbearia:barbearia_test_password@localhost:5432/barbearia_saas_test
+      # barbearia_app: sem superuser — RLS FORCE passa a aplicar (barbearia no image é superuser).
+      DATABASE_URL: postgres://barbearia_app:barbearia_test_password@localhost:5432/barbearia_saas_test
       JWT_SECRET: ci-test-secret-32-chars-minimum-abcd
       JWT_EXPIRES_IN: 15m
       JWT_REFRESH_EXPIRES_IN: 7d
@@ -98,7 +99,12 @@ jobs:
             psql -v ON_ERROR_STOP=1 -h localhost -U barbearia -d barbearia_saas_test -f "$f"
           done
 
-      # Seed demo omitido: dados fixos quebram isolamento RLS nos testes de integração.
+      - name: Grant app role (non-superuser for RLS tests)
+        working-directory: .
+        run: |
+          export PGPASSWORD=barbearia_test_password
+          psql -v ON_ERROR_STOP=1 -h localhost -U barbearia -d barbearia_saas_test \
+            -f database/ci/grant_app_role.sql
 
       - name: Test — unit (sem banco)
         run: npm run test:unit

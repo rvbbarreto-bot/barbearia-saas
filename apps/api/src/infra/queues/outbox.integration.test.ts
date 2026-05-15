@@ -133,7 +133,7 @@ describe('message_outbox integration', () => {
     );
     await pool.query(
       `INSERT INTO users (id, tenant_id, name, email, password_hash, role)
-       VALUES ($1, $2, 'Test User', $3, 'x', 'owner')
+       VALUES ($1, $2, 'Test User', $3, 'x', 'tenant_owner')
        ON CONFLICT (email) DO NOTHING`,
       [randomUUID(), tenantId, `test-outbox-${randomUUID()}@test.com`],
     );
