@@ -320,3 +320,23 @@ export interface CommissionEntryRow {
   updated_at?: string;
   completed_at?: string | null;
 }
+
+// ─── Outbox (message_outbox — UI suporte) ─────────────────────────────────────
+
+export interface OutboxMessageRow {
+  id: string;
+  tenant_id: string;
+  channel: string;
+  provider: string | null;
+  status: string;
+  destination: string | null;
+  payload_summary: { type: string | null; preview: string | null };
+  last_error: string | null;
+  attempts: number;
+  max_attempts: number;
+  correlation_id: string | null;
+  customer_id: string | null;
+  created_at: string;
+  updated_at: string;
+  sent_at: string | null;
+}

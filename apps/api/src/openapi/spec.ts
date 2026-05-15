@@ -31,6 +31,7 @@ export const openApiDocument = {
     { name: 'waitlist', description: 'Fila de espera' },
     { name: 'recall', description: 'Recall promocional (RECALL_ENABLED)' },
     { name: 'integrations', description: 'Outbound / orquestração segura' },
+    { name: 'outbox', description: 'Fila message_outbox — diagnóstico suporte' },
     { name: 'customers', description: 'Clientes' },
     { name: 'professionals', description: 'Profissionais' },
     { name: 'audit', description: 'Audit log (read-only típico)' },
@@ -656,6 +657,80 @@ export const openApiDocument = {
           },
           '401': { description: 'Não autenticado' },
           '403': { description: 'Papel inferior a manager' },
+        },
+      },
+    },
+    '/api/v1/outbox/messages': {
+      get: {
+        tags: ['outbox'],
+        summary: 'Listar mensagens da fila (sanitizado)',
+        description:
+          'RBAC: `outbox.read` (mín. `manager`). Lista `message_outbox` do tenant com paginação. ' +
+          'Não devolve `metadata`/`payload` completos nem `provider_response`. Telefone mascarado em `destination`.',
+        parameters: [
+          { name: 'page', in: 'query', schema: { type: 'string' } },
+          { name: 'limit', in: 'query', schema: { type: 'string' } },
+          {
+            name: 'status',
+            in: 'query',
+            schema: { type: 'string', enum: ['pending', 'processing', 'sent', 'failed', 'dead'] },
+          },
+          { name: 'provider', in: 'query', schema: { type: 'string' } },
+          { name: 'from', in: 'query', schema: { type: 'string', format: 'date-time' } },
+          { name: 'to', in: 'query', schema: { type: 'string', format: 'date-time' } },
+          { name: 'correlation_id', in: 'query', schema: { type: 'string' } },
+          { name: 'appointment_id', in: 'query', schema: { type: 'string', format: 'uuid' } },
+          { name: 'destination', in: 'query', schema: { type: 'string', description: 'Substring em metadata.phone' } },
+        ],
+        security: [{ bearerAuth: [], tenantHeader: [] }],
+        responses: {
+          '200': {
+            description: '{ data, total, page, limit }',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    data: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        properties: {
+                          id: { type: 'string', format: 'uuid' },
+                          tenant_id: { type: 'string', format: 'uuid' },
+                          channel: { type: 'string' },
+                          provider: { type: 'string', nullable: true },
+                          status: { type: 'string' },
+                          destination: { type: 'string', nullable: true },
+                          payload_summary: {
+                            type: 'object',
+                            properties: {
+                              type: { type: 'string', nullable: true },
+                              preview: { type: 'string', nullable: true },
+                            },
+                          },
+                          last_error: { type: 'string', nullable: true },
+                          attempts: { type: 'integer' },
+                          max_attempts: { type: 'integer' },
+                          correlation_id: { type: 'string', nullable: true },
+                          customer_id: { type: 'string', format: 'uuid', nullable: true },
+                          created_at: { type: 'string', format: 'date-time' },
+                          updated_at: { type: 'string', format: 'date-time' },
+                          sent_at: { type: 'string', format: 'date-time', nullable: true },
+                        },
+                      },
+                    },
+                    total: { type: 'integer' },
+                    page: { type: 'integer' },
+                    limit: { type: 'integer' },
+                  },
+                },
+              },
+            },
+          },
+          '400': { description: 'VALIDATION_ERROR (filtros inválidos)' },
+          '401': { description: 'Não autenticado' },
+          '403': { description: 'Sem permissão (inferior a manager)' },
         },
       },
     },

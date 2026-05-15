@@ -28,7 +28,7 @@ Entregar versão **operacional ampliada**: Web + API + outbox visível a suporte
 | **A** | Portal — agenda diária/semana, lista, filtros (data, profissional, status), CRUD operacional de appointments (criar, cancelar, remarcar, complete, no-show), estados visuais, reload após ação, RBAC nas ações |
 | **B** | Web + **availability** + **time-blocks** (consultar, criar, listar, remover; bloqueio reflete na agenda; erro compreensível em conflito) |
 | **C** | Mapeamento de códigos de erro API → mensagens amigáveis (lista obrigatória no brief PO); sem stack trace na UI |
-| **D** | Outbox operacional: listagem com filtros; campos sanitizados; retry manual se viável ou débito documentado |
+| **D** | Outbox operacional: **`GET /api/v1/outbox/messages`** ✅ (portal `/operacao/mensagens`); retry manual `POST .../retry` — pendente ou débito |
 | **E** | WhatsApp/N8N mínimo E2E (workflows versionados, smoke, evidências, dedup, outbox) |
 | **F** | Auditoria/rastreabilidade no portal ou evidência DB+logs |
 | **G** | QA P2.2 (novo script ou extensão da bateria P2.1 + CSV `docs/QA_API_P2_2_OPERATIONAL_RESULTS.csv`) |

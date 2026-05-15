@@ -38,6 +38,10 @@ export const permissionPolicy = {
     /** Enfileirar texto WhatsApp via message_outbox (n8n / automações credenciadas). */
     enqueueOutbound: 'attendant',
   },
+  /** Fila outbound — diagnóstico suporte (lista sanitizada; alinhado a `outbox-summary`, mínimo `manager`). */
+  outbox: {
+    read: 'manager',
+  },
   availability: {
     read: 'viewer',
   },

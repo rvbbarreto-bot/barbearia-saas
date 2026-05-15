@@ -42,4 +42,11 @@ describe('rbac role checks', () => {
     expect(canAccess('manager', 'appointments', 'noShow')).toBe(true);
     expect(canAccess('tenant_owner', 'appointments', 'noShow')).toBe(true);
   });
+
+  it('restricts outbox list to manager+', () => {
+    expect(canAccess('viewer', 'outbox', 'read')).toBe(false);
+    expect(canAccess('attendant', 'outbox', 'read')).toBe(false);
+    expect(canAccess('manager', 'outbox', 'read')).toBe(true);
+    expect(canAccess('tenant_admin', 'outbox', 'read')).toBe(true);
+  });
 });
