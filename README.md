@@ -345,7 +345,8 @@ docker exec barbearia-api env | grep -E "NODE_ENV|PORT|DATABASE|REDIS|JWT"
 
 | Variável            | Descrição                                               |
 | ------------------- | ------------------------------------------------------- |
-| `EVOLUTION_API_URL` | URL da Evolution API (WhatsApp)                         |
+| `EVOLUTION_API_URL` | URL da Evolution API (WhatsApp); no Docker local use `http://host.docker.internal:8081` |
+| `EVOLUTION_INSTANCE` | Nome da instância Evolution (sobrescreve `tenant_integrations` quando definido) |
 | `EVOLUTION_API_KEY` | Chave da Evolution API                                  |
 | `OPENAI_API_KEY`    | Chave da OpenAI (somente se o agente de IA for ativado) |
 

@@ -145,7 +145,7 @@ WHERE u.tenant_id = '00000000-0000-0000-0000-000000000001'
   AND u.email = 'robson.barbeiro@demo.local'
   AND p.slug = 'robson';
 
--- Evolution: instância demo (inbound CT-093 + routing outbound) — `tenants.webhook_token` já definido acima
+-- Evolution: instância demo (inbound CT-093). Outbound: `EVOLUTION_INSTANCE` no `.env` tem prioridade sobre este nome.
 INSERT INTO tenant_integrations (tenant_id, provider, config, is_active)
 VALUES (
   '00000000-0000-0000-0000-000000000001',

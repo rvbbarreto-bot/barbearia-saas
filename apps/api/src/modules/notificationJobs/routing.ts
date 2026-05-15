@@ -2,6 +2,14 @@ import type { PoolClient } from 'pg';
 
 export type WhatsAppRouting = { phone: string; instance_name: string };
 
+/** Instância Evolution: `EVOLUTION_INSTANCE` no ambiente tem prioridade (piloto/local); senão DB. */
+export function resolveEvolutionInstanceName(dbInstanceName: string | null | undefined): string | null {
+  const fromEnv = process.env.EVOLUTION_INSTANCE?.trim();
+  if (fromEnv) return fromEnv;
+  const fromDb = dbInstanceName?.trim();
+  return fromDb || null;
+}
+
 export async function resolveWhatsAppOutboundRouting(
   client: PoolClient,
   tenantId: string,
@@ -23,7 +31,7 @@ export async function resolveWhatsAppOutboundRouting(
       LIMIT 1`,
     [tenantId],
   );
-  const instanceName = ti.rows[0]?.instance_name?.trim();
+  const instanceName = resolveEvolutionInstanceName(ti.rows[0]?.instance_name);
   if (!instanceName) return null;
 
   return { phone, instance_name: instanceName };

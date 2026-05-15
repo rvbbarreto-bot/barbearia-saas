@@ -1,0 +1,14 @@
+[2026-05-15 17:07:08] === PILOTO Evolution E2E ===
+[2026-05-15 17:07:08] ApiBase=http://localhost:3000 TenantId=00000000-0000-0000-0000-000000000001
+[2026-05-15 17:07:08] HEAD=46c84c96cefec99cff82c4ea28d352e915a686c7
+[2026-05-15 17:07:08] Branch=piloto-staging-01
+[2026-05-15 17:07:09] Preflight Evolution (container): HTTP body length=265 (host.docker.internal:8081)
+[2026-05-15 17:07:09] POST appointment HTTP 201
+[2026-05-15 17:07:09] appointment_id=4ae36b62-86f2-476e-b08f-f05d7ce3876f
+[2026-05-15 17:07:09] PATCH confirm HTTP 200
+[2026-05-15 17:07:47] Outbox criado: correlation_id=4ae36b62-86f2-476e-b08f-f05d7ce3876f instance=teste (metadata)
+[2026-05-15 17:10:16] Worker Evolution: HTTP 401 Unauthorized (ajustar EVOLUTION_API_KEY no .env local)
+[2026-05-15 17:10:16] Resultado script: PENDENTE sent — rede OK apos docker-compose.evolution-local.yml
+
+Nota: com EVOLUTION_API_URL=http://evolution.test no .env o worker retorna fetch failed (ENOTFOUND).
+Usar override: docker compose -f docker-compose.yml -f docker-compose.evolution-local.yml up -d api

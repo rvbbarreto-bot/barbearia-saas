@@ -1,14 +1,16 @@
-Evolution — status PILOTO-STAGING-01 (D+0)
+Evolution — PILOTO-STAGING-01 (config documentada, segredos fora do Git)
 
-Variáveis (não versionadas):
-- EVOLUTION_API_URL: PENDENTE (staging real)
-- EVOLUTION_API_KEY: PENDENTE (secret manager)
+Variáveis (.env.example / apps/api env.ts / docker-compose api):
+- EVOLUTION_API_URL — placeholder ou http://host.docker.internal:8081 (Docker local)
+- EVOLUTION_INSTANCE — placeholder <NOME_INSTANCIA_EVOLUTION>
+- EVOLUTION_API_KEY — placeholder <API_KEY_EVOLUTION> (somente .env / secret manager)
 
-Referência exemplo (placeholders apenas):
-- .env.example: https://evolution.example.com
-- .env.staging.example: https://evolution.seudominio.com
+Validação manual PO (operador, não commitar):
+- Evolution 2.3.7 :8081 HTTP 200
+- API container → host.docker.internal:8081 HTTP 200
+- sendText payload raiz: { "number", "text" }
 
-Local/dev: worker ativo; envio falha controlada se URL placeholder.
-Declaração piloto: docs/DECLARACAO_PILOTO_EVOLUTION.md
+E2E automatizado: scripts/piloto-evolution-e2e.ps1
+Doc evidência: docs/evidencias/piloto_staging_01/28_evolution_e2e.md
 
-Próximo passo: DevOps preencher .env.staging + smoke sendText → evidências 18–21.
+Declaração: docs/DECLARACAO_PILOTO_EVOLUTION.md

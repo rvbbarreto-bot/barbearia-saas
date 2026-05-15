@@ -11,6 +11,22 @@ describe('getApiErrorMessage', () => {
     expect(getApiErrorMessage(err)).toContain('Horário indisponível');
   });
 
+  it('maps APPOINTMENT_IN_PAST', () => {
+    const err = new axios.AxiosError('x', 'ERR', {}, {}, {
+      status: 422,
+      data: { error: 'APPOINTMENT_IN_PAST' },
+    } as never);
+    expect(getApiErrorMessage(err)).toContain('passado');
+  });
+
+  it('maps FORBIDDEN for agenda scope', () => {
+    const err = new axios.AxiosError('x', 'ERR', {}, {}, {
+      status: 403,
+      data: { error: 'FORBIDDEN' },
+    } as never);
+    expect(getApiErrorMessage(err)).toContain('permissão');
+  });
+
   it('maps TENANT_MISMATCH from 403', () => {
     const err = new axios.AxiosError('x', 'ERR', {}, {}, {
       status: 403,

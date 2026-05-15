@@ -52,6 +52,10 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-barbearia}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-barbearia_saas}
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      # Evolution (WhatsApp): definir no `.env` da raiz — ver `.env.example`. API no container usa host.docker.internal.
+      EVOLUTION_API_URL: ${EVOLUTION_API_URL:-http://host.docker.internal:8081}
+      EVOLUTION_INSTANCE: ${EVOLUTION_INSTANCE:-}
+      EVOLUTION_API_KEY: ${EVOLUTION_API_KEY:-}
       # Compose local: baterias QA encadeiam muitos POST /auth/login no mesmo IP (valor fixo; produção usa outro compose).
       AUTH_LOGIN_RATE_LIMIT_MAX: "120"
     ports:
@@ -95,6 +99,7 @@ services:
   n8n:
     image: n8nio/n8n:1.91.3
     container_name: barbearia-n8n
+    env_file: .env
     ports:
       - "5679:5678"
     environment:
@@ -116,6 +121,11 @@ services:
       # Deve corresponder ao webhook_token do tenant na tabela tenants
       # Default alinhado ao seed demo (`database/seeds/001_demo.sql`). Sobrescreva em `.env` em ambientes reais.
       N8N_WEBHOOK_TOKEN: ${N8N_WEBHOOK_TOKEN:-demo_webhook_token_change_me}
+      # Evolution + smoke QA (workflow 03) — devem existir no container n8n, não só na API.
+      EVOLUTION_API_URL: ${EVOLUTION_API_URL:-}
+      EVOLUTION_INSTANCE: ${EVOLUTION_INSTANCE:-}
+      EVOLUTION_API_KEY: ${EVOLUTION_API_KEY:-}
+      QA_WHATSAPP_NUMBER: ${QA_WHATSAPP_NUMBER:-5511973305448}
     volumes:
       - n8n_data:/home/node/.n8n
       - ./n8n/workflows:/workflows:ro

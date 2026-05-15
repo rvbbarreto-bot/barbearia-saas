@@ -1,0 +1,17 @@
+# Override local: Evolution API no host (validação piloto / Docker Desktop).
+# Uso: docker compose -f docker-compose.yml -f docker-compose.evolution-local.yml up -d api n8n
+# EVOLUTION_INSTANCE e EVOLUTION_API_KEY continuam vindos do `.env` (não versionar segredos).
+
+services:
+  api:
+    environment:
+      EVOLUTION_API_URL: ${EVOLUTION_API_URL:-http://host.docker.internal:8081}
+      EVOLUTION_INSTANCE: ${EVOLUTION_INSTANCE:-}
+      EVOLUTION_API_KEY: ${EVOLUTION_API_KEY:-}
+
+  n8n:
+    environment:
+      EVOLUTION_API_URL: ${EVOLUTION_API_URL:-http://host.docker.internal:8081}
+      EVOLUTION_INSTANCE: ${EVOLUTION_INSTANCE:-}
+      EVOLUTION_API_KEY: ${EVOLUTION_API_KEY:-}
+      QA_WHATSAPP_NUMBER: ${QA_WHATSAPP_NUMBER:-5511973305448}
