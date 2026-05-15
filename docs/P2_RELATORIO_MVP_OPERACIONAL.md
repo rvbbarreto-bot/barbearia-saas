@@ -1,6 +1,6 @@
 # P2 — Relatório MVP operacional (piloto controlado)
 
-**Estado:** **P2.1 fechada tecnicamente** (ver §7.3); **P2.2** (portal web operacional) autorizada a arrancar a partir do baseline **§9**. A fase P2 global (blocos A–J) continua em curso até fecho formal pelo PO.
+**Estado:** **P2.1 fechada tecnicamente** (§7.3); **P2.2 / P2.3 — Grande Pacote Operacional** em curso na branch **`feature/p2-2-web-outbox-whatsapp-operational`** (kickoff **§10**). A fase P2 global (blocos A–J) continua até fecho formal pelo PO.
 
 **Branch:** `feature/p2-operational-mvp-pilot`
 
@@ -303,3 +303,93 @@ nothing to commit, working tree clean
 **Referência de implementação P2.1 (API / regras):** commit **`a30b0fcd40049cd863f8769a4267a4d3de256e57`**. Evidências de stack e bateria QA no estado congelado em **§8**.
 
 *Identificador canónico em qualquer clone: executar na raiz `git rev-parse HEAD` após `git pull` até ao último commit desta branch, com working tree limpo.*
+
+---
+
+## 10. P2.2 / P2.3 — Grande Pacote Operacional (kickoff)
+
+**Data de registo:** 2026-05-14.
+
+**Decisão PO:** P2.1 fechada tecnicamente; arranque imediato da entrega **P2.2 / P2.3** — portal web operacional, outbox para suporte, WhatsApp/N8N mínimo, tratamento de erros, QA ampliado, OpenAPI e evidências (ver brief interno do PO).
+
+**Branch:** `feature/p2-2-web-outbox-whatsapp-operational`
+
+**Commit base (último HEAD da P2.1 no momento do `git checkout -b`):** `f57b1a3dafe596111fb1314d949f0976e8d78dd7`
+
+**Documento de âmbito e critérios:** `docs/P2_2_PORTAL_OPERACIONAL.md`
+
+### 10.1 Evidências no arranque (fábrica)
+
+#### `git status`
+
+```
+On branch feature/p2-2-web-outbox-whatsapp-operational
+nothing to commit, working tree clean
+```
+
+#### `git log -1`
+
+```
+commit f57b1a3dafe596111fb1314d949f0976e8d78dd7
+Author:     Barbearia SaaS P0 <dev@barbearia-saas.local>
+AuthorDate: Thu May 14 22:18:17 2026 -0300
+Commit:     Barbearia SaaS P0 <dev@barbearia-saas.local>
+CommitDate: Thu May 14 22:18:17 2026 -0300
+
+    docs(p2): set §9 factory tip to d02c273 and clarify commit chain
+    
+    Co-authored-by: Cursor <cursoragent@cursor.com>
+```
+
+#### `git rev-parse HEAD`
+
+```
+f57b1a3dafe596111fb1314d949f0976e8d78dd7
+```
+
+#### `docker compose ps`
+
+```
+NAME                 IMAGE                COMMAND                  SERVICE    CREATED          STATUS                    PORTS
+barbearia-api        barbearia-saas-api   "docker-entrypoint.s…"   api        25 minutes ago   Up 25 minutes (healthy)   0.0.0.0:3000->3000/tcp, [::]:3000->3000/tcp
+barbearia-n8n        n8nio/n8n:1.91.3     "tini -- /docker-ent…"   n8n        24 hours ago     Up 3 hours (healthy)      0.0.0.0:5679->5678/tcp, [::]:5679->5678/tcp
+barbearia-postgres   postgres:16-alpine   "docker-entrypoint.s…"   postgres   24 hours ago     Up 3 hours (healthy)      0.0.0.0:5432->5432/tcp, [::]:5432->5432/tcp
+barbearia-redis      redis:7-alpine       "docker-entrypoint.s…"   redis      24 hours ago     Up 3 hours (healthy)      0.0.0.0:6380->6379/tcp, [::]:6380->6379/tcp
+barbearia-web        barbearia-saas-web   "/docker-entrypoint.…"   web        24 hours ago     Up 13 hours (healthy)     0.0.0.0:3001->80/tcp, [::]:3001->80/tcp
+```
+
+#### `GET http://localhost:3000/health` (HTTP 200)
+
+```json
+{"status":"ok"}
+```
+
+#### `GET http://localhost:3000/database/health` (HTTP 200)
+
+```json
+{"status":"ok","database":"connected"}
+```
+
+#### `npm run db:migrate:dry-run` (trecho final)
+
+```
+  DRY   103_operational_audit_events.sql (pendente)
+  DRY   104_calendar_blocks_created_by.sql (pendente)
+
+Dry-run: 29 pendentes (não executadas), 0 já registadas em _migrations.
+Concluído.
+```
+
+**Interpretação:** o resultado acima indica que, neste volume Postgres, a tabela `_migrations` está **vazia** apesar do esquema ter sido criado pelo `initdb` (cenário documentado no `README.md`). **Não** correr `npm run db:migrate` sem `db:migrate:backfill --through …` alinhado ao que já está aplicado no volume, ou sem recriar o volume em desenvolvimento. Em ambientes com `_migrations` sincronizada, esperam-se linhas `SKIP` para ficheiros já aplicados.
+
+### 10.2 Regras obrigatórias (controlo)
+
+- Não commitar `.env` real, `.env.backup_qa`, ZIP local, tokens ou secrets.
+- Não remover testes nem quebrar scripts QA existentes (P1, P2.1).
+- OpenAPI alinhada a qualquer alteração de contrato.
+- Sem `catch` genérico a mascarar erros; sem 500 em regra de negócio esperada.
+- Entrega com relatório e evidências.
+
+### 10.3 Próximo passo (fábrica)
+
+Implementação integrada dos blocos A–I descritos em `docs/P2_2_PORTAL_OPERACIONAL.md` (portal, availability/time-blocks, erros, outbox, WhatsApp/N8N, auditoria no portal, QA P2.2, documentação, hardening).

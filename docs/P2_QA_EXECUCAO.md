@@ -1,5 +1,9 @@
 # P2 — Execução de QA
 
+## Branch activa (P2.2 / P2.3)
+
+- **`feature/p2-2-web-outbox-whatsapp-operational`** — Grande Pacote Operacional (portal, outbox, WhatsApp/N8N, QA ampliado). Âmbito: `docs/P2_2_PORTAL_OPERACIONAL.md`; kickoff e evidências: `docs/P2_RELATORIO_MVP_OPERACIONAL.md` §10.
+
 ## Primeiro deploy após P2.1
 
 Após `git pull`, com Postgres do Compose em execução e `.env` com `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB`:

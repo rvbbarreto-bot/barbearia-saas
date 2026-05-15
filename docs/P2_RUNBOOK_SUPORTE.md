@@ -1,5 +1,11 @@
 # P2 — Runbook de suporte
 
+## P2.2 / P2.3 — Grande Pacote Operacional
+
+- **Branch:** `feature/p2-2-web-outbox-whatsapp-operational` (a partir do tip P2.1 `f57b1a3`).
+- **Âmbito:** `docs/P2_2_PORTAL_OPERACIONAL.md`; baseline e evidências de arranque: `docs/P2_RELATORIO_MVP_OPERACIONAL.md` §10.
+- **Pós-migration / backfill:** smoke (`/health`, `/database/health`) + QA aplicável (P2.1 + P2.2 quando existir).
+
 ## Primeiro deploy após P2.1
 
 Objetivo: garantir **`103_operational_audit_events.sql`** e **`104_calendar_blocks_created_by.sql`** (e quaisquer migrations posteriores) em bases **já existentes**, sem comandos ad hoc por ficheiro.
