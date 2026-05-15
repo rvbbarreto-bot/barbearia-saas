@@ -26,20 +26,21 @@ describe('cn (class merging)', () => {
 });
 
 describe('formatDate', () => {
+  // Instante fixo em UTC: meio-dia em America/Sao_Paulo no dia 15 (independente do TZ do runner CI)
+  const noonSaoPauloUtc = '2026-01-15T15:00:00.000Z';
+
   it('formata data ISO para dd/mm/aaaa', () => {
-    const result = formatDate(new Date(2026, 0, 15));
-    expect(result).toBe('15/01/2026');
+    expect(formatDate(noonSaoPauloUtc)).toBe('15/01/2026');
   });
 
   it('aceita objeto Date', () => {
-    const result = formatDate(new Date(2026, 0, 15));
-    expect(result).toBe('15/01/2026');
+    expect(formatDate(new Date(noonSaoPauloUtc))).toBe('15/01/2026');
   });
 });
 
 describe('formatDateTime', () => {
   it('retorna string nao vazia para data valida', () => {
-    const result = formatDateTime('2026-01-15T10:30:00');
+    const result = formatDateTime('2026-01-15T13:30:00.000Z');
     expect(result).toMatch(/15\/01\/2026/);
     expect(result).toMatch(/\d{2}:\d{2}/);
   });

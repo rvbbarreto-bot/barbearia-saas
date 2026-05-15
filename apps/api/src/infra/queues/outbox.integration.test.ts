@@ -126,8 +126,8 @@ describe('message_outbox integration', () => {
 
     // Cria tenant de teste + usuário (necessário para FK)
     await pool.query(
-      `INSERT INTO tenants (id, name, slug, status)
-       VALUES ($1, 'Tenant Outbox Test', 'tenant-outbox-test', 'active')
+      `INSERT INTO tenants (id, legal_name, trade_name, plan_code, status)
+       VALUES ($1, 'Tenant Outbox Test', 'tenant-outbox-test', 'trial', 'active')
        ON CONFLICT (id) DO NOTHING`,
       [tenantId],
     );
@@ -208,9 +208,9 @@ describe('message_outbox integration', () => {
       const otherTenantId = randomUUID();
 
       await pool.query(
-        `INSERT INTO tenants (id, name, slug, status)
-         VALUES ($1, 'Outro Tenant', 'outro-tenant-${randomUUID()}', 'active')`,
-        [otherTenantId],
+        `INSERT INTO tenants (id, legal_name, trade_name, plan_code, status)
+         VALUES ($1, 'Outro Tenant', $2, 'trial', 'active')`,
+        [otherTenantId, `outro-tenant-${randomUUID().slice(0, 8)}`],
       );
 
       // Insere diretamente (sem RLS) para o segundo tenant

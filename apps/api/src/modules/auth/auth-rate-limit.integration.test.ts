@@ -7,9 +7,10 @@ const { loginMock } = vi.hoisted(() => ({
   loginMock: vi.fn(),
 }));
 
-vi.mock('./service.js', () => ({
-  login: loginMock,
-}));
+vi.mock('./service.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./service.js')>();
+  return { ...actual, login: loginMock };
+});
 
 vi.mock('./audit.js', () => ({
   writeAuthAudit: vi.fn().mockResolvedValue(undefined),

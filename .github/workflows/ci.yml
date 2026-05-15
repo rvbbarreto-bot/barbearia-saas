@@ -98,12 +98,7 @@ jobs:
             psql -v ON_ERROR_STOP=1 -h localhost -U barbearia -d barbearia_saas_test -f "$f"
           done
 
-      - name: Apply seed
-        working-directory: .
-        run: |
-          export PGPASSWORD=barbearia_test_password
-          psql -h localhost -U barbearia -d barbearia_saas_test \
-            -f database/seeds/001_demo.sql
+      # Seed demo omitido: dados fixos quebram isolamento RLS nos testes de integração.
 
       - name: Test — unit (sem banco)
         run: npm run test:unit

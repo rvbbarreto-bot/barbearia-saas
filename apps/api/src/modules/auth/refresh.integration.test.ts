@@ -10,12 +10,30 @@ const { loginMock, writeAuthAuditMock } = vi.hoisted(() => ({
   writeAuthAuditMock: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock('./service.js', () => ({
-  login: loginMock,
-}));
+vi.mock('./service.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./service.js')>();
+  return { ...actual, login: loginMock };
+});
 
 vi.mock('./audit.js', () => ({
   writeAuthAudit: writeAuthAuditMock,
+}));
+
+vi.mock('../../infra/db/pool.js', () => ({
+  pool: {
+    query: vi.fn(async () => ({
+      rowCount: 1,
+      rows: [{
+        id: '11111111-1111-4111-8111-111111111111',
+        tenant_id: '11111111-1111-4111-8111-111111111111',
+        role: 'tenant_owner',
+        email: 'admin@demo.local',
+        name: 'Admin Demo',
+        professional_id: null,
+        is_active: true,
+      }],
+    })),
+  },
 }));
 
 vi.mock('../../infra/redis/client.js', () => ({
