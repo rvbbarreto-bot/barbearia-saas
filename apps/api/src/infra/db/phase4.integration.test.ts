@@ -16,7 +16,8 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-const DATABASE_URL = process.env.DATABASE_URL;
+// Setup de schema usa superuser no CI; teste RLS final faz SET SESSION AUTHORIZATION barbearia_app.
+const DATABASE_URL = process.env.DATABASE_URL_ADMIN ?? process.env.DATABASE_URL;
 
 async function ensurePhase4Migration(pool: pg.Pool): Promise<void> {
   const check = await pool.query(`

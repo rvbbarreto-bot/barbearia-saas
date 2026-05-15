@@ -17,7 +17,7 @@
  *   - Todos os logs incluem tenant_id, outbox_id e correlation_id.
  */
 
-import { pool } from '../db/pool.js';
+import { pool, withTenant } from '../db/pool.js';
 import { env, isOutboxForceSendFailureRuntime } from '../../config/env.js';
 
 // ── Constantes ────────────────────────────────────────────────────────────────
@@ -126,17 +126,19 @@ export async function processRow(row: OutboxRow): Promise<void> {
 
   if (result.ok) {
     console.warn('[outbox-worker] sent', logCtx);
-    await pool.query(
-      `UPDATE message_outbox
-          SET status            = 'sent',
-              attempts          = attempts + 1,
-              sent_at           = now(),
-              provider_response = $2::jsonb,
-              last_error        = NULL,
-              updated_at        = now()
-        WHERE id = $1`,
-      [row.id, JSON.stringify(result.providerResponse)],
-    );
+    await withTenant(row.tenant_id, async (client) => {
+      await client.query(
+        `UPDATE message_outbox
+            SET status            = 'sent',
+                attempts          = attempts + 1,
+                sent_at           = now(),
+                provider_response = $2::jsonb,
+                last_error        = NULL,
+                updated_at        = now()
+          WHERE id = $1`,
+        [row.id, JSON.stringify(result.providerResponse)],
+      );
+    });
   } else {
     const newAttempts = row.attempts + 1;
     const isDead = newAttempts >= row.max_attempts;
@@ -152,25 +154,27 @@ export async function processRow(row: OutboxRow): Promise<void> {
       });
     }
 
-    await pool.query(
-      `UPDATE message_outbox
-          SET status        = $2,
-              attempts      = $3,
-              last_error    = $4,
-              next_retry_at = CASE WHEN $5 THEN NULL
-                                   ELSE now() + ($6 || ' milliseconds')::interval
-                              END,
-              updated_at    = now()
-        WHERE id = $1`,
-      [
-        row.id,
-        isDead ? 'dead' : 'pending',
-        newAttempts,
-        result.error,
-        isDead,
-        delayMs,
-      ],
-    );
+    await withTenant(row.tenant_id, async (client) => {
+      await client.query(
+        `UPDATE message_outbox
+            SET status        = $2,
+                attempts      = $3,
+                last_error    = $4,
+                next_retry_at = CASE WHEN $5 THEN NULL
+                                     ELSE now() + ($6 || ' milliseconds')::interval
+                                END,
+                updated_at    = now()
+          WHERE id = $1`,
+        [
+          row.id,
+          isDead ? 'dead' : 'pending',
+          newAttempts,
+          result.error,
+          isDead,
+          delayMs,
+        ],
+      );
+    });
   }
 }
 

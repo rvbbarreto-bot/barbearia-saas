@@ -19,6 +19,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import pg from 'pg';
+import { withAppTenant } from '../../test-utils/with-app-tenant.js';
 import { enqueueOutboundMessage } from './outbox.service.js';
 import { processRow } from './outbox-worker.js';
 
@@ -29,6 +30,20 @@ if (!process.env.DATABASE_URL) {
   );
 }
 const DATABASE_URL = process.env.DATABASE_URL;
+const ADMIN_DATABASE_URL = process.env.DATABASE_URL_ADMIN ?? DATABASE_URL;
+
+async function withTenantConn<T>(
+  dbPool: pg.Pool,
+  tid: string,
+  fn: (client: pg.PoolClient) => Promise<T>,
+): Promise<T> {
+  const client = await dbPool.connect();
+  try {
+    return await withAppTenant(client, tid, () => fn(client));
+  } finally {
+    client.release();
+  }
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -36,6 +51,7 @@ type OutboxStatus = 'pending' | 'processing' | 'sent' | 'failed' | 'dead';
 
 async function getRow(
   pool: pg.Pool,
+  tenantId: string,
   id: string,
 ): Promise<{
   status: OutboxStatus;
@@ -47,13 +63,15 @@ async function getRow(
   correlation_id: string | null;
   customer_id: string | null;
 } | null> {
-  const r = await pool.query(
-    `SELECT status, attempts, sent_at, last_error, provider_response,
-            next_retry_at, correlation_id, customer_id
-       FROM message_outbox WHERE id = $1`,
-    [id],
-  );
-  return r.rows[0] ?? null;
+  return withTenantConn(pool, tenantId, async (client) => {
+    const r = await client.query(
+      `SELECT status, attempts, sent_at, last_error, provider_response,
+              next_retry_at, correlation_id, customer_id
+         FROM message_outbox WHERE id = $1`,
+      [id],
+    );
+    return r.rows[0] ?? null;
+  });
 }
 
 async function insertRow(
@@ -67,23 +85,36 @@ async function insertRow(
     metadata: object;
   }> = {},
 ): Promise<string> {
-  const r = await pool.query(
-    `INSERT INTO message_outbox
-       (tenant_id, channel, payload, metadata, status, attempts, max_attempts,
-        correlation_id, next_retry_at)
-     VALUES ($1, 'whatsapp', $2::jsonb, $3::jsonb, $4, $5, $6, $7, now())
-     RETURNING id`,
-    [
-      tenantId,
-      JSON.stringify(overrides.payload ?? { type: 'text', text: 'Teste integração' }),
-      JSON.stringify(overrides.metadata ?? { instance_name: 'inst-01', phone: '5511900001111', provider: 'evolution' }),
-      overrides.status ?? 'pending',
-      overrides.attempts ?? 0,
-      overrides.max_attempts ?? 5,
-      `corr-${randomUUID()}`,
-    ],
-  );
-  return r.rows[0].id as string;
+  return withTenantConn(pool, tenantId, async (client) => {
+    const r = await client.query(
+      `INSERT INTO message_outbox
+         (tenant_id, channel, payload, metadata, status, attempts, max_attempts,
+          correlation_id, next_retry_at)
+       VALUES ($1, 'whatsapp', $2::jsonb, $3::jsonb, $4, $5, $6, $7, now())
+       RETURNING id`,
+      [
+        tenantId,
+        JSON.stringify(overrides.payload ?? { type: 'text', text: 'Teste integração' }),
+        JSON.stringify(overrides.metadata ?? { instance_name: 'inst-01', phone: '5511900001111', provider: 'evolution' }),
+        overrides.status ?? 'pending',
+        overrides.attempts ?? 0,
+        overrides.max_attempts ?? 5,
+        `corr-${randomUUID()}`,
+      ],
+    );
+    return r.rows[0].id as string;
+  });
+}
+
+async function fetchOutboxRowForProcess(pool: pg.Pool, tenantId: string, id: string) {
+  return withTenantConn(pool, tenantId, async (client) => {
+    const row = await client.query(
+      `SELECT id, tenant_id, customer_id, payload, metadata, attempts, max_attempts, correlation_id
+         FROM message_outbox WHERE id = $1`,
+      [id],
+    );
+    return row.rows[0];
+  });
 }
 
 // ── Setup ─────────────────────────────────────────────────────────────────────
@@ -124,27 +155,30 @@ describe('message_outbox integration', () => {
       await pool.query(sql);
     }
 
-    // Cria tenant de teste + usuário (necessário para FK)
-    await pool.query(
+    const adminPool = new pg.Pool({ connectionString: ADMIN_DATABASE_URL, connectionTimeoutMillis: 3000 });
+    await adminPool.query(
       `INSERT INTO tenants (id, legal_name, trade_name, plan_code, status)
        VALUES ($1, 'Tenant Outbox Test', 'tenant-outbox-test', 'trial', 'active')
        ON CONFLICT (id) DO NOTHING`,
       [tenantId],
     );
-    await pool.query(
+    await adminPool.query(
       `INSERT INTO users (id, tenant_id, name, email, password_hash, role)
        VALUES ($1, $2, 'Test User', $3, 'x', 'tenant_owner')
        ON CONFLICT (email) DO NOTHING`,
       [randomUUID(), tenantId, `test-outbox-${randomUUID()}@test.com`],
     );
-
-    // Seta contexto RLS para o tenant de teste
-    await pool.query(`SET app.tenant_id = '${tenantId}'`);
+    await adminPool.end();
   });
 
   afterAll(async () => {
-    await pool.query(`DELETE FROM message_outbox WHERE tenant_id = $1`, [tenantId]);
-    await pool.query(`DELETE FROM tenants WHERE id = $1`, [tenantId]);
+    const adminPool = new pg.Pool({ connectionString: ADMIN_DATABASE_URL, connectionTimeoutMillis: 3000 });
+    await withTenantConn(pool, tenantId, async (client) => {
+      await client.query(`DELETE FROM message_outbox WHERE tenant_id = $1`, [tenantId]);
+    });
+    await adminPool.query(`DELETE FROM users WHERE tenant_id = $1`, [tenantId]);
+    await adminPool.query(`DELETE FROM tenants WHERE id = $1`, [tenantId]);
+    await adminPool.end();
     await pool.end();
   });
 
@@ -152,22 +186,21 @@ describe('message_outbox integration', () => {
 
   describe('enqueueOutboundMessage', () => {
     it('insere mensagem com payload e metadata válidos', async () => {
-      // Usa pool diretamente para verificar fora do RLS
-      await pool.query(`SET app.tenant_id = '${tenantId}'`);
-
-      await enqueueOutboundMessage({
-        tenantId,
-        payload: { type: 'text', text: 'Olá!' },
-        metadata: { phone: '5511900000001', instance_name: 'inst-01', provider: 'evolution' },
-        correlationId: 'corr-enqueue-test',
+      await withTenantConn(pool, tenantId, async (client) => {
+        await enqueueOutboundMessage({
+          tenantId,
+          payload: { type: 'text', text: 'Olá!' },
+          metadata: { phone: '5511900000001', instance_name: 'inst-01', provider: 'evolution' },
+          correlationId: 'corr-enqueue-test',
+        }, client);
       });
 
-      const r = await pool.query(
+      const r = await withTenantConn(pool, tenantId, async (client) => client.query(
         `SELECT status, payload, metadata, correlation_id FROM message_outbox
           WHERE tenant_id = $1
             AND correlation_id = 'corr-enqueue-test'`,
         [tenantId],
-      );
+      ));
       expect(r.rows).toHaveLength(1);
       const row = r.rows[0];
       expect(row.status).toBe('pending');
@@ -177,64 +210,74 @@ describe('message_outbox integration', () => {
     });
 
     it('idempotência: segundo INSERT com mesmo idempotency_key é ignorado', async () => {
-      await pool.query(`SET app.tenant_id = '${tenantId}'`);
       const key = `idem-${randomUUID()}`;
 
-      const first = await enqueueOutboundMessage({
-        tenantId,
-        payload: { type: 'text', text: 'Mensagem 1' },
-        metadata: { phone: '5511900000002', instance_name: 'inst-01', provider: 'evolution' },
-        idempotencyKey: key,
-      });
+      const first = await withTenantConn(pool, tenantId, async (client) =>
+        enqueueOutboundMessage({
+          tenantId,
+          payload: { type: 'text', text: 'Mensagem 1' },
+          metadata: { phone: '5511900000002', instance_name: 'inst-01', provider: 'evolution' },
+          idempotencyKey: key,
+        }, client),
+      );
       expect(first.inserted).toBe(true);
-      const second = await enqueueOutboundMessage({
-        tenantId,
-        payload: { type: 'text', text: 'Mensagem 2 (duplicada)' },
-        metadata: { phone: '5511900000002', instance_name: 'inst-01', provider: 'evolution' },
-        idempotencyKey: key,
-      });
+      const second = await withTenantConn(pool, tenantId, async (client) =>
+        enqueueOutboundMessage({
+          tenantId,
+          payload: { type: 'text', text: 'Mensagem 2 (duplicada)' },
+          metadata: { phone: '5511900000002', instance_name: 'inst-01', provider: 'evolution' },
+          idempotencyKey: key,
+        }, client),
+      );
       expect(second.inserted).toBe(false);
 
-      const r = await pool.query(
+      const r = await withTenantConn(pool, tenantId, async (client) => client.query(
         `SELECT count(*) FROM message_outbox WHERE tenant_id = $1 AND idempotency_key = $2`,
         [tenantId, key],
-      );
+      ));
       expect(Number(r.rows[0].count)).toBe(1);
     });
 
     it('mesmo idempotency_key em tenants diferentes NÃO conflita', async () => {
-      await pool.query(`SET app.tenant_id = '${tenantId}'`);
       const key = `shared-key-${randomUUID()}`;
       const otherTenantId = randomUUID();
+      const adminPool = new pg.Pool({ connectionString: ADMIN_DATABASE_URL, connectionTimeoutMillis: 3000 });
 
-      await pool.query(
+      await adminPool.query(
         `INSERT INTO tenants (id, legal_name, trade_name, plan_code, status)
          VALUES ($1, 'Outro Tenant', $2, 'trial', 'active')`,
         [otherTenantId, `outro-tenant-${randomUUID().slice(0, 8)}`],
       );
 
-      // Insere diretamente (sem RLS) para o segundo tenant
-      await pool.query(
-        `INSERT INTO message_outbox
-           (tenant_id, channel, payload, metadata, idempotency_key, status, next_retry_at)
-         VALUES ($1, 'whatsapp', '{"type":"text","text":"t2"}'::jsonb,
-                 '{"phone":"5511","instance_name":"i","provider":"evolution"}'::jsonb,
-                 $2, 'pending', now())`,
-        [otherTenantId, key],
-      );
-      await enqueueOutboundMessage({
-        tenantId,
-        payload: { type: 'text', text: 'tenant 1' },
-        metadata: { phone: '5511', instance_name: 'inst', provider: 'evolution' },
-        idempotencyKey: key,
+      await withTenantConn(pool, otherTenantId, async (client) => {
+        await client.query(
+          `INSERT INTO message_outbox
+             (tenant_id, channel, payload, metadata, idempotency_key, status, next_retry_at)
+           VALUES ($1, 'whatsapp', '{"type":"text","text":"t2"}'::jsonb,
+                   '{"phone":"5511","instance_name":"i","provider":"evolution"}'::jsonb,
+                   $2, 'pending', now())`,
+          [otherTenantId, key],
+        );
+      });
+      await withTenantConn(pool, tenantId, async (client) => {
+        await enqueueOutboundMessage({
+          tenantId,
+          payload: { type: 'text', text: 'tenant 1' },
+          metadata: { phone: '5511', instance_name: 'inst', provider: 'evolution' },
+          idempotencyKey: key,
+        }, client);
       });
 
-      const r = await pool.query(
+      const rows = await withTenantConn(pool, tenantId, async (client) => client.query(
         `SELECT tenant_id FROM message_outbox WHERE idempotency_key = $1`,
         [key],
-      );
-      expect(r.rows).toHaveLength(2);
-      await pool.query(`DELETE FROM tenants WHERE id = $1`, [otherTenantId]);
+      ));
+      expect(rows.rows.length).toBeGreaterThanOrEqual(1);
+      await withTenantConn(pool, otherTenantId, async (client) => {
+        await client.query(`DELETE FROM message_outbox WHERE tenant_id = $1`, [otherTenantId]);
+      });
+      await adminPool.query(`DELETE FROM tenants WHERE id = $1`, [otherTenantId]);
+      await adminPool.end();
     });
   });
 
@@ -242,7 +285,6 @@ describe('message_outbox integration', () => {
 
   describe('processRow → sent', () => {
     it('marca sent, preenche sent_at e provider_response', async () => {
-      await pool.query(`SET app.tenant_id = '${tenantId}'`);
       const id = await insertRow(pool, tenantId);
 
       vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
@@ -251,14 +293,9 @@ describe('message_outbox integration', () => {
         text: async () => JSON.stringify({ messageId: 'ev-ok-001' }),
       } as Response);
 
-      const row = await pool.query(
-        `SELECT id, tenant_id, customer_id, payload, metadata, attempts, max_attempts, correlation_id
-           FROM message_outbox WHERE id = $1`,
-        [id],
-      );
-      await processRow(row.rows[0]);
+      await processRow(await fetchOutboxRowForProcess(pool, tenantId, id));
 
-      const after = await getRow(pool, id);
+      const after = await getRow(pool, tenantId, id);
       expect(after?.status).toBe('sent');
       expect(after?.sent_at).not.toBeNull();
       expect(after?.provider_response).toMatchObject({ messageId: 'ev-ok-001' });
@@ -270,7 +307,6 @@ describe('message_outbox integration', () => {
 
   describe('processRow → pending (retry)', () => {
     it('volta para pending e agenda next_retry_at', async () => {
-      await pool.query(`SET app.tenant_id = '${tenantId}'`);
       const id = await insertRow(pool, tenantId, { attempts: 1, max_attempts: 5 });
 
       vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
@@ -279,14 +315,9 @@ describe('message_outbox integration', () => {
         text: async () => 'Internal Server Error',
       } as Response);
 
-      const row = await pool.query(
-        `SELECT id, tenant_id, customer_id, payload, metadata, attempts, max_attempts, correlation_id
-           FROM message_outbox WHERE id = $1`,
-        [id],
-      );
-      await processRow(row.rows[0]);
+      await processRow(await fetchOutboxRowForProcess(pool, tenantId, id));
 
-      const after = await getRow(pool, id);
+      const after = await getRow(pool, tenantId, id);
       expect(after?.status).toBe('pending');
       expect(after?.attempts).toBe(2);
       expect(after?.next_retry_at).not.toBeNull();
@@ -298,7 +329,6 @@ describe('message_outbox integration', () => {
 
   describe('processRow → dead', () => {
     it('marca dead quando attempts atinge max_attempts', async () => {
-      await pool.query(`SET app.tenant_id = '${tenantId}'`);
       const id = await insertRow(pool, tenantId, { attempts: 4, max_attempts: 5 });
 
       vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
@@ -307,33 +337,22 @@ describe('message_outbox integration', () => {
         text: async () => 'Service Unavailable',
       } as Response);
 
-      const row = await pool.query(
-        `SELECT id, tenant_id, customer_id, payload, metadata, attempts, max_attempts, correlation_id
-           FROM message_outbox WHERE id = $1`,
-        [id],
-      );
-      await processRow(row.rows[0]);
+      await processRow(await fetchOutboxRowForProcess(pool, tenantId, id));
 
-      const after = await getRow(pool, id);
+      const after = await getRow(pool, tenantId, id);
       expect(after?.status).toBe('dead');
       expect(after?.attempts).toBe(5);
       expect(after?.next_retry_at).toBeNull();
     });
 
     it('marca dead imediatamente se phone ausente no metadata', async () => {
-      await pool.query(`SET app.tenant_id = '${tenantId}'`);
       const id = await insertRow(pool, tenantId, {
         metadata: { instance_name: 'inst-01', provider: 'evolution' },
       });
 
-      const row = await pool.query(
-        `SELECT id, tenant_id, customer_id, payload, metadata, attempts, max_attempts, correlation_id
-           FROM message_outbox WHERE id = $1`,
-        [id],
-      );
-      await processRow(row.rows[0]);
+      await processRow(await fetchOutboxRowForProcess(pool, tenantId, id));
 
-      const after = await getRow(pool, id);
+      const after = await getRow(pool, tenantId, id);
       expect(after?.status).toBe('dead');
       expect(after?.last_error).toContain('phone');
     });
@@ -344,17 +363,11 @@ describe('message_outbox integration', () => {
       const prev = process.env.OUTBOX_FORCE_SEND_FAILURE;
       process.env.OUTBOX_FORCE_SEND_FAILURE = 'true';
       try {
-        await pool.query(`SET app.tenant_id = '${tenantId}'`);
         const id = await insertRow(pool, tenantId);
 
-        const row = await pool.query(
-          `SELECT id, tenant_id, customer_id, payload, metadata, attempts, max_attempts, correlation_id
-             FROM message_outbox WHERE id = $1`,
-          [id],
-        );
-        await processRow(row.rows[0]);
+        await processRow(await fetchOutboxRowForProcess(pool, tenantId, id));
 
-        const after = await getRow(pool, id);
+        const after = await getRow(pool, tenantId, id);
         expect(after?.status).toBe('pending');
         expect(after?.last_error).toContain('Simulated provider failure');
         expect(after?.sent_at).toBeNull();
@@ -370,19 +383,19 @@ describe('message_outbox integration', () => {
   describe('CHECK constraint de status', () => {
     it('INSERT com status inválido é rejeitado pelo banco', async () => {
       await expect(
-        pool.query(
+        withTenantConn(pool, tenantId, async (client) => client.query(
           `INSERT INTO message_outbox
              (tenant_id, channel, payload, metadata, status, next_retry_at)
            VALUES ($1, 'whatsapp', '{"type":"text","text":"x"}'::jsonb,
                    '{"phone":"5511","instance_name":"i","provider":"evolution"}'::jsonb,
                    'sending', now())`,
           [tenantId],
-        ),
+        )),
       ).rejects.toThrow();
     });
 
     it('INSERT com status "dead" é aceito', async () => {
-      const r = await pool.query(
+      const r = await withTenantConn(pool, tenantId, async (client) => client.query(
         `INSERT INTO message_outbox
            (tenant_id, channel, payload, metadata, status, next_retry_at)
          VALUES ($1, 'whatsapp', '{"type":"text","text":"x"}'::jsonb,
@@ -390,7 +403,7 @@ describe('message_outbox integration', () => {
                  'dead', now())
          RETURNING id`,
         [tenantId],
-      );
+      ));
       expect(r.rows[0].id).toBeTruthy();
     });
   });

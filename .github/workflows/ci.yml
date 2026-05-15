@@ -50,6 +50,7 @@ jobs:
       PORT: 3000
       # barbearia_app: sem superuser — RLS FORCE passa a aplicar (barbearia no image é superuser).
       DATABASE_URL: postgres://barbearia_app:barbearia_test_password@localhost:5432/barbearia_saas_test
+      DATABASE_URL_ADMIN: postgres://barbearia:barbearia_test_password@localhost:5432/barbearia_saas_test
       JWT_SECRET: ci-test-secret-32-chars-minimum-abcd
       JWT_EXPIRES_IN: 15m
       JWT_REFRESH_EXPIRES_IN: 7d

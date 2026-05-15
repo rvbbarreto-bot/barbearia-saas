@@ -4,6 +4,7 @@ import { defineConfig } from 'vitest/config';
 function integrationEnvForWorkers(): Record<string, string> {
   const keys = [
     'DATABASE_URL',
+    'DATABASE_URL_ADMIN',
     'JWT_SECRET',
     'REDIS_URL',
     'RECALL_ENABLED',
