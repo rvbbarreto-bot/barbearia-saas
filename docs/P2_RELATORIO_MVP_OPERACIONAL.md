@@ -149,7 +149,7 @@ Esta fase **não** constitui homologação final de produção ou piloto comerci
 
 ## 7. Marco P2.1 — decisões PO
 
-**Fecho técnico P2.1:** **§7.3** (HEAD final **`13cdd17835c9525290107a3ed36fb46fde30cc3c`**). A subsecção **§7.1** conserva o registo histórico da primeira decisão (com ressalvas).
+**Fecho técnico P2.1:** **§7.3** (HEAD na aprovação PO **`13cdd17835c9525290107a3ed36fb46fde30cc3c`**; baseline de repositório após registo no relatório: **`dfcbf194e9ece80db9eb3fad2d3955dba7a9e929`** — **§9**).
 
 ### 7.1 Primeira decisão PO (com ressalvas — histórico)
 
@@ -169,10 +169,10 @@ Esta fase **não** constitui homologação final de produção ou piloto comerci
 
 - **Decisão:** P2.1 **aprovada para fechamento técnico**. As ressalvas anteriores foram tratadas de forma satisfatória.
 - **Commit funcional P2.1 (implementação):** **`a30b0fcd40049cd863f8769a4267a4d3de256e57`**.
-- **HEAD final da P2.1** na branch `feature/p2-operational-mvp-pilot` (funcional + documentação / governança até ao fecho do relatório): **`13cdd17835c9525290107a3ed36fb46fde30cc3c`**.
-- **Working tree:** na fábrica, `git status` **limpo** para ficheiros rastreados no momento do registo do baseline **§9** (confirmar em cada clone antes de iniciar P2.2).
+- **HEAD na aprovação PO (fecho técnico comunicado):** **`13cdd17835c9525290107a3ed36fb46fde30cc3c`**.
+- **HEAD do repositório após registo desta decisão e do baseline P2.2 no relatório:** **`dfcbf194e9ece80db9eb3fad2d3955dba7a9e929`** (usar como **§9** / primeiro `git pull` antes de P2.2).
 
-**Pontos aprovados (síntese PO):** (1) `scripts/migrate-docker.mjs`; (2) `npm run db:migrate`, `db:migrate:dry-run`, `db:migrate:seed`, `db:migrate:backfill`; (3) backfill do registo de migrations para volumes antigos criados via `initdb`; (4) `migrate.sh` a apontar para o fluxo oficial; (5) README com «Primeiro deploy após P2.1»; (6) `docs/P2_RUNBOOK_SUPORTE.md` e `docs/P2_QA_EXECUCAO.md`; (7) relatório P2 com decisão PO, evidências, logs, health, database health, `docker compose ps` e QA exit `0`; (8) CSV da bateria QA P2.1; (9) clarificação de working tree limpo para ficheiros rastreados; (10) manutenção do commit funcional **a30b0fc** e da documentação até ao HEAD **13cdd17**.
+**Pontos aprovados (síntese PO):** (1) `scripts/migrate-docker.mjs`; (2) `npm run db:migrate`, `db:migrate:dry-run`, `db:migrate:seed`, `db:migrate:backfill`; (3) backfill do registo de migrations para volumes antigos criados via `initdb`; (4) `migrate.sh` a apontar para o fluxo oficial; (5) README com «Primeiro deploy após P2.1»; (6) `docs/P2_RUNBOOK_SUPORTE.md` e `docs/P2_QA_EXECUCAO.md`; (7) relatório P2 com decisão PO, evidências, logs, health, database health, `docker compose ps` e QA exit `0`; (8) CSV da bateria QA P2.1; (9) clarificação de working tree limpo para ficheiros rastreados; (10) manutenção do commit funcional **a30b0fc** e da documentação até ao HEAD **`13cdd17`** na aprovação, consolidado em **`dfcbf19`** no relatório.
 
 **Observações de controlo (operador):**
 
@@ -190,7 +190,7 @@ Manter runbooks e fluxo de migrations em todos os ambientes; executar **§9** co
 
 ## 8. Evidências anexas — snapshot P2.1 (fábrica)
 
-Stack (Docker, health, logs, bateria QA) capturada na mesma sessão em que o repositório estava no commit **`d19dc8461e1b7cfeb03fa71be3fb78706fa9c512`** (`chore(qa): refresh P2 operational battery CSV`). Ordem de integração na branch: **`a30b0fcd40049cd863f8769a4267a4d3de256e57`** (feat P2.1) → **`9ffc7ba972adae420522069f6f32ae439a839b3d`** (fluxo `npm run db:migrate` + backfill + runbooks) → **`d19dc8461e1b7cfeb03fa71be3fb78706fa9c512`** (CSV QA; base do snapshot §8) → commits de documentação até **`13cdd17835c9525290107a3ed36fb46fde30cc3c`** (HEAD final P2.1; baseline P2.2 em **§9**). Para o **tip** num clone, execute `git log -1` e `git rev-parse HEAD`.
+Stack (Docker, health, logs, bateria QA) capturada na mesma sessão em que o repositório estava no commit **`d19dc8461e1b7cfeb03fa71be3fb78706fa9c512`** (`chore(qa): refresh P2 operational battery CSV`). Ordem de integração na branch: **`a30b0fcd40049cd863f8769a4267a4d3de256e57`** (feat P2.1) → **`9ffc7ba972adae420522069f6f32ae439a839b3d`** (fluxo `npm run db:migrate` + backfill + runbooks) → **`d19dc8461e1b7cfeb03fa71be3fb78706fa9c512`** (CSV QA; base do snapshot §8) → commits de documentação até **`13cdd17835c9525290107a3ed36fb46fde30cc3c`**, seguidos de **`dfcbf194e9ece80db9eb3fad2d3955dba7a9e929`** (registo §7.3/§9 no relatório; baseline P2.2). Para o **tip** num clone, execute `git log -1` e `git rev-parse HEAD`.
 
 ### 8.1 `git log -1` (congelado no commit da bateria QA)
 
@@ -270,24 +270,26 @@ EXIT_CODE=0
 
 ## 9. P2.2 — baseline de arranque (ponto de partida)
 
-Registo na **fábrica** imediatamente antes de iniciar desenvolvimento **P2.2** (portal web operacional). Branch: **`feature/p2-operational-mvp-pilot`**.
+Registo na **fábrica** após consolidação no relatório do fecho técnico P2.1 (**§7.3**). Branch: **`feature/p2-operational-mvp-pilot`**. O commit **`13cdd17835c9525290107a3ed36fb46fde30cc3c`** corresponde ao HEAD referido na **aprovação PO**; o primeiro trabalho P2.2 deve basear-se no **tip** abaixo (inclui o presente registo).
 
 ### 9.1 `git rev-parse HEAD`
 
 ```
-13cdd17835c9525290107a3ed36fb46fde30cc3c
+dfcbf194e9ece80db9eb3fad2d3955dba7a9e929
 ```
 
 ### 9.2 `git log -1`
 
 ```
-commit 13cdd17835c9525290107a3ed36fb46fde30cc3c
+commit dfcbf194e9ece80db9eb3fad2d3955dba7a9e929
 Author:     Barbearia SaaS P0 <dev@barbearia-saas.local>
-AuthorDate: Thu May 14 22:11:23 2026 -0300
+AuthorDate: Thu May 14 22:16:22 2026 -0300
 Commit:     Barbearia SaaS P0 <dev@barbearia-saas.local>
-CommitDate: Thu May 14 22:11:23 2026 -0300
+CommitDate: Thu May 14 22:16:22 2026 -0300
 
-    docs(p2): fix commit order note in relatório §8 intro
+    docs(p2): register P2.1 technical closure and P2.2 baseline §9
+    
+    PO approval for technical closure; HEAD 13cdd17; §7.3–7.4 and §9; fix orphan fence.
     
     Co-authored-by: Cursor <cursoragent@cursor.com>
 ```
