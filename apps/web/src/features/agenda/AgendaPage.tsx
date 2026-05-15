@@ -37,7 +37,7 @@ const STATUS_FILTER_OPTIONS: { value: string; label: string }[] = [
 export function AgendaPage() {
   const user = useAuthStore((s) => s.user);
   const canBook = !!user && user.role !== 'professional' && hasMinRole(user.role, 'attendant');
-  const canBlock = !!user && user.role !== 'professional' && hasMinRole(user.role, 'attendant');
+  const canBlock = !!user && user.role !== 'professional' && hasMinRole(user.role, 'manager');
   const isProfessional = user?.role === 'professional';
   const lockedProfId = isProfessional ? user?.professional_id ?? null : null;
 

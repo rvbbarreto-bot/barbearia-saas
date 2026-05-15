@@ -1,0 +1,11 @@
+Evidência 13 — Outbox retry negado para Atendente (complemento técnico)
+Data: 2026-05-15
+Perfil: atendente@demo.local | tenant 00000000-0000-0000-0000-000000000001
+
+UI: OutboxMessagesPage — canRetry = hasMinRole(user.role, 'manager')
+Atendente (role attendant) NÃO vê botão "Tentar novamente" no detalhe.
+
+API: POST /api/v1/outbox/messages/{id}/retry com token atendente → HTTP 403
+Ver: 14_rbac_api_retry_atendente_403.txt
+
+Captura PNG do detalhe sem botão: pendente reprodução manual (sessão browser); lógica RBAC alinhada API+UI.

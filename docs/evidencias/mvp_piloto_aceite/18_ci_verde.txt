@@ -1,0 +1,14 @@
+CI remoto — BLOQUEADO (aguarda push)
+Data: 2026-05-15
+Motivo: repositório local sem git remote origin configurado.
+
+Validação local equivalente (pré-push):
+- apps/api: npm run typecheck OK
+- apps/api: npm run test:unit → 152/152
+- apps/web: npm run typecheck OK
+- apps/web: npm run test → 40/40
+- docker compose up → 5/5 healthy
+
+Workflow: .github/workflows/ci.yml (push/PR em main, develop)
+Após: git remote add origin <URL> && git push -u origin feature/p2-2-web-outbox-whatsapp-operational
+Anexar print Actions verde como 18_ci_verde.png
