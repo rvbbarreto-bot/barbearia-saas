@@ -316,7 +316,7 @@ nothing to commit, working tree clean
 
 **Commit base (último HEAD da P2.1 no momento do `git checkout -b`):** `f57b1a3dafe596111fb1314d949f0976e8d78dd7`
 
-**Documento de âmbito e critérios:** `docs/P2_2_PORTAL_OPERACIONAL.md`
+**Primeiro commit na branch P2.2 (registo kickoff no repositório):** `2218163936d5c949f5e43585c83213c82df38ca8` — `chore(p2.2): kickoff branch, baseline evidence, P2.2 scope doc`
 
 ### 10.1 Evidências no arranque (fábrica)
 
