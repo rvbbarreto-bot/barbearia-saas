@@ -1072,6 +1072,8 @@ export async function completeAppointment(
         metadata: { previous_status: appointment.status },
       });
 
+      await cancelAllPendingNotificationJobsForAppointment(client, tenantId, appointmentId);
+
       await enqueuePostCompletionBackgroundJobs(
         client,
         tenantId,
@@ -1152,6 +1154,8 @@ export async function noShowAppointment(
         correlationId: caller?.correlationId ?? null,
         metadata: { reason },
       });
+
+      await cancelAllPendingNotificationJobsForAppointment(client, tenantId, appointmentId);
 
       await refreshCustomerRestrictionsAfterNoShow(client, tenantId, appointment.customer_id as string);
 

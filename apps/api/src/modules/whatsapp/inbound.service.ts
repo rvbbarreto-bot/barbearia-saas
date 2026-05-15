@@ -17,6 +17,7 @@ import pg from 'pg';
 import { pool as defaultPool, withTenant } from '../../infra/db/pool.js';
 import { AppError } from '../../shared/errors.js';
 import { writeAuditLog } from '../../shared/audit.js';
+import { writeOperationalAuditEvent } from '../../shared/operational-audit.js';
 import { recordInboundOptOutIfNeeded } from '../notificationJobs/inboundOptOut.js';
 import { verifySha256WebhookSignature } from '../../shared/webhook-hmac.js';
 import type { InboundBody } from './inbound.schemas.js';
@@ -34,6 +35,8 @@ export type InboundContext = {
   webhookSignature: string | undefined;
   correlationId:    string;
   ip:               string;
+  /** request.id Fastify (auditoria operacional) */
+  requestId?:       string | null;
 };
 
 type IntegrationRow = {
@@ -124,6 +127,18 @@ export async function processInboundWebhook(
   );
 
   if (!dedup.rowCount) {
+    await withTenant(tenantId, async (client) => {
+      await writeOperationalAuditEvent(client, {
+        tenantId,
+        entityType: 'whatsapp_inbound',
+        entityId: null,
+        eventType: 'inbound_duplicate_ignored',
+        source: 'webhook',
+        requestId: ctx.requestId ?? null,
+        correlationId: ctx.correlationId,
+        metadata: { dedup_key: dedupKey, instance_key: ctx.instanceKey },
+      });
+    });
     return { ok: true, duplicate: true };
   }
 
@@ -192,6 +207,23 @@ export async function processInboundWebhook(
         dedup_key:           dedupKey,
       },
       ip: ctx.ip,
+    });
+
+    const phoneDigits = body.phone.replace(/\D/g, '');
+    const phoneLast4 = phoneDigits.length >= 4 ? phoneDigits.slice(-4) : '****';
+    await writeOperationalAuditEvent(client, {
+      tenantId,
+      entityType: 'message',
+      entityId: messageId,
+      eventType: 'inbound_message_received',
+      source: 'webhook',
+      requestId: ctx.requestId ?? null,
+      correlationId: ctx.correlationId,
+      metadata: {
+        phone_last4: phoneLast4,
+        external_message_id: body.external_message_id ?? null,
+        instance_key: ctx.instanceKey,
+      },
     });
   });
 

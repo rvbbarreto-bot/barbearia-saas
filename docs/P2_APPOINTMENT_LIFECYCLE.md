@@ -46,3 +46,7 @@ Ver especificação P2: `GET/POST /api/v1/appointments`, `PATCH …/cancel|resch
 | `availability` | read | `viewer` |
 
 `tenant_owner` / `tenant_admin` herdam níveis ≥ `attendant` e podem operar conforme a matriz acima. **`professional`**: pode `complete` na cadeira; **não** pode `noShow` nem `create` genérico com `explicit_confirmation=false` (ver política CT-073).
+
+## QA automatizado (P2.2.1)
+
+A bateria `scripts/qa-p2-2-web-outbox-whatsapp-battery.ps1` cobre `PATCH …/reschedule` e `PATCH …/no-show` com corpos JSON válidos (instantes **ISO 8601** com `Z` ou offset; motivos com acentos exigem **UTF-8** no cliente PowerShell 5.1). Ver `docs/QA_API_P2_2_OPERATIONAL_RESULTS.csv` e `docs/P2_2_EVIDENCIAS_PORTAL_OUTBOX.md`.

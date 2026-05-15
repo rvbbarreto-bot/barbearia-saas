@@ -76,9 +76,11 @@ Entregar versão **operacional ampliada**: Web + API + outbox visível a suporte
 
 ## 7. QA P2.2 (Bloco G)
 
-- Script: novo `scripts/qa-p2-2-web-outbox-whatsapp-battery.ps1` **ou** ampliação de `scripts/qa-api-p2-operational-battery.ps1`.  
-- CSV: `docs/QA_API_P2_2_OPERATIONAL_RESULTS.csv`.  
-- Cobertura mínima: health, DB health, auth negativo, tenant mismatch, ciclo appointment (create, cancel, reschedule, complete, no-show), time-block create/delete, availability com bloqueio, appointment em slot bloqueado, outbox listagem (+ falha provider se aplicável), webhook duplicado, fluxo WhatsApp mínimo, regressão P1 e P2.1.
+- **Script:** `scripts/qa-p2-2-web-outbox-whatsapp-battery.ps1` (matriz **CT-P2-201 … CT-P2-220**, sem colisões com o quadro do PO).  
+- **CSV:** `docs/QA_API_P2_2_OPERATIONAL_RESULTS.csv`.  
+- **GATE 0:** execução real em Docker com **exit 0** e todos os casos **PASS** registados no CSV e em `docs/P2_2_EVIDENCIAS_PORTAL_OUTBOX.md`.  
+- **Cobertura:** health, DB health, auth negativo, tenant mismatch, outbox (list, sem token, tenant nil UUID, cross-tenant, sanitização), ciclo appointment (create, confirm, reschedule, cancel, walk-in+complete, no-show), time-block + availability + create em slot bloqueado + delete, regressão P1 (`qa-api-negative-battery.ps1`) e P2.1 (`qa-api-p2-operational-battery.ps1`).  
+- **Cliente Windows PowerShell 5.1:** o script envia JSON com **UTF-8** explícito e normaliza instantes de slots para **ISO UTC** (ver nota em evidências) — replicar se for copiar `Invoke-WebRequest` para novos testes.
 
 ## 8. Critérios de reprovação direta (extraídos do brief PO)
 
@@ -86,9 +88,9 @@ Incluem: appointment em slot ocupado/bloqueado; RBAC violado; cross-tenant; dupl
 
 ## 9. Entregáveis finais (checklist fábrica)
 
-- [ ] Código backend + frontend + N8N (se alterado)  
-- [ ] Scripts QA + CSV  
-- [ ] OpenAPI + README + runbooks + relatório P2 + evidências (Docker, health, portal, outbox, WhatsApp, logs API/worker, `git log`/`status`/`rev-parse`)  
+- [x] Código backend + frontend + N8N (se alterado)  
+- [x] Scripts QA + CSV  
+- [x] OpenAPI + README + runbooks + relatório P2 + evidências (Docker, health, portal, outbox, WhatsApp, logs API/worker, `git log`/`status`/`rev-parse`)  
 - [ ] Lista de débitos remanescentes e riscos  
 
 ---

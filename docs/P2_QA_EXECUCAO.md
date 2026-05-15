@@ -50,3 +50,27 @@ Manter a bateria existente reprodutível:
 ```
 
 Não remover nem quebrar este script na P2.
+
+## GATE 0 — Fecho formal P2.2.1 (obrigatório antes da P2.3)
+
+1. **Docker real:** `docker compose ps` com `api`, `postgres`, `redis`, `web` (e `n8n` se aplicável) **healthy**; após mudanças de código API: `docker compose build api` e `docker compose up -d --force-recreate api`.
+2. **Bateria:** `.\scripts\qa-p2-2-web-outbox-whatsapp-battery.ps1 -ApiBase http://localhost:3000` → **exit 0**.
+3. **CSV:** `docs/QA_API_P2_2_OPERATIONAL_RESULTS.csv` actualizado e versionado (matriz **CT-P2-201 … CT-P2-220** — ver cabeçalho do script e `docs/P2_2_EVIDENCIAS_PORTAL_OUTBOX.md`).
+4. **Evidências texto:** `docs/P2_2_EVIDENCIAS_PORTAL_OUTBOX.md` e §10.4 de `docs/P2_RELATORIO_MVP_OPERACIONAL.md` com `git log -1`, `git rev-parse HEAD`, `git status`, `docker compose ps`, `curl.exe /health`, `curl.exe /database/health`, `npm run db:migrate:dry-run`, excerto de `docker logs barbearia-api` (inclui `[outbox-worker]`).
+5. **Evidências visuais:** capturas listadas em `docs/evidencias/gate0_p2_2_1/README.md` (Agenda, Outbox, retry, RBAC, erros).
+6. **Unitários / Web (regressão local):** `npm run test:unit` em `apps/api`; `npm run typecheck` e `npm run test` em `apps/web`.
+7. **PowerShell 5.1:** o script P2.2.1 envia JSON em **UTF-8** (bytes) para corpos com acentos; não copiar `Invoke-WebRequest` antigo para novos scripts.
+
+## P2.3 — QA operação assistida (CT-P2-300 … CT-P2-332)
+
+```powershell
+Set-Location <raiz-do-repo>
+.\scripts\qa-p2-3-operational-assisted-battery.ps1 -ApiBase http://localhost:3000
+```
+
+- **Saída:** `docs/QA_API_P2_3_OPERATIONAL_ASSISTED_RESULTS.csv` (UTF-8 com BOM; sobrescrito a cada execução).
+- **Sucesso:** exit code `0` quando todos os casos passam (inclui regressões internas **330** = P2.2.1, **331** = P2.1, **332** = P1).
+- **Pré-requisitos:** Postgres do Compose; seed **099** com instância `demo-qa-inbound` e token `demo_webhook_token_change_me` (ver `.env.example` / `apps/api/.env.example`); API reconstruída após alterações de código (`docker compose build api` + `up -d --force-recreate api`).
+- **CT 320–324:** consultas SQL via `docker compose exec -T postgres psql` (use `-SkipDockerDbChecks` só se não puder validar jobs/outbox na BD).
+- **CT-P2-317:** se não existir mensagem outbox em `failed`/`dead`, o script regista **SKIP** com **PASS** (ambiente sem falha forçada); com linha falhada, executa retry e valida HTTP 200.
+- **Matriz e objectivos:** `docs/P2_3_OPERACAO_ASSISTIDA.md`; evidências coladas: `docs/P2_3_EVIDENCIAS_WHATSAPP_AUDITORIA_REMINDER.md`.

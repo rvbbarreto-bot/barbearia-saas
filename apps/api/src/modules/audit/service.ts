@@ -1,6 +1,6 @@
-import { z } from 'zod';
 import { pool, withTenant } from '../../infra/db/pool.js';
 import { parsePagination } from '../../shared/pagination.js';
+import { normalizeOperationalAuditQuery, operationalAuditListQuery } from './operational-audit-query.js';
 
 export type AuditLogListQuery = Record<string, unknown>;
 
@@ -60,17 +60,9 @@ export async function listAuditLogs(tenantId: string, rawQuery: AuditLogListQuer
   return { data: data.rows, total: count.rows[0].total as number, page, limit };
 }
 
-const operationalAuditListQuery = z.object({
-  event_type: z.string().min(1).max(120).optional(),
-  entity_type: z.string().min(1).max(80).optional(),
-  entity_id: z.string().uuid().optional(),
-  from: z.string().datetime().optional(),
-  to: z.string().datetime().optional(),
-});
-
 /** Lista `operational_audit_events` do tenant (RLS + `withTenant`). */
 export async function listOperationalAuditEvents(tenantId: string, rawQuery: Record<string, unknown>) {
-  const q = operationalAuditListQuery.parse(rawQuery);
+  const q = operationalAuditListQuery.parse(normalizeOperationalAuditQuery(rawQuery));
   const { limit, offset, page } = parsePagination(rawQuery);
 
   return withTenant(tenantId, async (client) => {
@@ -97,6 +89,14 @@ export async function listOperationalAuditEvents(tenantId: string, rawQuery: Rec
     if (q.to) {
       filters.push(`created_at < $${idx++}::timestamptz`);
       params.push(q.to);
+    }
+    if (q.correlation_id) {
+      filters.push(`correlation_id = $${idx++}`);
+      params.push(q.correlation_id);
+    }
+    if (q.request_id) {
+      filters.push(`request_id = $${idx++}`);
+      params.push(q.request_id);
     }
 
     const where = `WHERE ${filters.join(' AND ')}`;

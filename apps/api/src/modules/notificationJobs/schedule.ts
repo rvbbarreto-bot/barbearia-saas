@@ -64,6 +64,12 @@ export function computeReminderH2RunAt(startsAtIso: string): Date {
   return new Date(start.getTime() - 2 * 60 * 60 * 1000);
 }
 
+/** ~24h antes do `starts_at` (UTC) — usado para lembrete pré-atendimento P2.3. */
+export function computeReminder24hRunAt(startsAtIso: string): Date {
+  const start = new Date(startsAtIso);
+  return new Date(start.getTime() - 24 * 60 * 60 * 1000);
+}
+
 type AppointmentRow = {
   id: string;
   customer_id: string;
@@ -114,6 +120,23 @@ export async function scheduleJobsForConfirmedAppointment(
         NotificationJobType.reminderD1,
         d1.toISOString(),
         JSON.stringify({ ...payloadBase, purpose: 'reminder_d1' }),
+        appointmentId,
+        customerId,
+      ],
+    );
+  }
+
+  const r24 = computeReminder24hRunAt(startsAt);
+  if (r24 > now) {
+    await client.query(
+      `INSERT INTO notification_jobs
+         (tenant_id, job_type, run_at, status, payload, appointment_id, customer_id)
+       VALUES ($1, $2, $3, 'pending', $4::jsonb, $5, $6)`,
+      [
+        tenantId,
+        NotificationJobType.reminder24h,
+        r24.toISOString(),
+        JSON.stringify({ ...payloadBase, purpose: 'reminder_24h' }),
         appointmentId,
         customerId,
       ],

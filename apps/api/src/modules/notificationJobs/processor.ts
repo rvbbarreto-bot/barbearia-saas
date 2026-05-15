@@ -1,8 +1,10 @@
 import type { PoolClient } from 'pg';
 import { env } from '../../config/env.js';
 import { enqueueOutboundMessage } from '../../infra/queues/outbox.service.js';
+import { writeOperationalAuditEvent } from '../../shared/operational-audit.js';
 import { blocksTransactionalReminders, loadCustomerConsentFlags } from './consent.js';
 import { NotificationJobType } from './types.js';
+import { loadTenantTimeZone } from './schedule.js';
 import { resolveWhatsAppOutboundRouting } from './routing.js';
 import { executeRecallPromotional } from '../recall/process-send.js';
 
@@ -19,6 +21,60 @@ type JobRow = {
 function formatStartLabel(startsAt: string | Date): string {
   const d = typeof startsAt === 'string' ? new Date(startsAt) : startsAt;
   return d.toISOString();
+}
+
+async function recordReminderOutboxOutcome(
+  client: PoolClient,
+  tenantId: string,
+  appointmentId: string,
+  jobType: string,
+  idempotencyKey: string,
+  enq: { inserted: boolean },
+): Promise<void> {
+  await writeOperationalAuditEvent(client, {
+    tenantId,
+    entityType: 'appointment',
+    entityId: appointmentId,
+    eventType: enq.inserted ? 'reminder_enqueued' : 'reminder_skipped_duplicate',
+    source: 'notification_worker',
+    correlationId: appointmentId,
+    metadata: { idempotency_key: idempotencyKey, job_type: jobType },
+  });
+}
+
+type ApptR24Row = {
+  id: string;
+  customer_id: string;
+  starts_at: Date;
+  status: string;
+  customer_name: string | null;
+  professional_name: string | null;
+};
+
+async function loadAppointmentForReminder24h(
+  client: PoolClient,
+  tenantId: string,
+  appointmentId: string,
+): Promise<ApptR24Row | null> {
+  const r = await client.query<ApptR24Row>(
+    `SELECT a.id, a.customer_id, a.starts_at, a.status::text AS status,
+            c.name AS customer_name, p.name AS professional_name
+       FROM appointments a
+       JOIN customers c ON c.tenant_id = a.tenant_id AND c.id = a.customer_id
+       JOIN professionals p ON p.tenant_id = a.tenant_id AND p.id = a.professional_id
+      WHERE a.tenant_id = $1 AND a.id = $2 LIMIT 1`,
+    [tenantId, appointmentId],
+  );
+  return r.rows[0] ?? null;
+}
+
+function formatReminder24hBody(appt: ApptR24Row, timeZone: string): string {
+  const startsAt = typeof appt.starts_at === 'string' ? new Date(appt.starts_at) : appt.starts_at;
+  const nome = appt.customer_name?.trim() ? appt.customer_name.trim() : 'Cliente';
+  const prof = appt.professional_name?.trim() ? appt.professional_name.trim() : 'nossa equipe';
+  const data = startsAt.toLocaleDateString('pt-BR', { timeZone });
+  const hora = startsAt.toLocaleTimeString('pt-BR', { timeZone, hour: '2-digit', minute: '2-digit' });
+  return `Olá, ${nome}. Passando para lembrar do seu horário em ${data} às ${hora} com ${prof}. Para cancelar ou remarcar, responda esta mensagem.`;
 }
 
 async function loadAppointmentForNotifications(
@@ -129,7 +185,8 @@ export async function processNotificationJob(client: PoolClient, job: JobRow): P
         }
         const startLabel = formatStartLabel(appt.starts_at);
         const text = `Lembrete: tem agendamento confirmado em ${startLabel} (ID ${String(appt.id).slice(0, 8)}).`;
-        await enqueueOutboundMessage(
+        const idemD1 = `reminder_d1:${appt.id}`;
+        const enqD1 = await enqueueOutboundMessage(
           {
             tenantId,
             customerId,
@@ -139,11 +196,57 @@ export async function processNotificationJob(client: PoolClient, job: JobRow): P
               instance_name: routing.instance_name,
               provider: 'evolution',
             },
-            idempotencyKey: `reminder_d1:${appt.id}`,
+            idempotencyKey: idemD1,
             correlationId: appt.id,
           },
           client,
         );
+        await recordReminderOutboxOutcome(client, tenantId, appt.id, NotificationJobType.reminderD1, idemD1, enqD1);
+        break;
+      }
+
+      case NotificationJobType.reminder24h: {
+        const flags = await loadCustomerConsentFlags(client, tenantId, customerId);
+        if (
+          blocksTransactionalReminders(
+            flags.whatsapp_opt_in,
+            flags.whatsapp_opt_out,
+            flags.latest.transactional,
+          )
+        ) {
+          await skipSent('SKIP_REMINDER_CONSENT');
+          return;
+        }
+        const routing = await resolveWhatsAppOutboundRouting(client, tenantId, customerId);
+        if (!routing) {
+          await skipSent('SKIP_NO_ROUTING');
+          return;
+        }
+        const apptId24 = String(job.payload.appointment_id ?? job.appointment_id ?? '');
+        const appt24 = apptId24 ? await loadAppointmentForReminder24h(client, tenantId, apptId24) : null;
+        if (!appt24 || appt24.status !== 'confirmed') {
+          await skipSent('SKIP_APPOINTMENT_NOT_CONFIRMED');
+          return;
+        }
+        const tz = await loadTenantTimeZone(client, tenantId);
+        const text24 = formatReminder24hBody(appt24, tz);
+        const idem24 = `reminder_24h:${appt24.id}`;
+        const enq24 = await enqueueOutboundMessage(
+          {
+            tenantId,
+            customerId,
+            payload: { type: 'text', text: text24 },
+            metadata: {
+              phone: routing.phone,
+              instance_name: routing.instance_name,
+              provider: 'evolution',
+            },
+            idempotencyKey: idem24,
+            correlationId: appt24.id,
+          },
+          client,
+        );
+        await recordReminderOutboxOutcome(client, tenantId, appt24.id, NotificationJobType.reminder24h, idem24, enq24);
         break;
       }
 
@@ -175,7 +278,8 @@ export async function processNotificationJob(client: PoolClient, job: JobRow): P
           `Lembrete: o seu agendamento é às ${startLabel} (ID ${String(appt.id).slice(0, 8)}).`,
           `Para confirmar responda CONFIRMAR; para cancelar responda CANCELAR; para remarcar responda REMARCAR.`,
         ].join(' ');
-        await enqueueOutboundMessage(
+        const idemH2 = `reminder_h2:${appt.id}`;
+        const enqH2 = await enqueueOutboundMessage(
           {
             tenantId,
             customerId,
@@ -185,11 +289,12 @@ export async function processNotificationJob(client: PoolClient, job: JobRow): P
               instance_name: routing.instance_name,
               provider: 'evolution',
             },
-            idempotencyKey: `reminder_h2:${appt.id}`,
+            idempotencyKey: idemH2,
             correlationId: appt.id,
           },
           client,
         );
+        await recordReminderOutboxOutcome(client, tenantId, appt.id, NotificationJobType.reminderH2, idemH2, enqH2);
         break;
       }
 

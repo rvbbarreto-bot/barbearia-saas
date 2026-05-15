@@ -2,6 +2,8 @@
 export const NotificationJobType = {
   appointmentConfirmed: 'appointment_confirmed',
   reminderD1: 'reminder_d1',
+  /** Lembrete ~24h antes do início do agendamento (UTC-24h; alinhado P2.3). */
+  reminder24h: 'reminder_24h',
   reminderH2: 'reminder_h2',
   recallEligibility: 'recall_eligibility',
   /** Recall promocional por serviço (template aprovado + outbox). */
@@ -16,5 +18,6 @@ export type NotificationJobTypeName = (typeof NotificationJobType)[keyof typeof 
 export const SCHEDULED_APPOINTMENT_JOB_TYPES: readonly NotificationJobTypeName[] = [
   NotificationJobType.appointmentConfirmed,
   NotificationJobType.reminderD1,
+  NotificationJobType.reminder24h,
   NotificationJobType.reminderH2,
 ];

@@ -393,3 +393,22 @@ Concluído.
 ### 10.3 Próximo passo (fábrica)
 
 Implementação integrada dos blocos A–I descritos em `docs/P2_2_PORTAL_OPERACIONAL.md` (portal, availability/time-blocks, erros, outbox, WhatsApp/N8N, auditoria no portal, QA P2.2, documentação, hardening).
+
+### 10.4 P2.2.1 — GATE 0 (bateria Docker real, matriz CT-P2-201 … CT-P2-220)
+
+- **Script:** `scripts/qa-p2-2-web-outbox-whatsapp-battery.ps1` com **exit 0** contra `http://localhost:3000` (stack `docker compose` healthy).
+- **Resultados:** `docs/QA_API_P2_2_OPERATIONAL_RESULTS.csv` (todos os casos **PASS** na corrida de fecho).
+- **Evidências coladas:** `docs/P2_2_EVIDENCIAS_PORTAL_OUTBOX.md` (inclui `git log`/`rev-parse`/`status`, `docker compose ps`, health, nota sobre `db:migrate:dry-run`, excerto de logs `[outbox-worker]`).
+- **HEAD de referência (corrida):** `d240a43cf903865b0756b820d6dddb0a80557286` (branch `feature/p2-2-web-outbox-whatsapp-operational`).
+- **Risco resolvido no script:** Windows PowerShell 5.1 + JSON com acentos exige corpo **UTF-8** em bytes; slots `ConvertFrom-Json` como `DateTime` exigem serialização **ISO UTC** para validação Zod na API (detalhe no ficheiro de evidências).
+- **Auditoria operacional (P2.3 prep):** `GET /api/v1/operational-audit-events` e alias `/api/v1/operational-audit/events` com RBAC `operationalAudit.read` (mín. `attendant`); filtros `correlation_id`, `request_id`, `date_from`/`date_to`. Ver OpenAPI e `docs/P2_OUTBOX_OPERACIONAL.md`.
+
+### 10.5 P2.3 — Operação assistida (webhook inbound, auditoria, lembrete 24h)
+
+- **Script:** `scripts/qa-p2-3-operational-assisted-battery.ps1` com **exit 0**; resultados em `docs/QA_API_P2_3_OPERATIONAL_ASSISTED_RESULTS.csv` (matriz **CT-P2-300 … CT-P2-332**, incluindo regressões 330–332).
+- **API:** `POST /webhooks/whatsapp/inbound` com deduplicação por `external_message_id`; auditoria `inbound_message_received` / `inbound_duplicate_ignored`; job `notification_jobs.job_type = reminder_24h` após confirmação quando `starts_at - 24h` é futuro; outbox com `idempotency_key = reminder_24h:<appointment_id>`; cancelamento / conclusão / no-show remove jobs pendentes do agendamento.
+- **Rebuild:** `docker compose build api` e `docker compose up -d --force-recreate api`; smoke `GET /health` e `GET /database/health` (HTTP 200).
+- **N8N:** workflow `n8n/workflows/03_QA_Barbearia_Evolution_SendText_Smoke.json` documentado em `docs/P2_FLUXO_WHATSAPP_N8N.md`.
+- **Evidências detalhadas:** `docs/P2_3_EVIDENCIAS_WHATSAPP_AUDITORIA_REMINDER.md`.
+- **GATE P2.2.1 (formal):** continua a exigir **PNG reais** em `docs/evidencias/gate0_p2_2_1/` conforme `README.md` desse directório; sem essas capturas o fecho formal P2.2.1 permanece **aberto** mesmo com baterias a verde.
+- **Identificação do commit:** subject `feat(p2.3): inbound audit, reminder24h outbox, assisted ops QA script`; hash completo na raiz com `git rev-parse HEAD` após `git pull`.

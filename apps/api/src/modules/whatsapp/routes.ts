@@ -65,6 +65,7 @@ export async function whatsappRoutes(app: FastifyInstance) {
         webhookSignature,
         correlationId,
         ip: request.ip,
+        requestId: request.id,
       });
 
       // Log estruturado sem expor segredos

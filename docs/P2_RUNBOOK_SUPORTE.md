@@ -49,3 +49,19 @@ Objetivo: garantir **`103_operational_audit_events.sql`** e **`104_calendar_bloc
 - Script: `scripts/qa-api-p2-operational-battery.ps1` (ver `docs/P2_QA_EXECUCAO.md`).
 - Resultados: `docs/QA_API_P2_OPERATIONAL_RESULTS.csv`.
 - Falhas frequentes: seed `099` não aplicado; `min_advance` esgota slots — o script usa `min_advance_minutes=0` na availability de teste.
+
+## QA P2.2.1 (outbox + appointments + regressões)
+
+- Script: `scripts/qa-p2-2-web-outbox-whatsapp-battery.ps1`; resultados: `docs/QA_API_P2_2_OPERATIONAL_RESULTS.csv`.
+- Após alterações na API de outbox ou appointments: `docker compose build api && docker compose up -d --force-recreate api` antes da bateria.
+- **Windows PowerShell 5.1:** pedidos `PATCH`/`POST` com JSON que inclua **acentos** devem enviar o corpo como **UTF-8** (bytes); caso contrário a API pode responder **400** com payload vazio no cliente. O script P2.2.1 já aplica esta regra.
+
+## QA P2.3 (webhook inbound, auditoria, reminder 24h, regressões)
+
+- Script: `scripts/qa-p2-3-operational-assisted-battery.ps1`; resultados: `docs/QA_API_P2_3_OPERATIONAL_ASSISTED_RESULTS.csv`.
+- **Webhook inbound:** `POST /webhooks/whatsapp/inbound` com `x-webhook-instance` (nome da instância Evolution na integração) e `x-webhook-token` alinhado ao tenant (ou HMAC se configurado). Resposta duplicada: HTTP 200 com `{ "ok": true, "duplicate": true }` — não duplica `webhook_events` nem mensagem/outbox.
+- **Auditoria operacional:** `GET /api/v1/operational-audit-events` ou `/api/v1/operational-audit/events` com JWT + `x-tenant-id`; eventos relevantes: `inbound_message_received`, `inbound_duplicate_ignored`, `reminder_enqueued`, `reminder_skipped_duplicate`, `OUTBOX_MANUAL_RETRY` (após retry manual). Sem token → **401**; tenant errado → **403** `TENANT_MISMATCH`; sem `operationalAudit.read` → **403**.
+- **Lembrete 24h:** job `reminder_24h` em `notification_jobs` após `PATCH .../confirm` quando `starts_at - 24h` é futuro; processamento enfileira outbox com `idempotency_key = reminder_24h:<appointment_id>`; cancelamento / `complete` / `no-show` remove jobs pendentes do agendamento.
+- **Diagnóstico:** `docker logs barbearia-api` (procure `whatsapp_inbound`, `[outbox-worker]`); para contagem de jobs: `docker compose exec -T postgres psql -U … -d … -c "SELECT job_type,status,count(*) FROM notification_jobs WHERE tenant_id='…' GROUP BY 1,2;"`.
+
+Documentação: `docs/P2_3_OPERACAO_ASSISTIDA.md`, `docs/P2_FLUXO_WHATSAPP_N8N.md`, `docs/P2_OUTBOX_OPERACIONAL.md`.
