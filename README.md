@@ -148,7 +148,38 @@ O Docker Compose aplica automaticamente no **primeiro boot** (via `entrypoint-in
 Pendências de permissões da role da aplicação (produção): ver `database/SECURITY_HARDENING.md`.
 
 > **Atenção:** `entrypoint-initdb.d` só executa quando o volume do banco está vazio.  
-> Para aplicar migrations em um volume já existente (ex: nova migration adicionada), use `migrate.sh`.
+> Para aplicar migrations em um volume já existente (ex: nova migration adicionada), use **`migrate.sh`** (com `psql` local) ou **`npm run db:migrate`** (via `docker compose exec` no serviço `postgres`). Ambos usam a tabela `_migrations` e **não** reaplicam ficheiros já registados.
+
+### Primeiro deploy após P2.1 (volumes Postgres já existentes)
+
+As migrations **`103_operational_audit_events.sql`** e **`104_calendar_blocks_created_by.sql`** entram no mesmo fluxo que as demais. Após `git pull` e com o Postgres do Compose em execução:
+
+```bash
+npm run db:migrate
+```
+
+Em ambientes Linux/macOS com `psql` apontando para o mesmo host/porta do `.env`:
+
+```bash
+./migrate.sh
+```
+
+Confirmar que `103` e `104` aparecem como aplicadas (ou `SKIP` se já estiverem na `_migrations`). Não é necessário `docker exec` manual ficheiro a ficheiro.
+
+### Volumes criados só pelo `initdb` (`_migrations` vazia)
+
+O Compose monta `database/migrations/` em `docker-entrypoint-initdb.d`: no **primeiro** arranque do volume o Postgres executa esses `.sql`, mas **não** preenche `_migrations`. Nesse estado, `npm run db:migrate:dry-run` pode mostrar **todas** as migrations como pendentes; **não** corra `npm run db:migrate` de imediato (risco de tentar reaplicar `001_init.sql` sobre um esquema já criado).
+
+1. Confirmar até que ficheiro de migration o volume já reflecte (histórico de deploy / versão da imagem ou inspecção do esquema).
+2. Registar esse conjunto em `_migrations` **sem** reexecutar SQL:
+
+```bash
+npm run db:migrate:backfill -- --through 102_qa_customer_uuid_fix.sql
+```
+
+Substitua o nome pelo **último** ficheiro já efectivo no volume (ordem lexicográfica, igual à pasta `database/migrations/`). Ex.: se o init já correu com o repo actual (incl. **103** e **104**), use `--through 104_calendar_blocks_created_by.sql`.
+
+3. Depois: `npm run db:migrate` (aplica apenas o que ainda não estiver em `_migrations`).
 
 ### Migrations incrementais com rastreamento
 
@@ -165,24 +196,26 @@ Pendências de permissões da role da aplicação (produção): ver `database/SE
 
 > O script cria uma tabela `_migrations` para rastrear o que já foi aplicado.
 
-### Via Docker (sem psql local)
+### Via Docker Compose (sem psql local na máquina)
+
+Na raiz do repositório, com `docker compose up` e serviço `postgres` **healthy**:
 
 ```bash
-# Aplicar migration específica
-docker exec -i barbearia-postgres \
-  psql -U barbearia -d barbearia_saas \
-  < database/migrations/007_phase3_auth_appointments_consents.sql
+# Aplicar migrations pendentes (usa _migrations; alinhado com migrate.sh)
+npm run db:migrate
 
-# Aplicar todas as migrations em sequência
-for f in database/migrations/*.sql; do
-  docker exec -i barbearia-postgres psql -U barbearia -d barbearia_saas < "$f"
-done
+# Listar o que falta aplicar (sem executar)
+npm run db:migrate:dry-run
 
-# Aplicar seed demo
-docker exec -i barbearia-postgres \
-  psql -U barbearia -d barbearia_saas \
-  < database/seeds/001_demo.sql
+# Migrations + seed demo (equivalente a ./migrate.sh --seed)
+npm run db:migrate:seed
 ```
+
+> Implementação: `scripts/migrate-docker.mjs` (Node, sem dependências extra).
+
+### Via Docker (casos pontuais / legado)
+
+Para diagnóstico pontual, pode injetar SQL via `docker compose exec` + `psql`; **não** use isto como substituto de `npm run db:migrate` / `migrate.sh` em rotina, porque não mantém `_migrations` coerente com o histórico de `entrypoint-initdb.d`.
 
 ### Dados demo
 

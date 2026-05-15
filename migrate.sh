@@ -11,8 +11,9 @@
 #    POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB
 #    O banco deve estar acessível em localhost:5432 (ou via Docker Compose).
 #
-#  Alternativa via Docker (sem instalar psql local):
-#    docker exec -i barbearia-postgres psql -U $POSTGRES_USER -d $POSTGRES_DB < migration.sql
+#  Sem psql local (mesma tabela _migrations, via docker compose exec):
+#    npm run db:migrate
+#    (implementação: scripts/migrate-docker.mjs)
 # ─────────────────────────────────────────────────────────────────────────────
 set -e
 

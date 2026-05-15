@@ -1,5 +1,18 @@
 # P2 — Runbook de suporte
 
+## Primeiro deploy após P2.1
+
+Objetivo: garantir **`103_operational_audit_events.sql`** e **`104_calendar_blocks_created_by.sql`** (e quaisquer migrations posteriores) em bases **já existentes**, sem comandos ad hoc por ficheiro.
+
+1. `git pull` na versão que contém as migrations.
+2. `docker compose up -d` (ou equivalente) até `postgres` **healthy**.
+3. Na **raiz do repositório**, com variáveis `POSTGRES_*` no `.env` alinhadas ao Compose:
+   - Se `npm run db:migrate:dry-run` listar **todas** as migrations como pendentes mas o volume já tem esquema (típico de `initdb` sem `_migrations`): **`npm run db:migrate:backfill -- --through <último-sql-já-aplicado>`** uma vez (ver `README.md` — «Volumes criados só pelo initdb»), depois **`npm run db:migrate`**.
+   - Caso contrário: **`npm run db:migrate`** — aplica apenas o que falta na tabela `_migrations` (via `scripts/migrate-docker.mjs`).
+   - Alternativa com `psql` local: **`./migrate.sh`** (mesma semântica).
+4. Reconstruir/recriar a API se o código tiver mudado: `docker compose build api && docker compose up -d --force-recreate api`.
+5. Smoke: `GET /health`, `GET /database/health`, depois `scripts/qa-api-p2-operational-battery.ps1` (ver `docs/P2_QA_EXECUCAO.md`).
+
 ## 1. Subir ambiente
 
 - Seguir `README.md` (Docker Compose ou `setup.ps1`).
@@ -23,7 +36,7 @@
 ## 4. Base de dados
 
 - Validar tenant: `tenant_id` em entidades.
-- Migrations: pasta `database/migrations/`.
+- Migrations: pasta `database/migrations/`; fluxo oficial com rastreamento `_migrations`: **`npm run db:migrate`** (Docker) ou **`./migrate.sh`** (psql local). Ver secção **«Primeiro deploy após P2.1»** acima para **103** e **104**.
 
 ## 5. QA P2.1 (API operacional)
 

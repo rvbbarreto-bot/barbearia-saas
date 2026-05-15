@@ -1,7 +1,7 @@
 {
   "name": "barbearia-saas",
   "private": true,
-  "description": "Monorepo portal (apps/web) + API (apps/api). Sem scripts npm na raiz até esta pasta — ver docs/QA_AMBIENTE_LOCAL.md.",
+  "description": "Monorepo portal (apps/web) + API (apps/api). Migrations na raiz: `npm run db:migrate` (Docker) ou `./migrate.sh` (psql local).",
   "scripts": {
     "dev": "node ./scripts/npm-root-dev-hint.cjs",
     "dev:web": "npm run dev --prefix apps/web",
@@ -10,6 +10,10 @@
     "compose:config": "docker compose config",
     "compose:up": "docker compose up -d --build",
     "compose:down": "docker compose down",
-    "compose:ps": "docker compose ps"
+    "compose:ps": "docker compose ps",
+    "db:migrate": "node ./scripts/migrate-docker.mjs",
+    "db:migrate:dry-run": "node ./scripts/migrate-docker.mjs --dry-run",
+    "db:migrate:seed": "node ./scripts/migrate-docker.mjs --seed",
+    "db:migrate:backfill": "node ./scripts/backfill-migrations-registry.mjs"
   }
 }
