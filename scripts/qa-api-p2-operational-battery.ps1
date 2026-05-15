@@ -86,10 +86,22 @@ function Invoke-ApiRaw {
 
 function Login-Token([string] $Email, [string] $Password) {
   $j = (@{ email = $Email; password = $Password } | ConvertTo-Json -Compress)
-  $r = Invoke-ApiRaw -Method Post -Url "$ApiBase/auth/login" -JsonBody $j
-  if ($r.Code -ne 200) { throw "Login falhou ($Email): HTTP $($r.Code) $($r.Body)" }
-  $o = $r.Body | ConvertFrom-Json
-  return [string]$o.access_token
+  $maxAttempts = 5
+  $delaySec = 65
+  for ($a = 1; $a -le $maxAttempts; $a++) {
+    $r = Invoke-ApiRaw -Method Post -Url "$ApiBase/auth/login" -JsonBody $j
+    if ($r.Code -eq 200) {
+      $o = $r.Body | ConvertFrom-Json
+      return [string]$o.access_token
+    }
+    if ($r.Code -eq 429 -and $a -lt $maxAttempts) {
+      Write-Host "Login rate limit ($Email); pausa ${delaySec}s ($a/$maxAttempts)..." -ForegroundColor DarkYellow
+      Start-Sleep -Seconds $delaySec
+      continue
+    }
+    throw "Login falhou ($Email): HTTP $($r.Code) $($r.Body)"
+  }
+  throw "Login falhou ($Email): tentativas esgotadas"
 }
 
 function Next-WeekdayDate([int] $MinDaysAhead) {
@@ -140,13 +152,13 @@ $r = Invoke-ApiRaw -Method Get -Url "$ApiBase/api/v1/appointments?page=1&limit=5
 }
 Write-ResultRow 'CT-P2-020' 403 $r.Code $r.Body
 
-# Escolher dia com slots suficientes
+# Escolher dia com slots suficientes (≥9: usa índices até [8] em bloqueios; calendário QA enche dias fixos)
 $dateStr = $null
 $slots = @()
-for ($i = 10; $i -le 40; $i += 5) {
+for ($i = 7; $i -le 120; $i += 3) {
   $tryDate = Next-WeekdayDate $i
   $slots = Get-AvailabilitySlots $hdrOk $tryDate
-  if ($slots.Count -ge 12) {
+  if ($slots.Count -ge 9) {
     $dateStr = $tryDate
     break
   }
@@ -343,8 +355,10 @@ $hdrProFred = @{
   'x-tenant-id' = $TenantId
 }
 $idemNv = "qa-p2-nv-$([Guid]::NewGuid().ToString('N').Substring(0, 12))"
-if ($slots.Count -ge 10) {
-  $sx = $slots[9]
+# Após vários agendamentos a lista pode ter <10 slots; basta um livre (último retornado).
+$slotsNv = Get-AvailabilitySlots $hdrOk $dateStr
+if ($slotsNv.Count -ge 1) {
+  $sx = $slotsNv[$slotsNv.Count - 1]
   $bodyNv = (@{
       customer_id             = $CustomerId
       professional_id         = $ProfessionalId
@@ -364,11 +378,11 @@ if ($slots.Count -ge 10) {
     Write-ResultRow 'CT-P2-035b-pro-denied' 403 $r.Code $r.Body
   }
   else {
-    Write-ResultRow 'CT-P2-035b-pro-denied' 403 599 'SKIP: criação slot 9 falhou'
+    Write-ResultRow 'CT-P2-035b-pro-denied' 403 599 'SKIP: criação appointment 035b falhou'
   }
 }
 else {
-  Write-ResultRow 'CT-P2-035b-pro-denied' 403 599 'SKIP: poucos slots'
+  Write-ResultRow 'CT-P2-035b-pro-denied' 403 599 'SKIP: availability vazia após fluxo P2.1'
 }
 
 # CT-P2-050 auditoria (tenant_owner)

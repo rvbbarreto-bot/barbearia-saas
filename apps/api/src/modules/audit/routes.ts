@@ -1,6 +1,9 @@
 import { FastifyInstance } from 'fastify';
-import { requireRole } from '../../middlewares/rbac.js';
+import { requirePermission, requireRole } from '../../middlewares/rbac.js';
 import { listAuditLogs, listOperationalAuditEvents } from './service.js';
+
+const listOpAuditHandler = async (request: any) =>
+  listOperationalAuditEvents(request.tenantId as string, request.query as Record<string, unknown>);
 
 export async function auditRoutes(app: FastifyInstance) {
   app.get(
@@ -11,8 +14,13 @@ export async function auditRoutes(app: FastifyInstance) {
 
   app.get(
     '/operational-audit-events',
-    { preHandler: requireRole('tenant_admin') },
-    async (request: any) =>
-      listOperationalAuditEvents(request.tenantId as string, request.query as Record<string, unknown>),
+    { preHandler: requirePermission('operationalAudit', 'read') },
+    listOpAuditHandler,
+  );
+
+  app.get(
+    '/operational-audit/events',
+    { preHandler: requirePermission('operationalAudit', 'read') },
+    listOpAuditHandler,
   );
 }

@@ -59,6 +59,21 @@ function Invoke-Api {
   }
 }
 
+function Invoke-LoginWithRetry([string]$Url, [string]$Body) {
+  $max = 5
+  $delay = 65
+  for ($i = 1; $i -le $max; $i++) {
+    $L = Invoke-Api POST $Url @{} $Body
+    if ($L.Status -eq 200) { return $L }
+    if ($L.Status -eq 429 -and $i -lt $max) {
+      Write-Warning "auth/login HTTP 429; aguardando ${delay}s ($i/$max)..."
+      Start-Sleep -Seconds $delay
+      continue
+    }
+    return $L
+  }
+}
+
 function Add-Row {
   param(
     [string]$Id,
@@ -102,7 +117,7 @@ function ApptJson {
 
 # --- Login ---
 $loginBody = (@{ email = $AdminEmail; password = $AdminPassword; tenant_id = '00000000-0000-0000-0000-000000000001' } | ConvertTo-Json -Compress)
-$L = Invoke-Api POST "$BaseUrl/auth/login" @{} $loginBody
+$L = Invoke-LoginWithRetry "$BaseUrl/auth/login" $loginBody
 if ($L.Status -ne 200) { Write-Error "Login falhou: $($L.Status) $($L.Content)"; exit 2 }
 $ownerToken = ($L.Content | ConvertFrom-Json).access_token
 $tenantId = '00000000-0000-0000-0000-000000000001'
@@ -118,45 +133,67 @@ $script:professionalId = $pro.id
 $script:serviceId = $pro.service_ids[0]
 $script:customerId = ($custList.data | Select-Object -First 1).id
 
-# Slots reais (evita 409 por dados de execuções anteriores)
-$availDateMain = '2027-03-15'
-$avMainResp = Invoke-Api GET ($ApiRoot + '/availability?professional_id=' + $script:professionalId + '&service_id=' + $script:serviceId + '&date=' + $availDateMain) $H
-$avMain = $avMainResp.Content | ConvertFrom-Json
-if ($avMainResp.Status -ne 200 -or -not $avMain.slots -or $avMain.slots.Count -lt 4) {
-  Write-Error "availability sem slots suficientes em $availDateMain (status=$($avMainResp.Status))"
+function Next-WeekdayDateNeg([int]$MinDaysAhead) {
+  $d = [DateTime]::UtcNow.Date.AddDays($MinDaysAhead)
+  while ($d.DayOfWeek -eq [DayOfWeek]::Sunday) { $d = $d.AddDays(1) }
+  return $d.ToString('yyyy-MM-dd')
+}
+
+function Find-AvailabilityPick([hashtable]$Headers, [string]$ProId, [string]$SvcId, [int]$MinSlots, [int]$StartDay, [int]$MaxDay, [string[]]$ExcludeDates) {
+  $ex = @{}
+  foreach ($x in $ExcludeDates) { if ($x) { $ex[$x] = $true } }
+  for ($i = $StartDay; $i -le $MaxDay; $i += 3) {
+    $ds = Next-WeekdayDateNeg $i
+    if ($ex.ContainsKey($ds)) { continue }
+    $u = $ApiRoot + '/availability?professional_id=' + $ProId + '&service_id=' + $SvcId + '&date=' + $ds + '&min_advance_minutes=0&max_slots=50'
+    $avMainResp = Invoke-Api GET $u $Headers
+    if ($avMainResp.Status -ne 200) { continue }
+    $av = $avMainResp.Content | ConvertFrom-Json
+    if ($av.slots -and $av.slots.Count -ge $MinSlots) {
+      return @{ DateStr = $ds; Slots = $av.slots }
+    }
+  }
+  return $null
+}
+
+# Slots reais: datas fixas esgotam-se após muitas baterias — procurar janela com massa suficiente.
+$mainPick = Find-AvailabilityPick $H $script:professionalId $script:serviceId 4 7 240 @()
+if (-not $mainPick) {
+  Write-Error "availability: nenhuma data com >=4 slots (pro=$script:professionalId svc=$script:serviceId)"
   exit 3
 }
-$script:slotStart = $avMain.slots[0].starts_at
-$script:slotEnd = $avMain.slots[0].ends_at
+$availDateMain = $mainPick.DateStr
+$script:slotStart = $mainPick.Slots[0].starts_at
+$script:slotEnd = $mainPick.Slots[0].ends_at
 
-$ct76Date = '2027-04-01'
-$av76 = (Invoke-Api GET ($ApiRoot + '/availability?professional_id=' + $script:professionalId + '&service_id=' + $script:serviceId + '&date=' + $ct76Date) $H).Content | ConvertFrom-Json
-if (-not $av76.slots -or $av76.slots.Count -lt 1) { Write-Error "availability vazia em $ct76Date"; exit 3 }
-$slot76s = $av76.slots[0].starts_at
-$slot76e = $av76.slots[0].ends_at
+$p76 = Find-AvailabilityPick $H $script:professionalId $script:serviceId 1 14 260 @($availDateMain)
+if (-not $p76) { Write-Error 'availability CT-076: sem dia com slot'; exit 3 }
+$ct76Date = $p76.DateStr
+$slot76s = $p76.Slots[0].starts_at
+$slot76e = $p76.Slots[0].ends_at
 $ts76 = [DateTimeOffset]::Parse($slot76s, $null, [System.Globalization.DateTimeStyles]::RoundtripKind)
 $slot77s = $ts76.AddMinutes(15).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ss.fffZ')
 $slot77e = $ts76.AddMinutes(45).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ss.fffZ')
 
-$ct80Date = '2027-05-10'
-$av80 = (Invoke-Api GET ($ApiRoot + '/availability?professional_id=' + $script:professionalId + '&service_id=' + $script:serviceId + '&date=' + $ct80Date) $H).Content | ConvertFrom-Json
-if (-not $av80.slots -or $av80.slots.Count -lt 1) { Write-Error "availability vazia em $ct80Date"; exit 3 }
-$slot80s = $av80.slots[0].starts_at
-$slot80e = $av80.slots[0].ends_at
+$p80 = Find-AvailabilityPick $H $script:professionalId $script:serviceId 1 21 280 @($availDateMain, $ct76Date)
+if (-not $p80) { Write-Error 'availability CT-080: sem dia com slot'; exit 3 }
+$ct80Date = $p80.DateStr
+$slot80s = $p80.Slots[0].starts_at
+$slot80e = $p80.Slots[0].ends_at
 
-$ct81Date = '2027-05-11'
-$av81 = (Invoke-Api GET ($ApiRoot + '/availability?professional_id=' + $script:professionalId + '&service_id=' + $script:serviceId + '&date=' + $ct81Date) $H).Content | ConvertFrom-Json
-if (-not $av81.slots -or $av81.slots.Count -lt 2) { Write-Error "availability slots insuficientes em $ct81Date"; exit 3 }
-$slot81aS = $av81.slots[0].starts_at
-$slot81aE = $av81.slots[0].ends_at
-$slot81bS = $av81.slots[1].starts_at
-$slot81bE = $av81.slots[1].ends_at
+$p81 = Find-AvailabilityPick $H $script:professionalId $script:serviceId 2 28 300 @($availDateMain, $ct76Date, $ct80Date)
+if (-not $p81) { Write-Error 'availability CT-081: sem dia com 2+ slots'; exit 3 }
+$ct81Date = $p81.DateStr
+$slot81aS = $p81.Slots[0].starts_at
+$slot81aE = $p81.Slots[0].ends_at
+$slot81bS = $p81.Slots[1].starts_at
+$slot81bE = $p81.Slots[1].ends_at
 
-$ct114Date = '2027-06-01'
-$av114 = (Invoke-Api GET ($ApiRoot + '/availability?professional_id=' + $script:professionalId + '&service_id=' + $script:serviceId + '&date=' + $ct114Date) $H).Content | ConvertFrom-Json
-if (-not $av114.slots -or $av114.slots.Count -lt 1) { Write-Error "availability vazia em $ct114Date"; exit 3 }
-$slot114s = $av114.slots[0].starts_at
-$slot114e = $av114.slots[0].ends_at
+$p114 = Find-AvailabilityPick $H $script:professionalId $script:serviceId 1 35 320 @($availDateMain, $ct76Date, $ct80Date, $ct81Date)
+if (-not $p114) { Write-Error 'availability CT-114: sem dia com slot'; exit 3 }
+$ct114Date = $p114.DateStr
+$slot114s = $p114.Slots[0].starts_at
+$slot114e = $p114.Slots[0].ends_at
 
 Write-Host "Massa: pro=$script:professionalId svc=$script:serviceId cust=$script:customerId slot=$script:slotStart->$script:slotEnd"
 
@@ -271,7 +308,7 @@ Add-Row 'CT-072' 'sem explicit_confirmation' 'POST' ($ApiRoot + '/appointments')
 
 # CT-073-B antes de CT-073: o owner com explicit_confirmation=false ocupa o slot principal; senão o atendente recebe 409 por conflito em vez de 403.
 $loginAttBody = (@{ email = 'atendente@demo.local'; password = $AdminPassword; tenant_id = $tenantId } | ConvertTo-Json -Compress)
-$LAtt = Invoke-Api POST "$BaseUrl/auth/login" @{} $loginAttBody
+$LAtt = Invoke-LoginWithRetry "$BaseUrl/auth/login" $loginAttBody
 if ($LAtt.Status -ne 200) {
   Add-Row 'CT-073-B' 'explicit_confirmation false (atendente)' 'POST' ($ApiRoot + '/appointments') '403' 0 '' $LAtt.Content 'FALHA' 'Login atendente@demo.local falhou'
 }
