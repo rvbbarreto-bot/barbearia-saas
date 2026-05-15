@@ -1,0 +1,13 @@
+CI HEAD — Success
+HEAD: a379e11d7c964522698cff5d5c0f33897f2d24b5
+Branch: feature/p2-2-web-outbox-whatsapp-operational
+
+Run #9 (HEAD docs):
+https://github.com/rvbbarreto-bot/barbearia-saas/actions/runs/25929603100
+Status: Success | 1m 3s
+
+Run #8 (código estável):
+https://github.com/rvbbarreto-bot/barbearia-saas/actions/runs/25929492356
+Status: Success | 1m 3s
+
+Jobs (ambos runs): API typecheck+lint+test+build | Web | npm audit | Gitleaks — OK

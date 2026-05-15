@@ -1,0 +1,7 @@
+Repositório: https://github.com/rvbbarreto-bot/barbearia-saas
+API GitHub 2026-05-15: private=false, visibility=public
+
+Recomendação PO: alterar para Private.
+Se permanecer Public: assinar docs/WAIVER_REPO_PUBLICO.md
+
+Gitleaks CI verde — sem vazamento conhecido no histórico versionado.

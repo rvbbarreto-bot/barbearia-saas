@@ -1,0 +1,1 @@
+{"status":"ok","source":"GET http://localhost:3000/health","date":"2026-05-15","note":"Substituir URL por API staging após deploy Traefik"}

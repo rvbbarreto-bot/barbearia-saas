@@ -1,0 +1,14 @@
+Evolution — status PILOTO-STAGING-01 (D+0)
+
+Variáveis (não versionadas):
+- EVOLUTION_API_URL: PENDENTE (staging real)
+- EVOLUTION_API_KEY: PENDENTE (secret manager)
+
+Referência exemplo (placeholders apenas):
+- .env.example: https://evolution.example.com
+- .env.staging.example: https://evolution.seudominio.com
+
+Local/dev: worker ativo; envio falha controlada se URL placeholder.
+Declaração piloto: docs/DECLARACAO_PILOTO_EVOLUTION.md
+
+Próximo passo: DevOps preencher .env.staging + smoke sendText → evidências 18–21.

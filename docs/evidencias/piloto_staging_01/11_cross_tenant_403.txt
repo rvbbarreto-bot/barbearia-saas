@@ -1,0 +1,6 @@
+Cross-tenant — API
+Fonte: bateria QA negativa / mvp_piloto_aceite (revalidar em staging)
+Cenário: token tenant A + X-Tenant-Id tenant B
+Resultado esperado: HTTP 403
+
+HTTP 403

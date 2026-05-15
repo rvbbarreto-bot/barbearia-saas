@@ -1,0 +1,13 @@
+PR feature/p2-2-web-outbox-whatsapp-operational → main
+
+Status D+0: compare disponível; PR ainda não listado em /pulls (0 open).
+Requer sessão GitHub do proprietário (rvbbarreto-bot) para criar.
+
+URL compare:
+https://github.com/rvbbarreto-bot/barbearia-saas/compare/main...feature/p2-2-web-outbox-whatsapp-operational?expand=1
+
+Nota GitHub: "main and feature branch are entirely different commit histories"
+(main = Initial commit a98586e | feature = 45 commits produto)
+
+Corpo sugerido: docs/PR_PILOTO_STAGING_01_BODY.md
+NÃO fazer merge sem PO.

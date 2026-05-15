@@ -1,0 +1,8 @@
+Web — referência operacional (D+0)
+
+Staging cloud: PENDENTE provisionamento (ver docs/PILOTO_STAGING_01_DEPLOY_ROLLBACK.md)
+
+Ambiente local Docker (validação fábrica 2026-05-15):
+- URL: http://localhost:3001
+- Container: barbearia-web — healthy
+- Nota: substituir por URL staging real em 05_staging_web_ok.png após deploy

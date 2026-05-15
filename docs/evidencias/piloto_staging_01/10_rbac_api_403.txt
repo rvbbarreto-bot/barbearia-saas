@@ -1,0 +1,7 @@
+RBAC retry outbox — atendente
+Fonte: bateria QA / mvp_piloto_aceite (revalidar em staging)
+Endpoint: POST /outbox/messages/:id/retry
+Role: attendant
+Resultado esperado: HTTP 403
+
+HTTP 403

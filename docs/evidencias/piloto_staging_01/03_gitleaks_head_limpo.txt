@@ -1,0 +1,6 @@
+Gitleaks — HEAD a379e11
+CI run #9 job Security — Gitleaks: OK (6s)
+Artifact: gitleaks-results.sarif
+https://github.com/rvbbarreto-bot/barbearia-saas/actions/runs/25929603100
+
+Scan local (2026-05-15): no leaks found (~311 MB)
