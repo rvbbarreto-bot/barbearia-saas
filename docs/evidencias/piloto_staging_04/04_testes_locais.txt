@@ -1,0 +1,25 @@
+[PILOTO-STAGING-04] Testes LOCAIS esperados antes de QUALQUER marcação OK na matriz
+==================================================================================
+
+Estado kickoff apenas — preencher após primeira fatia código entregável.
+
+API (folder apps/api quando aplicável atualizações próximos PRs inferiores)
+  npm run typecheck   (sempre)
+  npm run lint
+  npm run test:unit
+  npm test -- --coverage  (integrations)
+
+WEB
+  npm run lint --prefix apps/web
+  npm run typecheck --prefix apps/web
+  npm test --prefix apps/web
+  npm run build --prefix apps/web
+
+Raiz segurança
+  npm run n8n:validate-workflows   (somente válido quando script existir/versionado igual piloto‑03 merges futuros opcionais)
+  Observação: HEAD piloto-staging-01 puro inicial não inclui esse script até merge lateral — marcar BLOCKED até alinhamento.
+
+SECURITY
+  npm audit --prefix apps/api  --audit-level=high (echo exit status)
+  idem apps/web
+
