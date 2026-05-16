@@ -1,0 +1,44 @@
+# Piloto-STAGING-* — impedir merges acidentais em `main`
+#
+# Regra GP: ramos feature/piloto-staging-* devem abrir PR apenas contra piloto-staging-01.
+# Este workflow falha assim que existe PR cuja base é `main` e o head coincide com piloto staging.
+#
+# Evidência: docs/evidencias/piloto_staging_04/08_pr_e_ci.md
+name: Governance — piloto não pode targetar main
+
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - edited
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  deny-piloto-feature-to-main:
+    name: Bloquear feature/piloto-staging-* → main
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validar branch head vs base
+        shell: bash
+        env:
+          BASE: ${{ github.base_ref }}
+          HEAD: ${{ github.head_ref }}
+        run: |
+          set -euo pipefail
+          echo "Pull request: head=$HEAD → base=$BASE"
+          if [[ "$BASE" != "main" ]]; then
+            echo "Base não é main — job não aplicável aqui."
+            exit 0
+          fi
+          if [[ "$HEAD" =~ ^feature/piloto-staging- ]]; then
+            echo "::error::Ramificações feature/piloto-staging-* devem ter base piloto-staging-01, não main (head atual: ${HEAD})."
+            exit 1
+          fi
+          echo "Head não corresponde a feature/piloto-staging-* — sem bloqueio."
+          exit 0
