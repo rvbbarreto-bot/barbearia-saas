@@ -26,7 +26,7 @@
 | # | Critério | Status | Notas |
 |---|----------|--------|-------|
 | B1 | Branch derivada de `piloto-staging-01` | OK | Feature branch piloto-03 |
-| B2 | PR #4 com **descrição formal** (escopo, SHA, CI, riscos) | PEND | Corpo modelo: `PR_4_CORPO_DESCRICAO.md` — colar no GitHub |
+| B2 | PR #4 com **descrição formal** no GitHub | PEND | Conteúdo canónico: `PR_4_CORPO_DESCRICAO.md` — **colar no GitHub** ou `scripts/update-pr4-description.ps1` com `GITHUB_TOKEN` |
 | B3 | CI verde no PR | OK | Conforme decisão PO pós-QA |
 | B4 | Gitleaks verde | OK | Conforme decisão PO |
 | B5 | Workflows n8n **executados** em ambiente piloto + evidências reais | PEND | Substituir `*.png.txt` por PNG; anexar JSON de execução real |

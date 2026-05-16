@@ -1,14 +1,10 @@
-# PR #4 — Corpo sugerido para descrição (governança)
-
-Copiar para a descrição do PR no GitHub (o ambiente da fábrica não dispõe de `gh` CLI nesta máquina).
-
----
-
 ## Resumo
 
 Entrega **técnica parcial** PILOTO-STAGING-03: endurecimento dos workflows n8n (01 router, 03 QA SendText, 03 recall), alinhamento `.env.example` / `docker-compose`, validador estático e pasta de evidências com **placeholders** para capturas reais.
 
 **Commit analisado pelo PO (aceite parcial técnico):** `ecf36a35467cd9e2007e7a0329cc1c3ea3df5b45`
+
+**Commit de governança / documentação (aprovado PO):** `32eb79a43958725ab4f9ed4205073dfbd11667de`
 
 **Aceite funcional / merge / homologação:** **não** — ver matriz `docs/evidencias/piloto_staging_03/03_matriz_aceite.md`.
 
@@ -22,7 +18,7 @@ Entrega **técnica parcial** PILOTO-STAGING-03: endurecimento dos workflows n8n 
 
 ## CI e segurança
 
-- CI do PR: **verde** (conforme decisão PO pós-bateria).
+- CI do PR: **verde** (HEAD `32eb79a`, conforme decisão PO).
 - Gitleaks: **passou** (conforme decisão PO).
 - **Sem** credencial real versionada no pacote (conforme decisão PO).
 
@@ -42,7 +38,7 @@ Entrega **técnica parcial** PILOTO-STAGING-03: endurecimento dos workflows n8n 
 2. `N8N_WORKFLOW_02_ID` definido no ambiente piloto **ou** decisão documentada (Opção A vs B).
 3. Evidências **PNG reais** (substituir `*.png.txt` em `qa_n8n/`).
 4. SendText real **ou** estado **BLOCKED** com causa raiz e responsável.
-5. Matriz de aceite actualizada (OK / PEND / BLOCKED / N/A).
+5. Matriz de aceite actualizada (OK / PEND / BLOCKED / N/A) **com prova objetiva** por item antes de mover PEND → OK.
 
 ## Test plan (re-execução pós-ajustes)
 
@@ -50,6 +46,9 @@ Entrega **técnica parcial** PILOTO-STAGING-03: endurecimento dos workflows n8n 
 - CI completo no PR após push
 - Matriz `03_matriz_aceite.md` revista pelo PO
 
----
+## Como colar esta descrição no GitHub (se `gh` não estiver instalado)
 
-**Nota:** Após colar esta descrição no GitHub, apagar ou arquivar este ficheiro opcionalmente, ou mantê-lo como registo interno.
+1. Abrir o PR **#4** no repositório `rvbbarreto-bot/barbearia-saas`.
+2. Clicar **Edit** na descrição do PR.
+3. Seleccionar **todo** o conteúdo deste ficheiro (Ctrl+A) e colar no corpo do PR.
+4. Opcional: `.\scripts\update-pr4-description.ps1` com `GITHUB_TOKEN` (fine-grained: `pull_requests: write` no repo).
