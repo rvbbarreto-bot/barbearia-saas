@@ -4,7 +4,7 @@
 
 **Proibido** mover `PEND→OK` sem **evidência objetiva** (teste automatizado nomeado ou artefacto anexado mascarado).  
 
-**Última actualização estrutura:** kickoff apenas — maioria marcada **`PEND`**.
+**Última actualização:** fatia B — dashboard operacional (API + Web + testes automatizados).
 
 ---
 
@@ -25,10 +25,12 @@
 
 | Critério | Status | Métricas prova futura |
 |----------|--------|-----------------------|
-| Health API / DB | PEND | Screenshot sanitizado chamando `/health/ready`, DB indicator |
-| n8n + Evolution reachable flags | PEND | Mock ou probing seguro apenas DEV |
-| Workers + outbox estados consolidados UI | PEND | —
-| Lista últimos erros operativos filtros temporal | PEND | Playwright/smoke opcional |
+| API `GET /api/v1/operational/status` + RBAC + cross-tenant | OK | Ver `docs/evidencias/piloto_staging_04/04_testes_locais.txt` |
+| UI `/operacao/status` | OK | `operacaoStatusLabels.test.ts`, `nav.test.ts`, `route-access.test.ts`, `04_testes_locais.txt` |
+| Health API / DB (painel) | OK | Incluído em operational/status |
+| n8n + Evolution probe automático | PEND | `not_probed` + verificação manual |
+| Filtros avançados (período/correlation) | PEND | Próxima fatia |
+| Screenshots PNG piloto | PEND | `09_prints_ou_placeholders.md` |
 
 ---
 

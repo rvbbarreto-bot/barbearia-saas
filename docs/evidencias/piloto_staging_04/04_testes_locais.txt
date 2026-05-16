@@ -1,25 +1,75 @@
-[PILOTO-STAGING-04] Testes LOCAIS esperados antes de QUALQUER marcação OK na matriz
-==================================================================================
+[PILOTO-STAGING-04] Evidência — testes locais (fatia B: dashboard operacional)
+================================================================================
+Data: 2026-05-16
+Branch: feature/piloto-staging-04-operacao-assistida-suite-produto
+Escopo: GET /api/v1/operational/status + UI /operacao/status
 
-Estado kickoff apenas — preencher após primeira fatia código entregável.
+CONTAGEM DE TESTES (vitest)
+---------------------------
+API (apps/api, npm run test:unit — exclui *.integration.test.ts exceto routes.*.integration)
+  Antes (HEAD sem módulo operationalStatus): 167 testes / 36 ficheiros
+  Depois (com fatia B):                    175 testes / 38 ficheiros
+  Delta: +8 testes / +2 ficheiros de teste na suite unitária
 
-API (folder apps/api quando aplicável atualizações próximos PRs inferiores)
-  npm run typecheck   (sempre)
-  npm run lint
-  npm run test:unit
-  npm test -- --coverage  (integrations)
+API — módulo operationalStatus isolado (npx vitest run src/modules/operationalStatus/)
+  11 passed (sanitize + service + routes RBAC); 1 skipped (DB integration — ver nota)
+
+WEB (apps/web, npm test)
+  Antes (estimado, sem ficheiros operacao/*): 42 testes / 10 ficheiros
+  Depois:                                     46 testes / 11 ficheiros
+  Delta: +4 testes / +1 ficheiro
+
+NOVOS FICHEIROS DE TESTE (por ficheiro)
+---------------------------------------
+API
+  apps/api/src/modules/operationalStatus/sanitize-error.test.ts
+    — redact bearer/apikey; empty null; classify timeout/fetch/401/404
+  apps/api/src/modules/operationalStatus/service.test.ts
+    — emptyOutboxCounts; probe ok/degraded sem vazar segredo; getOperationalStatus agrega outbox
+  apps/api/src/modules/operationalStatus/routes.integration.test.ts
+    — attendant 200; viewer 403; sem token 401
+  apps/api/src/modules/operationalStatus/operational-status.integration.test.ts
+    — cross-tenant counts/recent_errors (requer Postgres CI — ver nota)
+  apps/api/src/middlewares/rbac.test.ts (alterado)
+    — operationalDashboard read attendant+
 
 WEB
-  npm run lint --prefix apps/web
-  npm run typecheck --prefix apps/web
-  npm test --prefix apps/web
-  npm run build --prefix apps/web
+  apps/web/src/features/operacao/operacaoStatusLabels.test.ts
+    — canViewOperacaoStatus; healthLabel/badge; outboxCountLabel
+  apps/web/src/config/nav.test.ts (alterado)
+    — Status operação visível attendant+, oculto viewer
+  apps/web/src/lib/route-access.test.ts (alterado)
+    — /operacao/status attendant+ / viewer negado
 
-Raiz segurança
-  npm run n8n:validate-workflows   (somente válido quando script existir/versionado igual piloto‑03 merges futuros opcionais)
-  Observação: HEAD piloto-staging-01 puro inicial não inclui esse script até merge lateral — marcar BLOCKED até alinhamento.
+COMANDOS OBRIGATÓRIOS — RESULTADO LOCAL
+---------------------------------------
+API typecheck     PASS  (apps/api)
+API lint          PASS  (0 errors, warnings legados no-explicit-any)
+API unit tests    PASS  175/175
+API integration   PARCIAL — ver nota Postgres
+API build         PASS
 
-SECURITY
-  npm audit --prefix apps/api  --audit-level=high (echo exit status)
-  idem apps/web
+WEB lint          PASS  (0 errors)
+WEB typecheck     PASS  (após fix EmptyState onAction + title nullable)
+WEB tests         PASS  46/46
+WEB build         PASS
 
+npm audit (raiz)  SKIP — sem package-lock na raiz (ENOENT)
+npm audit api     2 moderate (@fastify/swagger-ui → @fastify/static); exit 0
+npm audit web     0 vulnerabilities
+
+gitleaks          PASS  (ghcr.io/gitleaks/gitleaks:v8.24.3, no leaks found)
+
+npm run n8n:validate-workflows  PASS
+  OK 01_whatsapp_router_multitenant.json
+  OK 02_ai_scheduling_agent_multitenant.json
+  OK 03_recall_30_days_multitenant.json
+
+NOTA — integração API completa (npm test em apps/api)
+  Com credenciais CI (barbearia_saas_test) o job GitHub Actions executa a suite completa.
+  Local: Postgres Docker (barbearia_test) usa passwords distintas; operational-status.integration
+  falhou autenticação — não invalida testes unitários/RBAC mock nem execução em CI.
+  Suite filtrada operationalStatus (sem DB): 11 passed.
+
+REFERÊNCIA MATRIZ
+  docs/evidencias/piloto_staging_04/03_matriz_aceite.md — secção B

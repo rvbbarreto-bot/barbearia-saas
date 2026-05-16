@@ -43,6 +43,10 @@ export const permissionPolicy = {
     read: 'attendant',
     retry: 'manager',
   },
+  /** Painel operacional (health + outbox agregado sanitizado) — gestão+. */
+  operationalDashboard: {
+    read: 'manager',
+  },
   /** Eventos operacionais (`operational_audit_events`) — diagnóstico suporte; metadata sem segredos à escrita. */
   operationalAudit: {
     read: 'attendant',

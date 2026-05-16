@@ -57,4 +57,12 @@ describe('rbac role checks', () => {
     expect(canAccess('attendant', 'operationalAudit', 'read')).toBe(true);
     expect(canAccess('manager', 'operationalAudit', 'read')).toBe(true);
   });
+
+  it('allows operational dashboard read from manager+ only', () => {
+    expect(canAccess('viewer', 'operationalDashboard', 'read')).toBe(false);
+    expect(canAccess('attendant', 'operationalDashboard', 'read')).toBe(false);
+    expect(canAccess('professional', 'operationalDashboard', 'read')).toBe(false);
+    expect(canAccess('manager', 'operationalDashboard', 'read')).toBe(true);
+    expect(canAccess('tenant_admin', 'operationalDashboard', 'read')).toBe(true);
+  });
 });

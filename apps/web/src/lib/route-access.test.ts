@@ -38,6 +38,9 @@ describe('canAccessPath (RBAC painel V4)', () => {
     expect(canAccessPath('/lista-espera', 'attendant')).toBe(true);
     expect(canAccessPath('/auditoria', 'manager')).toBe(false);
     expect(canAccessPath('/auditoria', 'tenant_admin')).toBe(true);
+    expect(canAccessPath('/operacao/status', 'viewer')).toBe(false);
+    expect(canAccessPath('/operacao/status', 'attendant')).toBe(false);
+    expect(canAccessPath('/operacao/status', 'manager')).toBe(true);
     expect(canAccessPath('/operacao/financeiro', 'attendant')).toBe(false);
     expect(canAccessPath('/operacao/financeiro', 'manager')).toBe(true);
     expect(canAccessPath('/operacao/comissao', 'viewer')).toBe(false);

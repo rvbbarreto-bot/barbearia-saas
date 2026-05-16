@@ -24,6 +24,9 @@ const ComissaoPage = lazy(() => import('@/features/comissao/ComissaoPage').then(
 const OutboxMessagesPage = lazy(() =>
   import('@/features/outbox/OutboxMessagesPage').then((m) => ({ default: m.OutboxMessagesPage })),
 );
+const OperacaoStatusPage = lazy(() =>
+  import('@/features/operacao/OperacaoStatusPage').then((m) => ({ default: m.OperacaoStatusPage })),
+);
 
 function PageSuspense({ children }: { children: React.ReactNode }) {
   return (
@@ -145,6 +148,16 @@ export function AppRouter() {
                 <PageSuspense>
                   <RoleGuard minRole="manager">
                     <FinanceiroPage />
+                  </RoleGuard>
+                </PageSuspense>
+              }
+            />
+            <Route
+              path="/operacao/status"
+              element={
+                <PageSuspense>
+                  <RoleGuard minRole="manager">
+                    <OperacaoStatusPage />
                   </RoleGuard>
                 </PageSuspense>
               }
