@@ -6,6 +6,8 @@ Entrega **técnica parcial** PILOTO-STAGING-03: endurecimento dos workflows n8n 
 
 **Commit de governança / documentação (aprovado PO):** `32eb79a43958725ab4f9ed4205073dfbd11667de`
 
+**Ajuste documental/script (aprovado PO):** `9a03362c6ef458826b8e3af01a56e484f608239f` — corpo PR #4 + `scripts/update-pr4-description.ps1`; ver incidente **PR #5** em `01_governanca_incidente_pr5_base_main.md` (não usar PR contra `main`).
+
 **Aceite funcional / merge / homologação:** **não** — ver matriz `docs/evidencias/piloto_staging_03/03_matriz_aceite.md`.
 
 ## Escopo versionado

@@ -24,4 +24,4 @@
 
 - Branch de trabalho: `feature/piloto-staging-03-qa-operacional-n8n-ready` criada a partir de **`piloto-staging-01`** no momento do kickoff.
 - PRs desta entrega: **somente** contra **`piloto-staging-01`**.
-- CI: ver `.github/workflows/ci.yml` (push na feature + `pull_request` → `piloto-staging-01`).
+- O **PR #4** destina-se exclusivamente à base **`piloto-staging-01`**. Ver incidente **[PR #5](01_governanca_incidente_pr5_base_main.md)** (base `main` — fechar sem merge).

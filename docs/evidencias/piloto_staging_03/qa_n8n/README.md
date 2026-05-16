@@ -31,4 +31,4 @@ Esta pasta recolhe **artefactos de execução** do time de QA e da fábrica. **N
 - **PNG:** os ficheiros `02_*.png.txt`, `04_*.png.txt`, etc. são **instruções** — o PO exige substituição por **ficheiros `.png` reais`** com o mesmo prefixo numérico antes do aceite funcional.
 - **Não** commitar segredos nem `.env` real.
 - **`Evidências.docx`:** manter fora do git (ignorado em `.gitignore`); usar Markdown/JSON nesta pasta.
-- **`*.LOCAL_IMPORT.json`:** proibido versionar — ignorado e removido do working tree canónico; importar apenas `docs/n8n/*.json` oficiais.
+- **Governança PR #5 (base `main`):** registo em `docs/evidencias/piloto_staging_03/01_governanca_incidente_pr5_base_main.md`; evidências `22_` / `23_` na pasta `qa_n8n/`.

@@ -35,8 +35,10 @@
 | B8 | Outbox + retry RBAC | PEND | |
 | B9 | Auditoria correlation_id | PEND | |
 | B10 | Cross-tenant + scope com evidência | PEND | |
-| B11 | Incidente PR #2/main documentado | OK | |
-| B12 | Nenhum merge em `main` desta entrega | OK | PR #4 aberto sem merge |
+| B11 | Incidente PR #2/main documentado | OK | `00_governanca_incidente_pr2_merge_main.md` |
+| B11b | Incidente PR #5/base `main` documentado; PR #5 fechado **sem merge** | PEND | `01_governanca_incidente_pr5_base_main.md` + evidência `22_evidence_pr5_closed.md` |
+| B12 | Nenhum merge indevido: `main` intacto; PR #4 sem merge | OK | PR #5 **reprovado** — não mergear |
+| B13 | Evidência PR #4 (base, head, SHA, descrição, checks) | PEND | `23_evidence_pr4_description_and_base.md` |
 
 ---
 
