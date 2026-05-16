@@ -12,7 +12,7 @@
 |-------|-----|
 | **Inicial** (tip `piloto-staging-01` antes desta fatia código) | `505447a700561ea9e54a90510e16eb7df9d38c69` |
 | **Merge-base** `HEAD` × `piloto-staging-01` | `f1955e0dd2d9e03df728970a43a0ce852eb2fafb` |
-| **Final** (após commit `feat(ops): operational dashboard manager RBAC`) | _preencher com `git rev-parse HEAD` após push_ |
+| **Final** (após commit `feat(ops): operational dashboard manager RBAC`) | `d9df160984673fe8fb2fa8032ed41e941dff21ba` |
 
 ---
 

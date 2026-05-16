@@ -25,7 +25,7 @@
 
 | Critério | Status | Métricas prova futura |
 |----------|--------|-----------------------|
-| API `GET /api/v1/operational/status` + RBAC + cross-tenant | OK | Ver `docs/evidencias/piloto_staging_04/04_testes_locais.txt` |
+| API `GET /api/v1/operational/status` + RBAC manager+ + cross-tenant + filtros | OK | `04_testes_locais.txt`, commit `d9df160` |
 | UI `/operacao/status` | OK | `operacaoStatusLabels.test.ts`, `nav.test.ts`, `route-access.test.ts`, `04_testes_locais.txt` |
 | Health API / DB (painel) | OK | Incluído em operational/status |
 | n8n + Evolution probe automático | PEND | `not_probed` + verificação manual |

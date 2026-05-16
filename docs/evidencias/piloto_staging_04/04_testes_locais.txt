@@ -8,8 +8,8 @@ CONTAGEM DE TESTES (vitest)
 ---------------------------
 API (apps/api, npm run test:unit — exclui *.integration.test.ts exceto routes.*.integration)
   Antes (HEAD sem módulo operationalStatus): 167 testes / 36 ficheiros
-  Depois (com fatia B):                    175 testes / 38 ficheiros
-  Delta: +8 testes / +2 ficheiros de teste na suite unitária
+  Depois (com fatia B completa):           182 testes / 40 ficheiros
+  Delta: +15 testes / +4 ficheiros na suite unitária
 
 API — módulo operationalStatus isolado (npx vitest run src/modules/operationalStatus/)
   11 passed (sanitize + service + routes RBAC); 1 skipped (DB integration — ver nota)
