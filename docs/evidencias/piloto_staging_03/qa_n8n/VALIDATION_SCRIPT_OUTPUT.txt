@@ -1,0 +1,15 @@
+Validação executada localmente (pré-commit do pacote QA):
+
+--- docs\n8n ---
+OK docs\n8n/01_whatsapp_router_multitenant.json nodes=6 active=false
+OK docs\n8n/02_ai_scheduling_agent_multitenant.json nodes=9 active=false
+OK docs\n8n/03_QA_Barbearia_Evolution_SendText_Smoke.json nodes=4 active=false
+OK docs\n8n/03_recall_30_days_multitenant.json nodes=8 active=false
+--- n8n\workflows ---
+OK n8n\workflows/01_whatsapp_router_multitenant.json nodes=6 active=false
+OK n8n\workflows/02_ai_scheduling_agent_multitenant.json nodes=9 active=false
+OK n8n\workflows/03_QA_Barbearia_Evolution_SendText_Smoke.json nodes=4 active=false
+OK n8n\workflows/03_recall_30_days_multitenant.json nodes=8 active=false
+n8n JSON structural validation passed.
+
+Comando: node scripts/n8n-validate-workflow-import.mjs

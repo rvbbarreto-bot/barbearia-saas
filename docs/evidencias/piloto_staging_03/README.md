@@ -15,7 +15,9 @@
 | `03_matriz_aceite.md` | Critérios de aceite |
 | `04_roteiro_qa_n8n.md` | Roteiro QA n8n (import, smoke, erros controlados) |
 | `05_roteiro_qa_web_api.md` | Roteiro QA Web/API + painel homologação |
-| `06_riscos_e_fora_escopo.md` | Riscos residuais e fora de escopo |
+| `10_guia_inicio_testes_qa_n8n.md` | **Guia formal início QA n8n** (pré-requisitos, variáveis, BDD, matriz, import) |
+| `qa_n8n/README.md` | Placeholders de evidências + `VALIDATION_SCRIPT_OUTPUT.txt` |
+| `../n8n/README.md` | Espelho de workflows em `docs/n8n/` |
 
 ## Abrir PR (base obrigatória)
 
@@ -24,11 +26,11 @@ https://github.com/rvbbarreto-bot/barbearia-saas/compare/piloto-staging-01...fea
 
 Não abrir PR com base `main`.
 
+**Início dos testes QA (n8n):** ver `10_guia_inicio_testes_qa_n8n.md`.
+
 ## Workflows n8n obrigatórios (repo)
 
-- `n8n/workflows/01_whatsapp_router_multitenant.json`
-- `n8n/workflows/02_ai_scheduling_agent_multitenant.json`
-- `n8n/workflows/03_QA_Barbearia_Evolution_SendText_Smoke.json`
-- `n8n/workflows/03_recall_30_days_multitenant.json` (recall 30 dias)
+- **Cópia para QA (import guiado):** `docs/n8n/01_*.json` … (espelho; ver `docs/n8n/README.md`)
+- **Fonte histórica:** `n8n/workflows/*.json` (mesmo conteúdo após sincronização)
 
-Validação em CI de ficheiros: `node scripts/n8n-validate-workflow-import.mjs` (quando integrado no pipeline desta entrega).
+Validação: `node scripts/n8n-validate-workflow-import.mjs`

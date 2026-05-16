@@ -14,6 +14,12 @@
 - Entrega agenda operacional integrada via **[PR #3](https://github.com/rvbbarreto-bot/barbearia-saas/pull/3)** → `piloto-staging-01` (base correta).
 - PR #2 deve permanecer **fechado sem merge** se ainda existir em estado aberto; **não** reutilizar como veículo de entrega piloto.
 
+## Correção documental — pacote de preparação QA (PILOTO-STAGING-03)
+
+- Este ficheiro foi **revisto** no âmbito do commit de preparação QA (`chore(piloto-03): prepare n8n QA test pack for PO approval`) para reforçar a **linha oficial** (`piloto-staging-01`), proibição de merge/revert/force em `main` sem PO, e referência ao **PR #3** como entrega correta de agenda.
+- O **PR #2** continua classificado como **incidente de base incorreta** (`main`); qualquer trabalho de reconciliação da branch `main` com o piloto é **fora do escopo** deste pacote e exige decisão explícita de gestão.
+- O guia operacional para QA n8n encontra-se em **`10_guia_inicio_testes_qa_n8n.md`**.
+
 ## Impacto para PILOTO-STAGING-03
 
 - Branch de trabalho: `feature/piloto-staging-03-qa-operacional-n8n-ready` criada a partir de **`piloto-staging-01`** no momento do kickoff.
