@@ -1,18 +1,20 @@
-# Relatório de entrega PO/GP — PILOTO-STAGING-04 (ampliação autorizada)
+# Relatório de entrega PO/GP — PILOTO-STAGING-04
 
 **Data:** 2026-05-16  
-**Branch obrigatória:** `feature/piloto-staging-04-operacao-assistida-suite-produto`  
-**Base obrigatória:** `piloto-staging-01`  
+**Branch:** `feature/piloto-staging-04-operacao-assistida-suite-produto`  
+**Base PR:** `piloto-staging-01` (proibido target `main`)  
+**Status PO Fatia 1:** aprovada funcionalmente · merge **bloqueado** até PR + CI verde  
 
 ---
 
 ## 1. Hash inicial e final
 
-| Marco | SHA |
-|-------|-----|
-| **Inicial** (tip `piloto-staging-01` antes desta fatia código) | `505447a700561ea9e54a90510e16eb7df9d38c69` |
-| **Merge-base** `HEAD` × `piloto-staging-01` | `f1955e0dd2d9e03df728970a43a0ce852eb2fafb` |
-| **Final** (após commit `feat(ops): operational dashboard manager RBAC`) | `d9df160984673fe8fb2fa8032ed41e941dff21ba` |
+| Marco | SHA | Descrição |
+|-------|-----|-----------|
+| **Inicial (antes código fatia 1)** | `505447a700561ea9e54a90510e16eb7df9d38c69` | Tip kickoff docs/CI; baseline testes API 167 |
+| **Commit funcional aprovado PO** | `d9df160984673fe8fb2fa8032ed41e941dff21ba` | `feat(ops): operational dashboard with manager RBAC and tests` |
+| **HEAD documentado** | `76e10926ce7338179ab711e4b12aac85e2b51a1c` | `docs(piloto-04): update delivery report and test evidence` |
+| **Merge-base** × `piloto-staging-01` | `f1955e0dd2d9e03df728970a43a0ce852eb2fafb` | Ancestral comum com a base do PR |
 
 ---
 
@@ -26,158 +28,108 @@ git merge-base HEAD piloto-staging-01
 → f1955e0dd2d9e03df728970a43a0ce852eb2fafb
 ```
 
-**Confirmação:** desenvolvimento apenas em cima de `piloto-staging-01` (não em `main`).
+Desenvolvimento **não** em `main`. Sem force push / reset destrutivo.
 
 ---
 
-## 3. Governança PR (pré-requisitos PO)
+## 3. Governança PR
 
-| Ação | Estado | Responsável |
-|------|--------|-------------|
-| Fechar PR piloto contra `main` (ex. PR #5) sem merge | **BLOCKED** neste ambiente | Admin GitHub — sem `gh` / `GITHUB_TOKEN` |
-| PR válido apenas contra `piloto-staging-01` | **PEND** abertura/atualização após push | GP/DevOps |
-| Working tree limpo após commit desta fatia | **OK** após commit | Fábrica |
-| Workflow `governance-piloto-no-main.yml` | **OK** (kickoff `a971299`) | CI |
-
-Referência incidente: `docs/evidencias/piloto_staging_03/01_governanca_incidente_pr5_base_main.md`
-
----
-
-## 4. Arquivos alterados (fatia 1 entregue neste commit)
-
-**API**
-
-- `apps/api/src/modules/operationalStatus/*` (novo módulo)
-- `apps/api/src/middlewares/rbac.ts`, `rbac.test.ts`
-- `apps/api/src/server.ts`
-- `apps/api/src/config/env.ts` (`N8N_WEBHOOK_URL` opcional)
-
-**Web**
-
-- `apps/web/src/features/operacao/*`
-- `apps/web/src/config/nav.ts`, `nav.test.ts`
-- `apps/web/src/lib/route-access.test.ts`
-- `apps/web/src/router/index.tsx`
-
-**Raiz / docs**
-
-- `package.json` (`n8n:validate-workflows`)
-- `docs/evidencias/piloto_staging_04/03_matriz_aceite.md`
-- `docs/evidencias/piloto_staging_04/04_testes_locais.txt`
-- `docs/evidencias/piloto_staging_04/10_relatorio_entrega_po.md`
-
----
-
-## 5. Features entregues por bloco (escopo PO)
-
-| # | Bloco | Estado nesta entrega | Evidência |
-|---|-------|----------------------|-----------|
-| **1** | Painel operacional Web + API read-only | **OK (fatia 1)** | Testes listados em `04_testes_locais.txt` |
-| 2 | Outbox operacional (listagem/filtros/retry) | **PARCIAL** — já existia na base `piloto-staging-01`; sem alteração neste commit | `outbox.routes.integration.test.ts`, UI `/operacao/mensagens` |
-| 3 | Auditoria / correlation | **PARCIAL** — endpoints/UI base existentes | Próximo PR dedicado |
-| 4 | Dashboard gerencial | **PARCIAL** — `DashboardPage` KPIs existentes | Próximo PR KPI API dedicada |
-| 5 | Histórico cliente | **PEND** | — |
-| 6 | Agenda avançada | **PEND** (sem tocar motor validado) | — |
-| 7 | n8n QA readiness | **PARCIAL** — JSONs + validador verdes | `npm run n8n:validate-workflows` |
-| 8 | Waitlist + flags | **PARCIAL** — módulo + flags na base | `WAITLIST_*_ENABLED` |
-| 9 | Financeiro read-only | **PARCIAL** — módulo finance na base | `finance.*.test.ts` |
-| 10 | Comissão read-only | **PARCIAL** — módulo commission na base | — |
-| 11 | Recall candidatos | **PARCIAL** — `RECALL_ENABLED` + candidates | — |
-
-### Detalhe bloco 1 (entregue)
-
-- `GET /api/v1/operational/status` — health API/DB/Redis, worker outbox (degradado se Redis falhar), probe n8n/Evolution quando env configurada.
-- Contadores outbox por status; últimos erros **sanitizados** com classes `auth_401`, `not_found_404`, `timeout`, `fetch_failed`, `duplicate`, `provider_error`.
-- Filtros query: `status`, `from`, `to`, `correlation_id` (tenant via JWT).
-- RBAC: **manager+** (`operationalDashboard:read`); negativos attendant/viewer testados.
-- Cross-tenant: `operational-status.integration.test.ts` (CI Postgres).
-- Web `/operacao/status` — filtros UI, nav/RoleGuard manager+.
-
----
-
-## 6. PEND / BLOCKED e motivos
-
-| Item | Motivo |
+| Ação | Estado |
 |------|--------|
-| PR #5 fechar | Sem API GitHub no agent |
-| PR piloto-04 + CI verde | Aguarda push + abertura PR |
-| Blocos 5–6, expansões 3–4 | Volume épico; entregas incrementais |
-| E2E n8n com credencial real | **BLOCKED** — sem credencial real no sandbox; responsável: Piloto/Infra |
-| Integração DB local completa | Credenciais Docker ≠ CI `barbearia_saas_test` |
+| Fechar PR piloto contra `main` (ex. #5) sem merge | **PEND** — admin GitHub |
+| PR apenas contra `piloto-staging-01` | **AUTORIZADO** — ver secção 12 |
+| Merge em `main` ou merge do PR piloto-04 | **NÃO AUTORIZADO** |
+| Workflow anti-PR piloto→`main` | **OK** (`a971299`) |
+
+---
+
+## 4. Fatia 1 — Painel Operacional (aprovada)
+
+**API** `GET /api/v1/operational/status` (read-only, manager+):
+
+- Health API, PostgreSQL, Redis, worker outbox
+- Probe n8n (`N8N_WEBHOOK_URL`) e Evolution (`EVOLUTION_API_URL`) quando configurados
+- Contadores outbox; erros sanitizados; classes incl. `duplicate`, `provider_error`
+- Filtros: `status`, `from`, `to`, `correlation_id`
+- RBAC: `operationalDashboard:read` = **manager+**; testes negativos **attendant** e **viewer**
+- Cross-tenant: `operational-status.integration.test.ts` (CI)
+
+**Web** `/operacao/status`: filtros, infra, outbox; nav + `RoleGuard` **manager+**
+
+**Testes:** API unit 167 → **182** (+15); Web **46/46** — ver `04_testes_locais.txt`
+
+---
+
+## 5. Escopo épico — demais blocos
+
+| # | Bloco | Estado |
+|---|-------|--------|
+| 1 | Painel operacional | **OK** (fatia aprovada) |
+| 2 | Outbox operacional | PARCIAL (base) — **próxima fatia candidata** |
+| 3 | Auditoria / correlation | PARCIAL — **próxima fatia candidata** |
+| 4–11 | Gerencial, histórico, agenda, n8n E2E, waitlist, financeiro, comissão, recall | PEND / PARCIAL |
+
+---
+
+## 6. PEND / BLOCKED
+
+- PR #5 contra `main`: fecho manual
+- E2E n8n credencial real: BLOCKED (Infra/Piloto)
+- Aceite final merge: aguarda CI verde no PR correto
 
 ---
 
 ## 7. Riscos residuais
 
-- Probe HTTP n8n/Evolution pode marcar `ok` com 401/404 (alcance apenas, não valida credencial).
-- Painel operacional não substitui monitoramento APM externo.
-- PR contra `main` requer ação humana até fechamento formal.
+- Probe HTTP ≠ validação de credencial
+- PR incorreto contra `main` até fecho formal
 
 ---
 
 ## 8. Migrations
 
-**Nenhuma** migration criada nesta fatia.
+Nenhuma na fatia 1.
 
 ---
 
-## 9. Variáveis de ambiente novas / usadas
+## 9. Variáveis de ambiente
 
 | Variável | Uso |
 |----------|-----|
-| `N8N_WEBHOOK_URL` (opcional) | Probe operacional n8n |
-| `EVOLUTION_API_URL`, `EVOLUTION_API_KEY` (já existentes) | Probe Evolution |
-
-Documentadas em `.env.example` (n8n já existia; API passa a ler `N8N_WEBHOOK_URL`).
+| `N8N_WEBHOOK_URL` (opcional) | Probe n8n |
+| `EVOLUTION_API_URL`, `EVOLUTION_API_KEY` | Probe Evolution |
 
 ---
 
-## 10. Evidências de testes
+## 10. Evidências
 
-Ver **`04_testes_locais.txt`** (atualizar após CI).
-
-Contagem API unit: **167 → 182** (+15) após fatia operacional completa.
+- `04_testes_locais.txt` (contagens e RBAC manager+ alinhados)
+- `03_matriz_aceite.md` secção B
+- Commits: `d9df160` (código), `76e1092` (docs)
 
 ---
 
-## 11. Resultado dos comandos (local)
+## 11. Comandos (local, pós-correção doc)
 
 | Comando | Resultado |
 |---------|-----------|
-| `git status --short --branch` | branch correta; limpo após commit |
-| API `npm run typecheck` | PASS |
-| API `npm run lint` | PASS (warnings legados) |
-| API `npm run test:unit` | PASS 182/182 |
-| API `npm run build` | PASS |
-| Web typecheck/lint/test/build | PASS |
-| `npm audit` raiz | SKIP (sem lockfile) |
-| `npm audit` api/web | api: 2 moderate; web: 0 |
+| API `npm run test:unit` | PASS **182/182** |
+| API typecheck / lint / build | PASS |
+| Web typecheck / lint / test / build | PASS **46/46** |
 | Gitleaks | PASS |
 | `npm run n8n:validate-workflows` | PASS |
 
 ---
 
-## 12. Link PR e CI
+## 12. PR e CI
 
 | Item | Valor |
 |------|-------|
-| PR contra `piloto-staging-01` | _URL após `gh pr create` / push_ |
-| CI verde | _URL run Actions após PR_ |
+| **PR** (base `piloto-staging-01`) | _preencher após `gh pr create` — ver `11_pr_piloto04.md`_ |
+| **CI verde** | _anexar URL do workflow run no PR_ |
 
 ---
 
-## 13. Confirmação merge em main
+## 13. Confirmação
 
-**Não houve merge em `main`.** Nenhum push forçado/reset destrutivo executado pelo agent.
-
----
-
-## Critério de aceite PO (esta rodada)
-
-| Critério | Atende? |
-|----------|---------|
-| Código funcional bloco 1 | Sim |
-| Testes verdes API/Web (unit + build) | Sim (local) |
-| PR correto | Pendente abertura |
-| Evidência objetiva | Sim (`04_*`, `10_*`, matriz B) |
-| Épico completo (11 blocos) | **Não** — entrega incremental; matriz reflete PEND |
+**Não houve merge em `main`.** Fatia 1 aprovada; merge do PR permanece bloqueado até CI verde e revisão GP.

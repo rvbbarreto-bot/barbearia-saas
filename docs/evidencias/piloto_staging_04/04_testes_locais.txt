@@ -1,61 +1,61 @@
-[PILOTO-STAGING-04] Evidência — testes locais (fatia B: dashboard operacional)
+[PILOTO-STAGING-04] Evidência — testes locais (Fatia 1: Painel Operacional)
 ================================================================================
 Data: 2026-05-16
 Branch: feature/piloto-staging-04-operacao-assistida-suite-produto
+Commit funcional aprovado PO: d9df160984673fe8fb2fa8032ed41e941dff21ba
+HEAD documentado (docs): 76e10926ce7338179ab711e4b12aac85e2b51a1c
 Escopo: GET /api/v1/operational/status + UI /operacao/status
+RBAC painel: manager+ (negativos attendant e viewer)
 
 CONTAGEM DE TESTES (vitest)
 ---------------------------
-API (apps/api, npm run test:unit — exclui *.integration.test.ts exceto routes.*.integration)
-  Antes (HEAD sem módulo operationalStatus): 167 testes / 36 ficheiros
-  Depois (com fatia B completa):           182 testes / 40 ficheiros
-  Delta: +15 testes / +4 ficheiros na suite unitária
+Baseline: git checkout 505447a -- apps/api  (tip kickoff antes do código fatia 1)
+  API test:unit → 167 testes / 36 ficheiros
 
-API — módulo operationalStatus isolado (npx vitest run src/modules/operationalStatus/)
-  11 passed (sanitize + service + routes RBAC); 1 skipped (DB integration — ver nota)
+Após fatia 1 (commit d9df160, working tree atual):
+  API test:unit → 182 testes / 40 ficheiros
+  Delta: +15 testes / +4 ficheiros
+
+API — módulo operationalStatus (npx vitest run src/modules/operationalStatus/)
+  14 passed em test:unit (sanitize, service, query, probe, routes RBAC)
+  operational-status.integration.test.ts → verde em CI (Postgres barbearia_saas_test)
 
 WEB (apps/web, npm test)
-  Antes (estimado, sem ficheiros operacao/*): 42 testes / 10 ficheiros
-  Depois:                                     46 testes / 11 ficheiros
+  Baseline estimado (505447a, sem apps/web/src/features/operacao): 42 testes / 10 ficheiros
+  Após fatia 1: 46 testes / 11 ficheiros
   Delta: +4 testes / +1 ficheiro
 
-NOVOS FICHEIROS DE TESTE (por ficheiro)
----------------------------------------
+NOVOS/ALTERADOS FICHEIROS DE TESTE (por ficheiro)
+-------------------------------------------------
 API
-  apps/api/src/modules/operationalStatus/sanitize-error.test.ts
-    — redact bearer/apikey; empty null; classify timeout/fetch/401/404
-  apps/api/src/modules/operationalStatus/service.test.ts
-    — emptyOutboxCounts; probe ok/degraded sem vazar segredo; getOperationalStatus agrega outbox
-  apps/api/src/modules/operationalStatus/routes.integration.test.ts
-    — attendant 200; viewer 403; sem token 401
-  apps/api/src/modules/operationalStatus/operational-status.integration.test.ts
-    — cross-tenant counts/recent_errors (requer Postgres CI — ver nota)
-  apps/api/src/middlewares/rbac.test.ts (alterado)
-    — operationalDashboard read attendant+
+  sanitize-error.test.ts — redact bearer/apikey; classify 401/404/timeout/duplicate/provider_error
+  service.test.ts — outbox counts; probe infra; getOperationalStatus
+  operational-status-query.test.ts — parse filtros query
+  probe-external.test.ts — n8n/evolution not_probed e probe ok
+  routes.integration.test.ts — manager 200; attendant 403; viewer 403; 401 sem token
+  operational-status.integration.test.ts — cross-tenant (CI)
+  rbac.test.ts (alterado) — operationalDashboard read manager+ only
 
 WEB
-  apps/web/src/features/operacao/operacaoStatusLabels.test.ts
-    — canViewOperacaoStatus; healthLabel/badge; outboxCountLabel
-  apps/web/src/config/nav.test.ts (alterado)
-    — Status operação visível attendant+, oculto viewer
-  apps/web/src/lib/route-access.test.ts (alterado)
-    — /operacao/status attendant+ / viewer negado
+  operacaoStatusLabels.test.ts — canViewOperacaoStatus manager+; health UI; outbox labels
+  nav.test.ts (alterado) — Status operação visível manager+, oculto viewer/attendant
+  route-access.test.ts (alterado) — /operacao/status manager+; viewer/attendant negados
 
-COMANDOS OBRIGATÓRIOS — RESULTADO LOCAL
----------------------------------------
+COMANDOS OBRIGATÓRIOS — RESULTADO LOCAL (revalidado pós d9df160)
+----------------------------------------------------------------
 API typecheck     PASS  (apps/api)
-API lint          PASS  (0 errors, warnings legados no-explicit-any)
-API unit tests    PASS  175/175
-API integration   PARCIAL — ver nota Postgres
+API lint          PASS  (0 errors, warnings legados)
+API unit tests    PASS  182/182
 API build         PASS
+API integration   CI — ver GitHub Actions no PR contra piloto-staging-01
 
-WEB lint          PASS  (0 errors)
-WEB typecheck     PASS  (após fix EmptyState onAction + title nullable)
+WEB lint          PASS
+WEB typecheck     PASS
 WEB tests         PASS  46/46
 WEB build         PASS
 
-npm audit (raiz)  SKIP — sem package-lock na raiz (ENOENT)
-npm audit api     2 moderate (@fastify/swagger-ui → @fastify/static); exit 0
+npm audit (raiz)  SKIP — sem package-lock na raiz
+npm audit api     2 moderate (@fastify/swagger-ui); exit 0
 npm audit web     0 vulnerabilities
 
 gitleaks          PASS  (ghcr.io/gitleaks/gitleaks:v8.24.3, no leaks found)
@@ -65,11 +65,10 @@ npm run n8n:validate-workflows  PASS
   OK 02_ai_scheduling_agent_multitenant.json
   OK 03_recall_30_days_multitenant.json
 
-NOTA — integração API completa (npm test em apps/api)
-  Com credenciais CI (barbearia_saas_test) o job GitHub Actions executa a suite completa.
-  Local: Postgres Docker (barbearia_test) usa passwords distintas; operational-status.integration
-  falhou autenticação — não invalida testes unitários/RBAC mock nem execução em CI.
-  Suite filtrada operationalStatus (sem DB): 11 passed.
+NOTA CI
+  Integração API completa (npm test) usa DATABASE_URL/JWT_SECRET/REDIS_URL do workflow ci.yml.
+  Local com Postgres Docker de dev pode divergir; aceite oficial = run Actions no PR.
 
-REFERÊNCIA MATRIZ
-  docs/evidencias/piloto_staging_04/03_matriz_aceite.md — secção B
+REFERÊNCIA
+  docs/evidencias/piloto_staging_04/03_matriz_aceite.md — secção B (OK)
+  docs/evidencias/piloto_staging_04/10_relatorio_entrega_po.md
