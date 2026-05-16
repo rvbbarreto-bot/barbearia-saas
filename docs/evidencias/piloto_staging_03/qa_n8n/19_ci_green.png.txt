@@ -1,0 +1,1 @@
+`19_ci_green.png` deve ser screenshot da página do GitHub Actions (run verde) no PR relacionado ao branch de trabalho. Não automatizado pelo agente.

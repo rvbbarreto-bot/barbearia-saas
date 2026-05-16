@@ -1,0 +1,15 @@
+{
+  "workflow": "01_whatsapp_router_multitenant",
+  "scenario": "após Filtrar e Normalizar — mensagem directa válida Evolution",
+  "normalized_example": {
+    "provider": "evolution",
+    "provider_message_id": "QA-N8N-DEDUP-001",
+    "phone": "5511900001122",
+    "text": "Quero agenda amanhã",
+    "timestamp": null,
+    "push_name": "Cliente QA",
+    "instance_key": "teste",
+    "correlation_id": "n8n-exec-xxxx"
+  },
+  "notes": "`raw_event` contém apenas o objeto body Evolution (JSON compacto)."
+}

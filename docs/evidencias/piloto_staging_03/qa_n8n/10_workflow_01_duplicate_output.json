@@ -1,0 +1,18 @@
+{
+  "workflow": "01_whatsapp_router_multitenant",
+  "scenario": "deduplicação — segundo POST com mesmo external_message_id/provider id",
+  "output": {
+    "route": "duplicate",
+    "api_status": 200,
+    "core_response": {
+      "ok": true,
+      "duplicate": true
+    },
+    "consequence": "Ramo Execute Workflow NÃO deve ser acionado; agente pode permanecer inactivo durante o teste"
+  },
+  "test_procedure": [
+    "1) Payload messages.upsert com key.id QA-N8N-DEDUP-001",
+    "2) Repetir idêntico — Core /webhooks/whatsapp/inbound responde duplicate:true",
+    "3) n8n route=duplicate e Fim sem agente"
+  ]
+}

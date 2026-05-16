@@ -1,0 +1,1 @@
+Screenshot `07_workflow_01_canvas.png` — vista do workflow 01 após import; anexar localmente ao pacote QA.

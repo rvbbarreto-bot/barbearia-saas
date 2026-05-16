@@ -1,0 +1,1 @@
+Gerar imagem da UI (`16_workflow_recall_inactive.png`) mostrando workflow importado mas INACTIVE/off.

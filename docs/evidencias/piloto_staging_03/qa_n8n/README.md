@@ -27,4 +27,5 @@ Esta pasta recolhe **artefactos de execução** do time de QA e da fábrica. **N
 
 ## Estado
 
-- Kickoff: pasta criada com este `README.md` — ficheiros acima **PEND** até execução QA.
+- Parcial: validador `npm run n8n:validate-workflows` verde; numerador `01`–`21` presente (substituir `*.png.txt` por capturas reais `.png` ao fechar o piloto).
+- **Não** commitar segredos, `.env` real, nem `Evidências.docx` ad-hoc.

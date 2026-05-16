@@ -1,0 +1,19 @@
+{
+  "workflow": "02_ai_scheduling_agent_multitenant",
+  "scenario": "template de saída pós-import (credenciais configuradas pelo operador)",
+  "normalized_sample": {
+    "intent": "criar_agendamento",
+    "professional_id": "uuid",
+    "service_id": "uuid",
+    "appointment_date": "2026-05-20",
+    "customer_id": "uuid-masked",
+    "response_text": "Seu horário foi reservado. Até logo!",
+    "appointment_payload": {
+      "_note": "Objeto válido conforme schemas da Core API ao criar agendamento."
+    }
+  },
+  "outbox_enqueue": {
+    "expected_http": 202,
+    "body_shape": "{ ok: true, duplicate?: boolean } conforme integrations/outbound"
+  }
+}
