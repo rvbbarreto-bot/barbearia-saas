@@ -5,7 +5,8 @@
 | Campo | Valor |
 |-------|-------|
 | Branch de trabalho | `feature/piloto-staging-03-qa-operacional-n8n-ready` |
-| HEAD / commit | *(preencher após merge / push com `git rev-parse HEAD`)* |
+| Commit analisado pelo PO (aceite parcial técnico) | `ecf36a35467cd9e2007e7a0329cc1c3ea3df5b45` |
+| HEAD atual do branch | *(actualizar com `git rev-parse HEAD` após novos commits)* |
 
 ## Alterações relevantes versionadas
 
@@ -33,7 +34,11 @@
 | `N8N_RECALL_ALLOW_SCHEDULE` | `false` até PO autorizar cron |
 | `NODE_FUNCTION_ALLOW_BUILTIN` | **não obrigatório** para estes workflows |
 
-## Bugs corrigidos
+## Identificação PO (aceite parcial — PR #4)
+
+- **Decisão:** aceite **parcial** do commit `ecf36a35467cd9e2007e7a0329cc1c3ea3df5b45` como correção técnica; **sem** aceite funcional completo, **sem** merge, **sem** homologação interna/externa.
+- **Corpo sugerido para descrição do PR #4:** `docs/evidencias/piloto_staging_03/PR_4_CORPO_DESCRICAO.md` (ambiente de build da fábrica sem `gh` CLI — colar manualmente no GitHub).
+
 
 1. **01 Router**: unwrap `body` do Webhook; filtro preservado sem `crypto`/`AbortController`; POST Core apenas com token; erro explícito se `N8N_HMAC_SECRET` preenchido.
 2. **03 Smoke QA**: classificação para respostas Evolution sem só `statusCode` numérico.

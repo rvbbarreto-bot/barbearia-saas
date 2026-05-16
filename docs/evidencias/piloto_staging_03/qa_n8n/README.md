@@ -27,5 +27,8 @@ Esta pasta recolhe **artefactos de execução** do time de QA e da fábrica. **N
 
 ## Estado
 
-- Parcial: validador `npm run n8n:validate-workflows` verde; numerador `01`–`21` presente (substituir `*.png.txt` por capturas reais `.png` ao fechar o piloto).
-- **Não** commitar segredos, `.env` real, nem `Evidências.docx` ad-hoc.
+- Parcial: validador `npm run n8n:validate-workflows` verde; numerador `01`–`21` presente.
+- **PNG:** os ficheiros `02_*.png.txt`, `04_*.png.txt`, etc. são **instruções** — o PO exige substituição por **ficheiros `.png` reais`** com o mesmo prefixo numérico antes do aceite funcional.
+- **Não** commitar segredos nem `.env` real.
+- **`Evidências.docx`:** manter fora do git (ignorado em `.gitignore`); usar Markdown/JSON nesta pasta.
+- **`*.LOCAL_IMPORT.json`:** proibido versionar — ignorado e removido do working tree canónico; importar apenas `docs/n8n/*.json` oficiais.
