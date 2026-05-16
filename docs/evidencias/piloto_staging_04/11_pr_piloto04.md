@@ -31,7 +31,20 @@
 - [ ] Confirmar PR **não** targeta `main`
 - [ ] PR #5 contra `main` fechado sem merge (governança)
 
+## Abrir PR (GitHub UI)
+
+Compare: https://github.com/rvbbarreto-bot/barbearia-saas/compare/piloto-staging-01...feature/piloto-staging-04-operacao-assistida-suite-produto
+
+Ou, com `gh` autenticado:
+
+```bash
+gh pr create --base piloto-staging-01 --head feature/piloto-staging-04-operacao-assistida-suite-produto \
+  --title "feat(piloto-04): Fatia 1 — painel operacional (manager+)" \
+  --body-file docs/evidencias/piloto_staging_04/11_pr_piloto04.md
+```
+
 ## Links
 
 - Evidências: `docs/evidencias/piloto_staging_04/`
 - Commit aprovado PO fatia 1: `d9df160`
+- HEAD branch: `7bc3165`

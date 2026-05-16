@@ -13,7 +13,7 @@
 |-------|-----|-----------|
 | **Inicial (antes código fatia 1)** | `505447a700561ea9e54a90510e16eb7df9d38c69` | Tip kickoff docs/CI; baseline testes API 167 |
 | **Commit funcional aprovado PO** | `d9df160984673fe8fb2fa8032ed41e941dff21ba` | `feat(ops): operational dashboard with manager RBAC and tests` |
-| **HEAD documentado** | `da64997` | `docs(piloto-04): align test evidence and PO report with manager RBAC` |
+| **HEAD documentado** | `7bc3165` | docs evidências alinhados (manager+, 182/182) |
 | _(intermediário)_ | `76e1092` | docs update pós `d9df160` |
 | **Merge-base** × `piloto-staging-01` | `f1955e0dd2d9e03df728970a43a0ce852eb2fafb` | Ancestral comum com a base do PR |
 
@@ -106,7 +106,7 @@ Nenhuma na fatia 1.
 
 - `04_testes_locais.txt` (contagens e RBAC manager+ alinhados)
 - `03_matriz_aceite.md` secção B
-- Commits: `d9df160` (código aprovado), `da64997` (docs alinhados)
+- Commits: `d9df160` (código aprovado), `7bc3165` (docs alinhados)
 
 ---
 
