@@ -3,7 +3,7 @@
 Data: 2026-05-16
 Branch: feature/piloto-staging-04-operacao-assistida-suite-produto
 Commit funcional aprovado PO: d9df160984673fe8fb2fa8032ed41e941dff21ba
-HEAD documentado (docs alinhados): da64997 (após push remoto)
+HEAD documentado: 7bc3165 (docs alinhados manager+ / 182 testes)
 Escopo: GET /api/v1/operational/status + UI /operacao/status
 RBAC painel: manager+ (negativos attendant e viewer)
 
