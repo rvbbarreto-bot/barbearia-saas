@@ -15,10 +15,9 @@
 | A1 | Branch `feature/piloto-staging-04-operacao-assistida-suite-produto` criada apenas de `piloto-staging-01` | OK | `git log --oneline` + merge-base manual |
 | A2 | PR #5 contra `main` **fechado sem merge** | PEND | Screenshot/GitHub estado + `piloto_staging_03/qa_n8n/22_*` modelo |
 | A3 | Nenhuma PR piloto dirigida erro contra `main` (processo GH) | PEND | Lista PRs repo + review manual periódica |
-| A3b | Tentativa automatizada erro base `main` detectada antes merge | OK | Workflow `Governance — piloto não pode targetar main` deve falhar nesse cenário |
-| A4 | Job CI bloqueador `feature/piloto-staging-*` → `main` | OK | Workflow `governance-piloto-no-main.yml`; ver `08_pr_e_ci.md` |
-| A5 | PR épico apenas contra `piloto-staging-01` | BLOCKED até abertura real PR oficial | —
-| A6 | Gitleaks continuando verde pushes filho | OK histórico | CI job `gitleaks` já existente |
+| A4 | Tentativa automatizada erro base `main` detectada antes merge | OK | Workflow `Governance — piloto não pode targetar main`; ver `08_pr_e_ci.md` |
+| A5 | PR épico apenas contra `piloto-staging-01` | BLOCKED até abertura oficial desta série | —
+| A6 | Gitleaks verde no PR piloto‑04 | PEND | Anexar run URL após primeira PR épica contra `piloto-staging-01` |
 
 ---
 
