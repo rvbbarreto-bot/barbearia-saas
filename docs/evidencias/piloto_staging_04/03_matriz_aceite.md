@@ -4,7 +4,7 @@
 
 **Proibido** mover `PEND→OK` sem **evidência objetiva** (teste automatizado nomeado ou artefacto anexado mascarado).  
 
-**Última actualização:** fatia B + smoke QA n8n/Evolution SendText (`d687684`, PO 2026-05-17).
+**Última actualização:** governança PRs #4/#5/#6 (PO 2026-05-17) — ver `13_governanca_prs_abertos_po.md`.
 
 ---
 
@@ -13,10 +13,11 @@
 | # | Critério | Status | Evidência esperada |
 |---|----------|--------|---------------------|
 | A1 | Branch `feature/piloto-staging-04-operacao-assistida-suite-produto` criada apenas de `piloto-staging-01` | OK | `git log --oneline` + merge-base manual |
-| A2 | PR #5 contra `main` **fechado sem merge** | PEND | Screenshot/GitHub estado + `piloto_staging_03/qa_n8n/22_*` modelo |
-| A3 | Nenhuma PR piloto dirigida erro contra `main` (processo GH) | PEND | Lista PRs repo + review manual periódica |
+| A2 | PR #5 **fechado sem merge** (duplicado / contra `main`) | PEND | Ação admin GH — `13_governanca_prs_abertos_po.md` |
+| A3 | Nenhuma PR piloto dirigida erro contra `main` (processo GH) | PEND | Fechar #5; só #4 e #6 contra `piloto-staging-01` |
 | A4 | Tentativa automatizada erro base `main` detectada antes merge | OK | Workflow `Governance — piloto não pode targetar main`; ver `08_pr_e_ci.md` |
-| A5 | PR épico apenas contra `piloto-staging-01` | BLOCKED até abertura oficial desta série | —
+| A5 | PR #4 PILOTO-03 merge em `piloto-staging-01` após aceite PO | PEND | CI verde + smoke OK — antes do merge #6 |
+| A5b | PR #6 PILOTO-04 merge em `piloto-staging-01` | BLOCKED | Após merge #4 + rebase + CI verde + aceite PO |
 | A6 | Gitleaks verde no PR piloto‑04 | PEND | Anexar run URL após primeira PR épica contra `piloto-staging-01` |
 
 ---

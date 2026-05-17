@@ -20,3 +20,13 @@
 ⚠️ Não merges – apenas QA interno infra:
 
 Simular criar branch temporária erro `feature/piloto-staging-demo-bad-main` dirigida erro `main` — ver job failure + então FECHAR SEM MERGE esse PR exemplo.
+
+## Sequência PO — PRs abertos (2026-05-17)
+
+Ver **`13_governanca_prs_abertos_po.md`**:
+
+1. Fechar **#5** sem merge.
+2. Aceite + merge **#4** → `piloto-staging-01`.
+3. Rebase **#6**, CI verde, aceite PO, merge **#6** → `piloto-staging-01`.
+
+Nunca merge em `main`.

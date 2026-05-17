@@ -10,9 +10,10 @@
 
 | Item | Estado |
 |------|--------|
-| PR #5 contra `main` **fechado sem merge** | **PEND ação GH** pelo admin |
-| Nenhuma nova PR criada dirigida erro `main` | **Governança + checklist humano + CI novo** |
-| Próximo PR oficial PILOTO‑04 target **somente `piloto-staging-01`** *(não criar até fatia primeiro entregável estar pronto se GP preferir)* | **BLOCKED até PR aberto oficial** |
+| PR #5 fechado sem merge | **PEND** — ver `13_governanca_prs_abertos_po.md` |
+| PR #4 merge em `piloto-staging-01` (PILOTO-03, smoke OK) | **PEND** aceite PO |
+| PR #6 merge | **BLOCKED** até merge #4 + rebase + CI |
+| Nenhum merge em `main` | **Proibido** |
 
 ## Expectativa próximos marcos antes de novo pedido aceite forte
 

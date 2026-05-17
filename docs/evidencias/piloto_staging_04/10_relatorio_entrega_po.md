@@ -3,7 +3,7 @@
 **Data:** 2026-05-16  
 **Branch:** `feature/piloto-staging-04-operacao-assistida-suite-produto`  
 **Base PR:** `piloto-staging-01` (proibido target `main`)  
-**Status PO Fatia 1:** aprovada funcionalmente · smoke n8n/Evolution **aprovado** (`d687684`) · merge **apenas** aguarda CI verde PR #6  
+**Status PO Fatia 1:** aprovada funcionalmente · smoke n8n/Evolution **aprovado** (`d687684`) · merge PR #6 **bloqueado** até merge PR #4 — ver `13_governanca_prs_abertos_po.md`  
 
 ---
 
@@ -33,14 +33,16 @@ Desenvolvimento **não** em `main`. Sem force push / reset destrutivo.
 
 ---
 
-## 3. Governança PR
+## 3. Governança PR (decisão PO 2026-05-17)
 
-| Ação | Estado |
-|------|--------|
-| Fechar PR piloto contra `main` (ex. #5) sem merge | **PEND** — admin GitHub |
-| PR apenas contra `piloto-staging-01` | **AUTORIZADO** — ver secção 12 |
-| Merge em `main` ou merge do PR piloto-04 | **NÃO AUTORIZADO** |
-| Workflow anti-PR piloto→`main` | **OK** (`a971299`) |
+| PR | Ação | Estado |
+|----|------|--------|
+| **#5** | Fechar **sem merge** (contra `main` ou duplicado #4) | **PEND** admin GH |
+| **#4** | PILOTO-03 válido → merge `piloto-staging-01` após aceite PO + CI verde | **PEND** aceite/merge |
+| **#6** | PILOTO-04 — manter aberto até merge #4; depois rebase + CI + aceite | **BLOQUEADO** até #4 |
+| `main` | Qualquer merge | **NÃO AUTORIZADO** |
+
+Detalhe: `13_governanca_prs_abertos_po.md` · Workflow anti-PR piloto→`main`: **OK** (`a971299`)
 
 ---
 
@@ -80,7 +82,7 @@ Workflow `03_QA_Barbearia_Evolution_SendText_Smoke` após reimport: sem pinData,
 
 - PR #5 contra `main`: fecho manual
 - E2E n8n credencial real (outros fluxos): BLOCKED (Infra/Piloto)
-- **Merge PR #6:** aguarda **CI verde** (único bloqueio restante para este pacote)
+- **Merge PR #6:** após merge PR #4 + rebase branch + CI verde + aceite PO
 
 ---
 
@@ -131,11 +133,13 @@ Nenhuma na fatia 1.
 
 | Item | Valor |
 |------|-------|
-| **PR** (base `piloto-staging-01`) | _preencher após `gh pr create` — ver `11_pr_piloto04.md`_ |
-| **CI verde** | _anexar URL do workflow run no PR_ |
+| **PR #6** (base `piloto-staging-01`) | Aberto — CI verde; merge após #4 |
+| **PR #4** | Canal PILOTO-03 — prioridade de merge |
+| **PR #5** | Fechar sem merge |
+| **CI #6** | Verde (pós `a25443e`) — revalidar após rebase pós-#4 |
 
 ---
 
 ## 14. Confirmação
 
-**Não houve merge em `main`.** Fatia 1 + smoke n8n/Evolution (`d687684`) aprovados pelo PO; merge do PR **#6** contra `piloto-staging-01` condicionado **apenas** a CI verde e regras de governança do PR.
+**Não houve merge em `main`.** Fatia 1 + smoke aprovados PO. Sequência merge: fechar **#5** → aceite/merge **#4** → rebase + CI **#6** → aceite/merge **#6** (só `piloto-staging-01`).

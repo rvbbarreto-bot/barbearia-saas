@@ -29,7 +29,10 @@
 - [ ] Web tests 46/46
 - [ ] Gitleaks + n8n validate workflows
 - [ ] Confirmar PR **não** targeta `main`
-- [ ] PR #5 contra `main` fechado sem merge (governança)
+- [ ] PR #5 fechado sem merge (governança — `13_governanca_prs_abertos_po.md`)
+- [ ] PR #4 merged em `piloto-staging-01` (PILOTO-03)
+- [ ] Branch piloto-04 rebased em `piloto-staging-01` pós-#4; CI verde
+- [ ] Aceite formal PO antes de merge deste PR (#6)
 
 ## Abrir PR (GitHub UI)
 

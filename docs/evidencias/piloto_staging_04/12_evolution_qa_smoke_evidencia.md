@@ -4,7 +4,7 @@
 **Status PO:** smoke n8n → Evolution → WhatsApp **APROVADO** (reimport workflow + Manual Trigger).  
 **Correção final:** classificador trata `status=PENDING` + `key.*` como **sucesso técnico** (`ok: true`).  
 **Commit aprovado PO (smoke):** `d687684` — `fix(n8n): classify Evolution PENDING SendText as technical success`  
-**Merge PR #6:** condicionado **apenas** a CI verde + regras PR contra `piloto-staging-01` (sem merge em `main`).
+**Merge:** smoke suporta aceite **PR #4**; **PR #6** merge só após #4 em `piloto-staging-01` — `13_governanca_prs_abertos_po.md`.
 
 ---
 
@@ -126,7 +126,8 @@ Classes de erro (quando falha real): `auth_401_invalid_api_key`, `not_found_404_
 | WhatsApp QA recebeu mensagem | **OK** |
 | Commit `d687684` (este ponto) | **APROVADO PO** |
 | Testes `n8n-qa-sendtext-classify-snippet.test.mjs` | **PASS** (local) |
-| CI verde PR #6 | **PEND** — único bloqueio de merge |
+| CI verde PR #6 | **OK** (revalidar após rebase pós-merge #4) |
+| Merge PR #6 | **BLOQUEADO** até merge PR #4 |
 
 **Evidências finais:** pacote PO (prints n8n + confirmação WhatsApp); procedimento de reimport executado com workflow versionado no repo.
 
@@ -161,4 +162,4 @@ Classes de erro (quando falha real): `auth_401_invalid_api_key`, `not_found_404_
 
 - PR épico **#6** apenas contra `piloto-staging-01`; **sem** merge em `main`.
 - Smoke n8n/Evolution SendText: **aceite funcional PO concluído** (`d687684`).
-- Merge autorizado quando **CI verde** no PR #6 (demais regras de governança inalteradas).
+- Sequência merge: fechar **#5** → **#4** → rebase + CI **#6** → merge **#6** (só `piloto-staging-01`).
