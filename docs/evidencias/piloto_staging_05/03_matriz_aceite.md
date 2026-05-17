@@ -9,9 +9,9 @@
 | 1 | Outbox | Retry manager+ + auditoria | OK | `05_evidencia_retry_rbac_api.md` |
 | 1 | Outbox | Cross-tenant | OK | `05_evidencia_cross_tenant_outbox.md` |
 | 1 | Outbox | Testes Web render/empty/error/filtros | OK | `OutboxMessagesPage.test.tsx` |
-| 1 | Outbox | Prints PNG P01-P10 | OK | `prints/` (P10 = CI run verde; repetir no PR após abertura) |
-| 1 | Outbox | PR formal vs piloto-staging-01 | PEND | `gh auth login` + `11_pr_piloto05.md` |
-| 1 | Outbox | CI verde branch/PR | OK | Run 25994652688 @ 9ce9519 |
+| 1 | Outbox | Prints PNG P01-P10 | OK | `prints/` |
+| 1 | Outbox | PR #7 vs piloto-staging-01 | OK | https://github.com/rvbbarreto-bot/barbearia-saas/pull/7 |
+| 1 | Outbox | CI verde PR (8 checks) | OK | `04_saida_pr7_ci_verde.txt` |
 | 1 | Outbox | Relatório testes | OK | `04_testes_locais_bloco1.txt` |
 | 1 | Outbox | Investigação check vermelho | OK | `12_ci_investigacao_e93f9cd.md` |
 | 2 | Auditoria | correlation_id + UI read-only | PEND | |
