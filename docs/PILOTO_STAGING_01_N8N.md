@@ -49,7 +49,7 @@ PowerShell -ExecutionPolicy Bypass -File scripts/audit-n8n-workflows.ps1
 | `Configuracao ausente no container n8n` | Variáveis só na API ou `.env` sem recreate n8n | Preencher `.env` + `force-recreate n8n` |
 | `fetch failed` / timeout | Evolution inacessível do container n8n | Usar `docker-compose.evolution-local.yml`; Evolution no host :8081 |
 | HTTP **404** instance | `EVOLUTION_INSTANCE` errada | Alinhar ao nome na Evolution |
-| HTTP **401** Unauthorized | API key inválida ou instância errada | Ajustar `EVOLUTION_API_KEY` no `.env` (pendência de credencial, não do workflow) |
+| HTTP **401** Unauthorized | **`AUTHENTICATION_API_KEY` (Evolution) ≠ `EVOLUTION_API_KEY` (.env)** | Alinhar: `docker compose -f C:\Projetos\docker-compose.yml --env-file .env up -d --force-recreate evolution_api` — ver `scripts/qa-evolution-env-align.ps1` e `docs/evidencias/piloto_staging_04/12_evolution_qa_smoke_evidencia.md` |
 | `QA_WHATSAPP_NUMBER invalido` | Formato | Usar `55` + DDD + número (10–11 dígitos) |
 
 ## Importação staging (UI)
