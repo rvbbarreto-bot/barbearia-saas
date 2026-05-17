@@ -10,7 +10,8 @@ Corpo: docs/evidencias/piloto_staging_05/21_pr_body.md
 
 Base: piloto-staging-01 (nunca main)
 Head: feature/piloto-staging-05-operacao-gestao-automacao
-HEAD final branch: c2e4843
+HEAD final branch: 8331de5
+Referência PO solicitada: c2e4843 (histórico; P18 em 734fa62)
 Commit correção P18: 734fa62
 
 Commits no PR (Bloco 2 vs base pós-PR#7):
@@ -19,7 +20,8 @@ Commits no PR (Bloco 2 vs base pós-PR#7):
 - 642a8a6 fix(tests): corrigir mocks CI bloco 2 auditoria
 - ffa9c34 docs(piloto-05): evidências bloco 2 P12/P19 e saída PR
 - 734fa62 fix(web): erro real em auditoria operacional quando API falha (P18)
-- c2e4843 docs(piloto-05): rastreabilidade PR bloco 2 @ HEAD final
+- dda88d8 docs(piloto-05): rastreabilidade 04_saida PR bloco 2
+- a26f8bc docs(piloto-05): corpo PR HEAD final e P18 734fa62
 
 CI verde (referência P18): https://github.com/rvbbarreto-bot/barbearia-saas/actions/runs/26003284708 @ 734fa62
 
