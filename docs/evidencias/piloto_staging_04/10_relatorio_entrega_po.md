@@ -3,7 +3,7 @@
 **Data:** 2026-05-16  
 **Branch:** `feature/piloto-staging-04-operacao-assistida-suite-produto`  
 **Base PR:** `piloto-staging-01` (proibido target `main`)  
-**Status PO Fatia 1:** aprovada funcionalmente · smoke n8n/Evolution **aprovado** (`d687684`) · merge PR #6 **bloqueado** até merge PR #4 — ver `13_governanca_prs_abertos_po.md`  
+**Status PO:** governança **aprovada** · rebase P04 **OK** (`e6527e6` → `782b530`) · merge PR #6 **bloqueado** até CI verde — `13_governanca_prs_abertos_po.md`  
 
 ---
 
@@ -133,10 +133,9 @@ Nenhuma na fatia 1.
 
 | Item | Valor |
 |------|-------|
-| **PR #6** (base `piloto-staging-01`) | Aberto — CI verde; merge após #4 |
-| **PR #4** | Canal PILOTO-03 — prioridade de merge |
-| **PR #5** | Fechar sem merge |
-| **CI #6** | Verde (pós `a25443e`) — revalidar após rebase pós-#4 |
+| **PR #6** | https://github.com/rvbbarreto-bot/barbearia-saas/pull/6 — canal único P04 |
+| **Base / HEAD** | `e6527e6` / `782b530` |
+| **CI #6** | **PEND** — anexar URL run verde pós-rebase |
 
 ---
 

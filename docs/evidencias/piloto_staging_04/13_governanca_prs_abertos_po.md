@@ -1,7 +1,23 @@
 # Governança PO — PRs abertos (piloto staging)
 
-**Data decisão PO:** 2026-05-17  
-**Regra global:** **nenhum merge em `main`**. Merge **somente** em `piloto-staging-01` e **somente** após aceite formal do PO. Nenhum PR duplicado permanece aberto.
+**Data decisão PO:** 2026-05-17 · **Rebase validado PO:** 2026-05-17  
+**Regra global:** **nenhum merge em `main`**. Merge **somente** em `piloto-staging-01` e **somente** após aceite formal do PO + **CI verde**.
+
+**Canal único PILOTO-STAGING-04:** [PR #6](https://github.com/rvbbarreto-bot/barbearia-saas/pull/6) — não abrir novo PR.
+
+---
+
+## Estado atual (pós-rebase)
+
+| Marco | SHA | Estado |
+|-------|-----|--------|
+| Tip `piloto-staging-01` (base comum) | `e6527e6` | Merge PR #4 concluído |
+| HEAD remoto P04 | `782b530` | Branch atualizada sobre a base |
+| Commits P04 à frente da base | **16** | Diff limpo pós-rebase |
+| Governança sequência #5→#4→#6 | **APROVADA PO** | — |
+| Merge PR #6 | **BLOQUEADO** | Até CI verde + aceite formal PO |
+
+**Atenção operacional:** não clicar em *Compare & pull request* no banner amarelo do GitHub (evita PR duplicado).
 
 ---
 
@@ -14,12 +30,20 @@ flowchart LR
   C --> D[Aceite + merge PR #6 em piloto-staging-01]
 ```
 
+| Etapa | Status |
+|-------|--------|
+| A — Fechar #5 | **OK** |
+| B — Merge #4 → `piloto-staging-01` | **OK** (`e6527e6`) |
+| C — Rebase #6 + CI verde | **EM CURSO** — aguardar checks |
+| D — Aceite PO + merge #6 | **PEND** |
+
 ---
 
 ## PR #5 — fechar sem merge
 
 | Campo | Valor |
 |-------|--------|
+| **Estado** | **Concluído** (fechado sem merge) |
 | **Ação PO** | **Fechar sem merge** |
 | **Motivo** | Contra `main` e/ou duplicado do PR #4 |
 | **Responsável** | Admin GitHub / GP |
@@ -36,6 +60,7 @@ flowchart LR
 
 | Campo | Valor |
 |-------|--------|
+| **Estado** | **Merged** em `piloto-staging-01` (`e6527e6`) |
 | **Título** | Feature/piloto staging 03 qa operacional n8n ready |
 | **Head** | `feature/piloto-staging-03-qa-operacional-n8n-ready` (confirmar no GitHub) |
 | **Base obrigatória** | `piloto-staging-01` |
@@ -45,30 +70,25 @@ flowchart LR
 
 ---
 
-## PR #6 — PILOTO-STAGING-04 (aguarda PR #4)
+## PR #6 — PILOTO-STAGING-04 (canal único)
 
 | Campo | Valor |
 |-------|--------|
 | **Título** | Feature/piloto staging 04 operacao assistida suite produto |
-| **Head** | `feature/piloto-staging-04-operacao-assistida-suite-produto` |
-| **Base obrigatória** | `piloto-staging-01` |
-| **Estado CI** | Verde (após `a25443e`) |
+| **Head** | `feature/piloto-staging-04-operacao-assistida-suite-produto` @ `782b530` |
+| **Base obrigatória** | `piloto-staging-01` @ `e6527e6` |
+| **Rebase pós-#4** | **OK** — base comum = tip de `piloto-staging-01` |
+| **Estado CI** | **PEND** — anexar URL run verde pós-`782b530` |
 | **Aceite técnico fatia 1 + smoke** | Aprovado PO |
-| **Merge** | **BLOQUEADO** até merge do PR #4 em `piloto-staging-01` |
+| **Governança** | **Aprovada PO** |
+| **Merge** | **BLOQUEADO** até CI verde + aceite formal PO |
 
-**Após merge do PR #4:**
+**Próximo passo obrigatório:**
 
-```bash
-git fetch origin
-git checkout feature/piloto-staging-04-operacao-assistida-suite-produto
-git rebase origin/piloto-staging-01
-# ou: git merge origin/piloto-staging-01
-git push origin feature/piloto-staging-04-operacao-assistida-suite-produto
-```
-
-1. Revalidar diff do PR #6 (sem conflitos / sem regressão).
-2. Aguardar **CI verde** no PR #6.
-3. Aceite formal PO → merge em `piloto-staging-01`.
+1. Aguardar **CI verde** no PR #6 (push `782b530`).
+2. Anexar evidência dos checks (screenshot ou URL Actions no PR).
+3. Confirmar diff limpo vs `piloto-staging-01` (16 commits, sem conflitos).
+4. Aceite formal PO → merge em `piloto-staging-01`.
 
 ---
 
@@ -76,7 +96,8 @@ git push origin feature/piloto-staging-04-operacao-assistida-suite-produto
 
 - Merge ou PR target **`main`**
 - Manter **#5** aberto após decisão PO
-- Merge **#6** antes do fecho correto de **#4**
+- Clicar **Compare & pull request** no banner amarelo (cria PR duplicado)
+- Merge **#6** antes de **CI verde** ou sem aceite PO
 - Dois PRs com o mesmo escopo piloto abertos em paralelo
 
 ---

@@ -13,11 +13,12 @@
 | # | Critério | Status | Evidência esperada |
 |---|----------|--------|---------------------|
 | A1 | Branch `feature/piloto-staging-04-operacao-assistida-suite-produto` criada apenas de `piloto-staging-01` | OK | `git log --oneline` + merge-base manual |
-| A2 | PR #5 **fechado sem merge** (duplicado / contra `main`) | PEND | Ação admin GH — `13_governanca_prs_abertos_po.md` |
-| A3 | Nenhuma PR piloto dirigida erro contra `main` (processo GH) | PEND | Fechar #5; só #4 e #6 contra `piloto-staging-01` |
+| A2 | PR #5 **fechado sem merge** | OK | `13_governanca_prs_abertos_po.md` |
+| A3 | Nenhuma PR piloto dirigida erro contra `main` | OK | Só PR #6 aberto; canal único P04 |
 | A4 | Tentativa automatizada erro base `main` detectada antes merge | OK | Workflow `Governance — piloto não pode targetar main`; ver `08_pr_e_ci.md` |
-| A5 | PR #4 PILOTO-03 merge em `piloto-staging-01` após aceite PO | PEND | CI verde + smoke OK — antes do merge #6 |
-| A5b | PR #6 PILOTO-04 merge em `piloto-staging-01` | BLOCKED | Após merge #4 + rebase + CI verde + aceite PO |
+| A5 | PR #4 merge em `piloto-staging-01` | OK | Base `e6527e6` |
+| A5b | Rebase P04 sobre `piloto-staging-01` | OK | HEAD `782b530`, 16 commits |
+| A5c | PR #6 merge em `piloto-staging-01` | BLOCKED | CI verde pós-rebase + aceite PO |
 | A6 | Gitleaks verde no PR piloto‑04 | PEND | Anexar run URL após primeira PR épica contra `piloto-staging-01` |
 
 ---
