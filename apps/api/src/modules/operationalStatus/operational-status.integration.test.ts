@@ -92,7 +92,7 @@ describe('operational status integration', () => {
     expect(snapB.counts.failed).toBe(1);
     expect(snapA.recent_errors[0]?.correlation_id).toBe('corr-tenant-a-only');
     expect(snapB.recent_errors[0]?.correlation_id).toBe('corr-tenant-b-only');
-    expect(snapA.recent_errors[0]?.destination).toMatch(/^\*\*\*\d{4}$/);
+    expect(snapA.recent_errors[0]?.destination).toMatch(/^\*{4}\d{4}$/);
     expect(JSON.stringify(snapA)).not.toContain('5511999998888');
   });
 });
