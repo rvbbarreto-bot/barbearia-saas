@@ -1,0 +1,1 @@
+`20_gitleaks_clean.png` — resultado de varredura gitleaks/secret-scan no PR (verde) ou relatório texto equivalente. Anexar após corrida CI local/remota conforme política organizacional.

@@ -1,0 +1,13 @@
+{
+  "workflow": "03_QA_Barbearia_Evolution_SendText_Smoke",
+  "scenario": "QA_WHATSAPP_NUMBER fora do padrão BR 55DDDNUMERO",
+  "expected_behavior": {
+    "node": "Validar variaveis obrigatorias",
+    "message_contains": [
+      "QA_WHATSAPP_NUMBER invalido",
+      "55DDDNUMERO"
+    ],
+    "evolution_must_not_be_called": true
+  },
+  "how_to_run": "Definir QA_WHATSAPP_NUMBER=119999 como teste transitório só no `.env` local e recrear n8n."
+}

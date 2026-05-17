@@ -7,6 +7,8 @@ HEAD atual da branch: `git rev-parse HEAD` no remoto local (último push pode ac
 
 CI GitHub Actions (este corretivo, push na branch): https://github.com/rvbbarreto-bot/barbearia-saas/actions/runs/25944290957 — conclusão **success**.
 
+Merge PO em piloto-staging-01 (2026-05-15): PR #3 — merge commit e5a0f0d282251faed2cd6597d3aceddf011dce4f; CI pós-merge run #23 https://github.com/rvbbarreto-bot/barbearia-saas/actions/runs/25946809629 — success.
+
 apps/api:
   npm run typecheck — OK
   npm run lint — OK (0 errors, warnings pré-existentes)

@@ -10,6 +10,8 @@ on:
       - piloto-staging-01
       # PILOTO-STAGING-02+: CI na branch de entrega até PR em piloto-staging-01.
       - feature/piloto-staging-02-agenda-operacional
+      # PILOTO-STAGING-03: QA operacional, n8n, painel homologação — PR exclusivo em piloto-staging-01.
+      - feature/piloto-staging-03-qa-operacional-n8n-ready
   pull_request:
     branches:
       - main

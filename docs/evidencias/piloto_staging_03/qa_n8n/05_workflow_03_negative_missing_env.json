@@ -1,0 +1,16 @@
+{
+  "workflow": "03_QA_Barbearia_Evolution_SendText_Smoke",
+  "scenario": "variável obrigatória ausente no container",
+  "expected_error_contains": [
+    "Configuracao ausente no container n8n",
+    "EVOLUTION_API_URL",
+    "EVOLUTION_INSTANCE",
+    "EVOLUTION_API_KEY",
+    "QA_WHATSAPP_NUMBER"
+  ],
+  "how_to_run": [
+    "Remover temporariamente QA_WHATSAPP_NUMBER do compose/.env.",
+    "Recriar o serviço n8n: docker compose up -d --force-recreate n8n",
+    "Executar Manual Trigger e confirmar erro claro no nó \"Validar variaveis obrigatorias\"."
+  ]
+}

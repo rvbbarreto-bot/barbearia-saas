@@ -1,0 +1,21 @@
+﻿--- docs\n8n ---
+node : [WARN] docs\n8n/01_whatsapp_router_multitenant.json: Execute Workflow ainda referencia SUBSTITUIR_PELO_ID ÔÇö 
+defina N8N_WORKFLOW_02_ID ap├│s import.
+No C:\Users\Ricardo\AppData\Local\Temp\ps-script-0db25671-07d3-462c-945b-ac0df9a3b6bd.ps1:94 caractere:121
++ ... aria-saas"; node scripts/n8n-validate-workflow-import.mjs 2>&1 | Out- ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([WARN] docs\n8n...D ap├│s import.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+OK docs\n8n/01_whatsapp_router_multitenant.json nodes=6 active=false
+OK docs\n8n/02_ai_scheduling_agent_multitenant.json nodes=9 active=false
+OK docs\n8n/03_QA_Barbearia_Evolution_SendText_Smoke.json nodes=4 active=false
+OK docs\n8n/03_recall_30_days_multitenant.json nodes=9 active=false
+--- n8n\workflows ---
+[WARN] n8n\workflows/01_whatsapp_router_multitenant.json: Execute Workflow ainda referencia SUBSTITUIR_PELO_ID ÔÇö 
+defina N8N_WORKFLOW_02_ID ap├│s import.
+OK n8n\workflows/01_whatsapp_router_multitenant.json nodes=6 active=false
+OK n8n\workflows/02_ai_scheduling_agent_multitenant.json nodes=9 active=false
+OK n8n\workflows/03_QA_Barbearia_Evolution_SendText_Smoke.json nodes=4 active=false
+OK n8n\workflows/03_recall_30_days_multitenant.json nodes=9 active=false
+n8n JSON structural validation passed.

@@ -170,3 +170,16 @@ Nenhum bloqueante novo além dos itens de ambiente (Evolution placeholder, stagi
 - Deploy/rollback: `docs/PILOTO_STAGING_01_DEPLOY_ROLLBACK.md`
 - Evidências: `docs/evidencias/piloto_staging_01/`
 - MVP aceite (baseline UI): `docs/evidencias/mvp_piloto_aceite/`
+
+---
+
+## 14. Addendum — PILOTO-STAGING-02 integrado (2026-05-15)
+
+| Campo | Valor |
+|--------|--------|
+| PR | [#3](https://github.com/rvbbarreto-bot/barbearia-saas/pull/3) → base **`piloto-staging-01`** (**merged**) |
+| Merge commit em `piloto-staging-01` | `e5a0f0d282251faed2cd6597d3aceddf011dce4f` |
+| CI pós-merge (push `piloto-staging-01`) | [Actions run #23](https://github.com/rvbbarreto-bot/barbearia-saas/actions/runs/25946809629) — **success** |
+| Escopo | Núcleo operacional de agenda (regras, RBAC profissional, testes) — detalhe em `docs/evidencias/piloto_staging_02/` |
+
+**Nota:** PR #2 (base `main`) não faz parte desta linha; deve permanecer **fechado sem merge**. Linha oficial de desenvolvimento: **`piloto-staging-01`** após `e5a0f0d`.

@@ -1,0 +1,27 @@
+(exemplo mastigável — valores reais apenas na máquina de QA/DEV)
+
+BARBEARIA-N8N-ENVIRONMENT (sanitizado)
+======================================
+
+Comandos esperados pela fábrica:
+  docker exec barbearia-n8n printenv API_BASE_URL
+  docker exec barbearia-n8n printenv EVOLUTION_API_URL
+  docker exec barbearia-n8n printenv EVOLUTION_INSTANCE
+  docker exec barbearia-n8n printenv QA_WHATSAPP_NUMBER
+  docker exec barbearia-n8n printenv N8N_WEBHOOK_TOKEN
+  docker exec barbearia-n8n printenv N8N_HMAC_SECRET
+  docker exec barbearia-n8n printenv NODE_FUNCTION_ALLOW_BUILTIN
+
+Exemplo mascarado (Compose local alinhado a .env.example):
+  API_BASE_URL=http://api:3000
+  EVOLUTION_API_URL=http://host.docker.internal:8081
+  EVOLUTION_INSTANCE=teste
+  QA_WHATSAPP_NUMBER=5511*******62
+  N8N_WEBHOOK_TOKEN=***REDACTED***
+  N8N_HMAC_SECRET=
+  NODE_FUNCTION_ALLOW_BUILTIN=(vazio ou não definido por defeito — não obrigatório para estes workflows)
+
+Notas:
+- `API_BASE_URL` no serviço n8n deve ser sempre `http://api:3000` (nome do serviço Docker).
+- Tokens e EVOLUTION_API_KEY nunca devem aparecer em logs ou relatórios sem máscara.
+- QA_WHATSAPP_NUMBER sem default no `docker-compose.yml` — obrigatório no `.env` para o smoke 03.

@@ -1,0 +1,11 @@
+{
+  "workflow": "03_QA_Barbearia_Evolution_SendText_Smoke",
+  "note": "Exemplo sanitizado pós-run — Evolution real devolve também key/messageType/message",
+  "classifier_output": {
+    "ok": true,
+    "status": 200,
+    "message": "Envio Evolution OK (verificar WhatsApp QA)",
+    "evolutionary_status": "PENDING",
+    "messageType": "conversation"
+  }
+}

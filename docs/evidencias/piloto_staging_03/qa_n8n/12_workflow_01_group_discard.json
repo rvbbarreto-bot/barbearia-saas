@@ -1,0 +1,6 @@
+{
+  "workflow": "01_whatsapp_router_multitenant",
+  "scenario": "grupo (@g.us)",
+  "expected": "remoteJid terminando em @g.us descartado no filtro inicial.",
+  "no_items_after_filter": true
+}
