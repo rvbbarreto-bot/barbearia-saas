@@ -1,8 +1,9 @@
 # Relatório Bloco 1 — Outbox operacional (PILOTO-05)
 
 **Branch:** `feature/piloto-staging-05-operacao-gestao-automacao`  
-**HEAD PR:** `90244b2`  
-**PR:** [#7](https://github.com/rvbbarreto-bot/barbearia-saas/pull/7) → base `piloto-staging-01` @ `e6527e6`  
+**HEAD PR (pré-merge):** `a88b191`
+**Merge em `piloto-staging-01`:** `91d93f3` — ver `13_merge_pr7_piloto_staging_01.md`
+**PR:** [#7](https://github.com/rvbbarreto-bot/barbearia-saas/pull/7) → base `piloto-staging-01` @ `e6527e6` (antes do merge)
 **PR #6 (P04):** aberto, **não mergeado** em `piloto-staging-01` — rebase P05 após merge #6 se base avançar.
 
 ## Checklist aceite PO (13 itens)

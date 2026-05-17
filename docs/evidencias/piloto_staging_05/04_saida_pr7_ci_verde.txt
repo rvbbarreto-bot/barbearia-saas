@@ -4,7 +4,7 @@ Data: 2026-05-17
 
 Base:  piloto-staging-01
 Head:  feature/piloto-staging-05-operacao-gestao-automacao
-HEAD:  90244b2 (5 commits)
+HEAD:  a88b191 (5 commits; último commit da branch antes do merge)
 Estado: Open — All checks have passed (8 successful checks)
 Merge:  No conflicts with base branch — Able to merge
 

@@ -1,0 +1,4 @@
+CI pós-merge PR #7 em piloto-staging-01
+SHA: 91d93f3
+Run: https://github.com/rvbbarreto-bot/barbearia-saas/actions/runs/25997031077
+Status: completed / success (workflow CI)

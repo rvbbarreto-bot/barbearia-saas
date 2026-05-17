@@ -8,7 +8,7 @@
 
 **URL:** https://github.com/rvbbarreto-bot/barbearia-saas/pull/7  
 **Base:** `piloto-staging-01` @ `e6527e6`  
-**Head:** `feature/piloto-staging-05-operacao-gestao-automacao` @ `90244b2`  
+**Head:** `feature/piloto-staging-05-operacao-gestao-automacao` @ `a88b191` (mergeado em `piloto-staging-01` @ `91d93f3`)  
 **CI:** 8/8 checks success — Able to merge, sem conflitos  
 **Print:** `prints/P10_pr_ci_verde.png`
 
