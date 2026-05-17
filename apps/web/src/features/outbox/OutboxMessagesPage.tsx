@@ -23,6 +23,7 @@ import { EmptyState } from '@/components/shared/EmptyState';
 import { formatDate } from '@/lib/utils';
 import { getApiErrorMessage } from '@/lib/apiErrorMessage';
 import { formatOutboxLastError } from '@/lib/outboxErrorMessage';
+import { labelOutboxErrorClass } from './outboxErrorClass';
 import { hasMinRole } from '@/lib/rbac';
 import { useAuthStore } from '@/store/authStore';
 import type { OutboxMessageRow } from '@/types/api';
@@ -67,6 +68,7 @@ export function OutboxMessagesPage() {
   const [correlationId, setCorrelationId] = useState('');
   const [appointmentId, setAppointmentId] = useState('');
   const [destination, setDestination] = useState('');
+  const [customerId, setCustomerId] = useState('');
   const [detailId, setDetailId] = useState<string | null>(null);
   const [confirmRetryOpen, setConfirmRetryOpen] = useState(false);
   const limit = 20;
@@ -82,8 +84,9 @@ export function OutboxMessagesPage() {
       correlation_id: correlationId.trim() || undefined,
       appointment_id: appointmentId.trim() || undefined,
       destination: destination.trim() || undefined,
+      customer_id: customerId.trim() || undefined,
     }),
-    [page, limit, status, provider, from, to, correlationId, appointmentId, destination],
+    [page, limit, status, provider, from, to, correlationId, appointmentId, destination, customerId],
   );
 
   const { data, isLoading, isError, error, refetch, isFetching } = useQuery({
@@ -122,6 +125,11 @@ export function OutboxMessagesPage() {
       },
       { key: 'destination', header: 'Destino', cell: (r: OutboxMessageRow) => r.destination ?? '—' },
       { key: 'provider', header: 'Provider', cell: (r: OutboxMessageRow) => r.provider ?? '—' },
+      {
+        key: 'error_class',
+        header: 'Classe erro',
+        cell: (r: OutboxMessageRow) => labelOutboxErrorClass(r.error_class),
+      },
       { key: 'attempts', header: 'Tent.', cell: (r: OutboxMessageRow) => `${r.attempts}/${r.max_attempts}` },
       {
         key: 'last_error',
@@ -237,6 +245,18 @@ export function OutboxMessagesPage() {
           />
         </div>
         <div className="space-y-2">
+          <Label htmlFor="ob-cust">customer_id</Label>
+          <Input
+            id="ob-cust"
+            value={customerId}
+            onChange={(e) => {
+              setCustomerId(e.target.value);
+              setPage(1);
+            }}
+            placeholder="UUID do cliente"
+          />
+        </div>
+        <div className="space-y-2">
           <Label htmlFor="ob-appt">appointment_id</Label>
           <Input
             id="ob-appt"
@@ -291,7 +311,9 @@ export function OutboxMessagesPage() {
             <div className="flex flex-col gap-3 text-sm">
               <DetailRow label="Estado" value={STATUS_LABELS[detail.status] ?? detail.status} />
               <DetailRow label="Provider" value={detail.provider ?? '—'} />
+              <DetailRow label="Classe erro" value={labelOutboxErrorClass(detail.error_class)} />
               <DetailRow label="Destino" value={detail.destination ?? '—'} />
+              <DetailRow label="customer_id" value={detail.customer_id ?? '—'} mono />
               <DetailRow label="Tentativas" value={`${detail.attempts} / ${detail.max_attempts}`} />
               <DetailRow
                 label="Último erro (operacional)"

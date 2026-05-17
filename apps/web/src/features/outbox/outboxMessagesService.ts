@@ -11,6 +11,7 @@ export type OutboxMessagesQuery = {
   correlation_id?: string;
   appointment_id?: string;
   destination?: string;
+  customer_id?: string;
 };
 
 export async function listOutboxMessages(q: OutboxMessagesQuery): Promise<PaginatedResponse<OutboxMessageRow>> {
@@ -25,6 +26,7 @@ export async function listOutboxMessages(q: OutboxMessagesQuery): Promise<Pagina
       correlation_id: q.correlation_id || undefined,
       appointment_id: q.appointment_id || undefined,
       destination: q.destination || undefined,
+      customer_id: q.customer_id || undefined,
     },
   });
   return data;
