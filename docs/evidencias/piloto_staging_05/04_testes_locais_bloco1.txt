@@ -1,0 +1,16 @@
+# PILOTO-05 Bloco 1 — testes locais
+Data: 2026-05-17
+Branch: feature/piloto-staging-05-operacao-gestao-automacao
+
+API outbox unit:
+  cd apps/api && npm test -- src/modules/outbox
+  → 17 passed (unit; integration requer DATABASE_URL no CI)
+
+Web outbox + nav:
+  cd apps/web && npm test -- src/features/outbox src/config/nav.test.ts
+  → 14 passed
+
+OpenAPI: customer_id + error_class em /api/v1/outbox/messages
+
+Integration cross-tenant (requer DATABASE_URL):
+  npm test -- src/modules/outbox/outbox.isolation.integration.test.ts

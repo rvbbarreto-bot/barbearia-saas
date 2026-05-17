@@ -47,3 +47,48 @@ export function classifyOutboxError(lastError: string | null | undefined): Outbo
   }
   return 'other';
 }
+
+const ERROR_CLASS_VALUES = new Set([
+  'auth',
+  'network',
+  'timeout',
+  'provider',
+  'duplicate',
+  'not_found',
+  'other',
+]);
+
+export function isValidOutboxErrorClassFilter(value: string): value is NonNullable<OutboxErrorClass> {
+  return ERROR_CLASS_VALUES.has(value);
+}
+
+/**
+ * Condição SQL em `mo.last_error` alinhada a {@link classifyOutboxError} (somente para filtros).
+ */
+export function sqlConditionForErrorClass(errorClass: NonNullable<OutboxErrorClass>): string {
+  const le = "coalesce(mo.last_error,'')";
+  const il = (frag: string) => `${le} ILIKE '%${frag}%'`;
+  switch (errorClass) {
+    case 'auth':
+      return `(${il('401')} OR ${il('unauthorized')} OR ${il('invalid_webhook_token')})`;
+    case 'not_found':
+      return `(${il('404')} OR ${il('not found')})`;
+    case 'timeout':
+      return `(${il('timeout')} OR ${il('etimedout')} OR ${il('aborterror')})`;
+    case 'network':
+      return `(${il('fetch failed')} OR ${il('econnrefused')} OR ${il('enotfound')} OR ${il('network')})`;
+    case 'duplicate':
+      return `(${il('duplicate')} OR ${il('idempotency')} OR ${il('already exists')})`;
+    case 'provider':
+      return `(${il('provider')} OR ${il('evolution')} OR ${il('whatsapp')})`;
+    case 'other': {
+      const known = (['auth', 'not_found', 'timeout', 'network', 'duplicate', 'provider'] as const)
+        .filter((c) => c !== 'other')
+        .map((c) => `NOT (${sqlConditionForErrorClass(c)})`)
+        .join(' AND ');
+      return `(mo.last_error IS NOT NULL AND mo.last_error <> '' AND ${known})`;
+    }
+    default:
+      return 'TRUE';
+  }
+}

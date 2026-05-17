@@ -12,6 +12,7 @@ export type OutboxMessagesQuery = {
   appointment_id?: string;
   destination?: string;
   customer_id?: string;
+  error_class?: string;
 };
 
 export async function listOutboxMessages(q: OutboxMessagesQuery): Promise<PaginatedResponse<OutboxMessageRow>> {
@@ -27,6 +28,7 @@ export async function listOutboxMessages(q: OutboxMessagesQuery): Promise<Pagina
       appointment_id: q.appointment_id || undefined,
       destination: q.destination || undefined,
       customer_id: q.customer_id || undefined,
+      error_class: q.error_class || undefined,
     },
   });
   return data;

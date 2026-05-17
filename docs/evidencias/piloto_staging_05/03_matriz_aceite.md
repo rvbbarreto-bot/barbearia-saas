@@ -4,11 +4,14 @@
 
 | # | Bloco | Critério resumido | Status | Evidência |
 |---|-------|-------------------|--------|-----------|
-| 1 | Outbox | Filtros status/período/provider/correlation/customer_id | PARCIAL | API+Web customer_id; demais já existiam |
-| 1 | Outbox | Detalhe sanitizado + error_class | PARCIAL | `classify-outbox-error.ts` |
-| 1 | Outbox | Retry manager+ + auditoria | OK | `retry-message.service.ts` |
-| 1 | Outbox | Cross-tenant | PARCIAL | `outbox.isolation.integration.test.ts` |
-| 1 | Outbox | Testes Web permissões | PARCIAL | `outboxRetryAccess.test.ts` |
+| 1 | Outbox | Filtros + error_class + customer_id | OK | API+Web+OpenAPI |
+| 1 | Outbox | Detalhe sanitizado + error_class | OK | `classify-outbox-error.ts` |
+| 1 | Outbox | Retry manager+ + auditoria | OK | `05_evidencia_retry_rbac_api.md` |
+| 1 | Outbox | Cross-tenant | OK | `05_evidencia_cross_tenant_outbox.md` |
+| 1 | Outbox | Testes Web render/empty/error/filtros | OK | `OutboxMessagesPage.test.tsx` |
+| 1 | Outbox | Prints PNG Web P01-P09 | OK | `prints/` + `10_relatorio_bloco1_outbox.md` |
+| 1 | Outbox | Print P10 PR CI | PEND | Após `gh pr create` |
+| 1 | Outbox | PR + CI verde | PEND | `11_pr_piloto05.md` |
 | 2 | Auditoria | correlation_id + UI read-only | PEND | |
 | 3 | Gerencial | KPIs + CSV | PEND | |
 | 4 | Cliente 360 | Histórico RBAC | PEND | |

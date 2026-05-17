@@ -681,6 +681,15 @@ export const openApiDocument = {
           { name: 'correlation_id', in: 'query', schema: { type: 'string' } },
           { name: 'appointment_id', in: 'query', schema: { type: 'string', format: 'uuid' } },
           { name: 'destination', in: 'query', schema: { type: 'string', description: 'Substring em metadata.phone' } },
+          { name: 'customer_id', in: 'query', schema: { type: 'string', format: 'uuid' } },
+          {
+            name: 'error_class',
+            in: 'query',
+            schema: {
+              type: 'string',
+              enum: ['auth', 'network', 'timeout', 'provider', 'duplicate', 'not_found', 'other'],
+            },
+          },
         ],
         security: [{ bearerAuth: [], tenantHeader: [] }],
         responses: {
@@ -709,7 +718,16 @@ export const openApiDocument = {
                               preview: { type: 'string', nullable: true },
                             },
                           },
-                          last_error: { type: 'string', nullable: true },
+                          last_error: {
+                            type: 'string',
+                            nullable: true,
+                            description: 'Sanitizado (sem tokens/chaves).',
+                          },
+                          error_class: {
+                            type: 'string',
+                            nullable: true,
+                            enum: ['auth', 'network', 'timeout', 'provider', 'duplicate', 'not_found', 'other'],
+                          },
                           attempts: { type: 'integer' },
                           max_attempts: { type: 'integer' },
                           correlation_id: { type: 'string', nullable: true },
@@ -770,6 +788,11 @@ export const openApiDocument = {
                       },
                     },
                     last_error: { type: 'string', nullable: true },
+                    error_class: {
+                      type: 'string',
+                      nullable: true,
+                      enum: ['auth', 'network', 'timeout', 'provider', 'duplicate', 'not_found', 'other'],
+                    },
                     attempts: { type: 'integer' },
                     max_attempts: { type: 'integer' },
                     correlation_id: { type: 'string', nullable: true },

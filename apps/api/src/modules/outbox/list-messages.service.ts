@@ -1,6 +1,7 @@
 import { withTenant } from '../../infra/db/pool.js';
 import { AppError } from '../../shared/errors.js';
 import { parsePagination } from '../../shared/pagination.js';
+import { isValidOutboxErrorClassFilter, sqlConditionForErrorClass } from './classify-outbox-error.js';
 import { mapOutboxRow, type OutboxMessageRowDb } from './outbox-row-mapper.js';
 
 const OUTBOX_STATUSES = new Set(['pending', 'processing', 'sent', 'failed', 'dead']);
@@ -68,6 +69,14 @@ export async function listOutboxMessages(tenantId: string, rawQuery: OutboxMessa
     throw new AppError('VALIDATION_ERROR', 'customer_id inválido (UUID esperado).', 400);
   }
 
+  const errorClassRaw =
+    rawQuery.error_class !== undefined && rawQuery.error_class !== null && rawQuery.error_class !== ''
+      ? String(rawQuery.error_class).trim()
+      : '';
+  if (errorClassRaw && !isValidOutboxErrorClassFilter(errorClassRaw)) {
+    throw new AppError('VALIDATION_ERROR', 'error_class inválido para outbox.', 400);
+  }
+
   const correlationFilter = correlationId || appointmentId;
 
   return withTenant(tenantId, async (client) => {
@@ -105,6 +114,9 @@ export async function listOutboxMessages(tenantId: string, rawQuery: OutboxMessa
     if (customerId) {
       filters.push(`mo.customer_id = $${idx++}::uuid`);
       params.push(customerId);
+    }
+    if (errorClassRaw) {
+      filters.push(`(${sqlConditionForErrorClass(errorClassRaw)})`);
     }
 
     const where = filters.join(' AND ');

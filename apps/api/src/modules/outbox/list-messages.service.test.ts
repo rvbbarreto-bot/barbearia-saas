@@ -19,6 +19,13 @@ describe('listOutboxMessages', () => {
     });
   });
 
+  it('rejects invalid error_class', async () => {
+    await expect(listOutboxMessages('t1', { error_class: 'bogus' })).rejects.toMatchObject({
+      code: 'VALIDATION_ERROR',
+      statusCode: 400,
+    });
+  });
+
   it('rejects invalid customer_id', async () => {
     await expect(listOutboxMessages('t1', { customer_id: 'not-uuid' })).rejects.toMatchObject({
       code: 'VALIDATION_ERROR',
