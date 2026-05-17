@@ -121,11 +121,16 @@ services:
       # Deve corresponder ao webhook_token do tenant na tabela tenants
       # Default alinhado ao seed demo (`database/seeds/001_demo.sql`). Sobrescreva em `.env` em ambientes reais.
       N8N_WEBHOOK_TOKEN: ${N8N_WEBHOOK_TOKEN:-demo_webhook_token_change_me}
+      N8N_HMAC_SECRET: ${N8N_HMAC_SECRET:-}
+      N8N_BASE_URL: ${N8N_BASE_URL:-http://localhost:5679}
+      N8N_WORKFLOW_02_ID: ${N8N_WORKFLOW_02_ID:-}
+      N8N_RECALL_ALLOW_SCHEDULE: ${N8N_RECALL_ALLOW_SCHEDULE:-false}
+      API_TIMEOUT_MS: ${API_TIMEOUT_MS:-15000}
       # Evolution + smoke QA (workflow 03) — devem existir no container n8n, não só na API.
       EVOLUTION_API_URL: ${EVOLUTION_API_URL:-}
       EVOLUTION_INSTANCE: ${EVOLUTION_INSTANCE:-}
       EVOLUTION_API_KEY: ${EVOLUTION_API_KEY:-}
-      QA_WHATSAPP_NUMBER: ${QA_WHATSAPP_NUMBER:-5511973305448}
+      QA_WHATSAPP_NUMBER: ${QA_WHATSAPP_NUMBER:-}
     volumes:
       - n8n_data:/home/node/.n8n
       - ./n8n/workflows:/workflows:ro

@@ -1,0 +1,3 @@
+PNG não versionado pelo agente automatizado — capturar no n8n 1.91.3 após importar `03_QA_Barbearia_Evolution_SendText_Smoke`:
+- vista geral do canvas
+- gravar como `02_workflow_03_canvas.png`

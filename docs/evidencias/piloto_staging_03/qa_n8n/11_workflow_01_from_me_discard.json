@@ -1,0 +1,6 @@
+{
+  "workflow": "01_whatsapp_router_multitenant",
+  "scenario": "fromMe=true",
+  "expected": "Filtrar e Normalizar devolve lista vazia — sem chamada ao Core.",
+  "no_items_after_filter": true
+}

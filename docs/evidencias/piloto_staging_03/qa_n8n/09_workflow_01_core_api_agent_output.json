@@ -1,0 +1,21 @@
+{
+  "workflow": "01_whatsapp_router_multitenant",
+  "scenario": "Registrar Core API + Roteamento — primeira mensagem bem-sucedida",
+  "output": {
+    "route": "agent",
+    "api_status": 200,
+    "enrichment": {
+      "tenant_id": "00000000-0000-0000-0000-000000000001",
+      "customer_id": "uuid-masked",
+      "message_id": "uuid-masked",
+      "correlation_id": "n8n-exec-xxxx"
+    },
+    "core_response": {
+      "ok": true,
+      "duplicate": false,
+      "tenantId": "00000000-0000-0000-0000-000000000001",
+      "customerId": "***",
+      "messageId": "***"
+    }
+  }
+}

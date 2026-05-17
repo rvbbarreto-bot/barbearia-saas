@@ -106,3 +106,8 @@ artifacts/
 # ── Backups / pacotes QA locais (nunca versionar) ──
 .env.backup_qa
 QA_PACKAGE_*.zip
+
+# ── n8n / QA piloto — artefactos locais (nunca importar no lugar do export canónico) ──
+**/*.LOCAL_IMPORT.json
+docs/evidencias/**/Evidências.docx
+docs/evidencias/**/Evidencias.docx

@@ -11,6 +11,7 @@
     "compose:up": "docker compose up -d --build",
     "compose:down": "docker compose down",
     "compose:ps": "docker compose ps",
+    "n8n:validate-workflows": "node scripts/n8n-validate-workflow-import.mjs",
     "db:migrate": "node ./scripts/migrate-docker.mjs",
     "db:migrate:dry-run": "node ./scripts/migrate-docker.mjs --dry-run",
     "db:migrate:seed": "node ./scripts/migrate-docker.mjs --seed",
