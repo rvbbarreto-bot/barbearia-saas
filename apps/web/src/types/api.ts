@@ -271,6 +271,21 @@ export interface AuditLogRow {
   created_at: string;
 }
 
+export interface OperationalAuditEventRow {
+  id: string;
+  tenant_id: string;
+  entity_type: string;
+  entity_id: string | null;
+  event_type: string;
+  actor_user_id: string | null;
+  actor_role: string | null;
+  source: string | null;
+  request_id: string | null;
+  correlation_id: string | null;
+  metadata: Record<string, unknown> | null;
+  created_at: string;
+}
+
 // ─── Waitlist ─────────────────────────────────────────────────────────────────
 
 export interface WaitlistEntry {

@@ -1,6 +1,6 @@
 import { withTenant } from '../../infra/db/pool.js';
 import { AppError } from '../../shared/errors.js';
-import { writeOperationalAuditEvent } from '../../shared/operational-audit.js';
+import { effectiveCorrelationId, writeOperationalAuditEvent } from '../../shared/operational-audit.js';
 
 /**
  * Re-enfileira envio manual: apenas `failed` ou `dead`.
@@ -9,7 +9,12 @@ import { writeOperationalAuditEvent } from '../../shared/operational-audit.js';
 export async function retryOutboxMessage(
   tenantId: string,
   messageId: string,
-  ctx: { actorUserId?: string | null; actorRole?: string | null; requestId?: string | null },
+  ctx: {
+    actorUserId?: string | null;
+    actorRole?: string | null;
+    requestId?: string | null;
+    correlationId?: string | null;
+  },
 ) {
   return withTenant(tenantId, async (client) => {
     const cur = await client.query<{ status: string }>(
@@ -54,7 +59,10 @@ export async function retryOutboxMessage(
       actorRole: ctx.actorRole ?? null,
       source: 'api',
       requestId: ctx.requestId ?? null,
-      correlationId: up.rows[0]?.correlation_id ?? null,
+      correlationId: effectiveCorrelationId(
+        ctx.correlationId ?? up.rows[0]?.correlation_id,
+        messageId,
+      ),
       metadata: { previous_status: st },
     });
 

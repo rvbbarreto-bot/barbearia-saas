@@ -964,13 +964,14 @@ export const openApiDocument = {
         tags: ['audit'],
         summary: 'Listar eventos operacionais (P2)',
         description:
-          'RBAC: `operationalAudit.read` (mín. `attendant`). Filtros: `event_type`, `entity_type`, `entity_id`, `from`/`to` ou `date_from`/`date_to` (ISO), `correlation_id`, `request_id`, paginação `page`/`limit`. Alias de path: `/api/v1/operational-audit/events`.',
+          'RBAC: `operationalAudit.read` (mín. `manager`). Filtros: `event_type`, `entity_type`, `entity_id`, `actor_user_id`, `from`/`to` ou `date_from`/`date_to` (ISO), `correlation_id`, `request_id`, paginação `page`/`limit`. Metadata sanitizada na resposta. Alias: `/api/v1/operational-audit/events`.',
         parameters: [
           { name: 'page', in: 'query', schema: { type: 'string' } },
           { name: 'limit', in: 'query', schema: { type: 'string' } },
           { name: 'event_type', in: 'query', schema: { type: 'string' } },
           { name: 'entity_type', in: 'query', schema: { type: 'string' } },
           { name: 'entity_id', in: 'query', schema: { type: 'string', format: 'uuid' } },
+          { name: 'actor_user_id', in: 'query', schema: { type: 'string', format: 'uuid' } },
           { name: 'from', in: 'query', schema: { type: 'string', format: 'date-time' } },
           { name: 'to', in: 'query', schema: { type: 'string', format: 'date-time' } },
           { name: 'date_from', in: 'query', schema: { type: 'string', format: 'date-time' } },
@@ -987,13 +988,14 @@ export const openApiDocument = {
         tags: ['audit'],
         summary: 'Listar eventos operacionais (alias PO)',
         description:
-          'Idêntico a `GET /api/v1/operational-audit-events`. RBAC: `operationalAudit.read` (mín. `attendant`).',
+          'Idêntico a `GET /api/v1/operational-audit-events`. RBAC: `operationalAudit.read` (mín. `manager`).',
         parameters: [
           { name: 'page', in: 'query', schema: { type: 'string' } },
           { name: 'limit', in: 'query', schema: { type: 'string' } },
           { name: 'event_type', in: 'query', schema: { type: 'string' } },
           { name: 'entity_type', in: 'query', schema: { type: 'string' } },
           { name: 'entity_id', in: 'query', schema: { type: 'string', format: 'uuid' } },
+          { name: 'actor_user_id', in: 'query', schema: { type: 'string', format: 'uuid' } },
           { name: 'from', in: 'query', schema: { type: 'string', format: 'date-time' } },
           { name: 'to', in: 'query', schema: { type: 'string', format: 'date-time' } },
           { name: 'date_from', in: 'query', schema: { type: 'string', format: 'date-time' } },

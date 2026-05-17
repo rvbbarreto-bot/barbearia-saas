@@ -45,6 +45,8 @@ describe('canAccessPath (RBAC painel V4)', () => {
     expect(canAccessPath('/operacao/comissao', 'manager')).toBe(true);
     expect(canAccessPath('/operacao/comissao', 'tenant_admin')).toBe(true);
     expect(canAccessPath('/operacao/comissao', 'tenant_owner')).toBe(true);
+    expect(canAccessPath('/operacao/auditoria', 'attendant')).toBe(false);
+    expect(canAccessPath('/operacao/auditoria', 'manager')).toBe(true);
   });
 
   it('matriz: não há regressão entre perfis V4', () => {

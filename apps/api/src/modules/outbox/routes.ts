@@ -1,5 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import { requirePermission } from '../../middlewares/rbac.js';
+import { resolveCorrelationId } from '../../shared/request-correlation.js';
 import { getOutboxMessageById } from './get-message.service.js';
 import { listOutboxMessages } from './list-messages.service.js';
 import { retryOutboxMessage } from './retry-message.service.js';
@@ -25,7 +26,9 @@ export async function outboxRoutes(app: FastifyInstance) {
       const body = await retryOutboxMessage(request.tenantId, request.params.id as string, {
         actorUserId: u?.sub ?? null,
         actorRole: u?.role ?? null,
-        requestId: request.id,
+        requestId: request.requestId ?? request.id,
+        correlationId:
+          resolveCorrelationId(request.headers as Record<string, unknown>) ?? undefined,
       });
       return reply.code(200).send(body);
     },

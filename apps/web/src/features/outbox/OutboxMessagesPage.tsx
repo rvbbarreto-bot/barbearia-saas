@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Inbox, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -59,13 +60,15 @@ function statusBadgeClass(status: string): string {
 export function OutboxMessagesPage() {
   const qc = useQueryClient();
   const user = useAuthStore((s) => s.user);
+  const [searchParams] = useSearchParams();
+  const initialCorrelation = searchParams.get('correlation_id') ?? '';
 
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState<string>('__all__');
   const [provider, setProvider] = useState('');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
-  const [correlationId, setCorrelationId] = useState('');
+  const [correlationId, setCorrelationId] = useState(initialCorrelation);
   const [appointmentId, setAppointmentId] = useState('');
   const [destination, setDestination] = useState('');
   const [customerId, setCustomerId] = useState('');

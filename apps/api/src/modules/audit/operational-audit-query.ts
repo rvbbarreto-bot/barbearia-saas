@@ -4,6 +4,7 @@ export const operationalAuditListQuery = z.object({
   event_type: z.string().min(1).max(120).optional(),
   entity_type: z.string().min(1).max(80).optional(),
   entity_id: z.string().uuid().optional(),
+  actor_user_id: z.string().uuid().optional(),
   from: z.string().datetime().optional(),
   to: z.string().datetime().optional(),
   correlation_id: z.string().min(1).max(120).optional(),

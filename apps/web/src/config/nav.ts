@@ -35,6 +35,7 @@ export const APP_NAV: AppNavItem[] = [
   { to: '/lista-espera', label: 'Lista de espera', icon: ListOrdered, minRole: 'attendant' },
   { to: '/operacao/financeiro', label: 'Financeiro', icon: Wallet, minRole: 'manager' },
   { to: '/operacao/mensagens', label: 'Mensagens', icon: Inbox, minRole: 'attendant' },
+  { to: '/operacao/auditoria', label: 'Auditoria operacional', icon: ClipboardList, minRole: 'manager' },
   { to: '/operacao/comissao', label: 'Comissões', icon: Percent, minRole: 'manager' },
   { to: '/auditoria', label: 'Auditoria', icon: ClipboardList, minRole: 'tenant_admin' },
   { to: '/configuracoes', label: 'Configurações', icon: Settings, minRole: 'manager' },

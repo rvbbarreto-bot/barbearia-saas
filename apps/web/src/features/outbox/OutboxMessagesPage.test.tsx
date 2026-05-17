@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MemoryRouter } from 'react-router-dom';
 import { render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { OutboxMessagesPage } from './OutboxMessagesPage';
@@ -36,7 +37,9 @@ function renderPage() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
-      <OutboxMessagesPage />
+      <MemoryRouter initialEntries={['/operacao/mensagens']}>
+        <OutboxMessagesPage />
+      </MemoryRouter>
     </QueryClientProvider>,
   );
 }

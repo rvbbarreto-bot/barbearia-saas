@@ -1,4 +1,7 @@
 import type { PoolClient } from 'pg';
+import { effectiveCorrelationId } from './request-correlation.js';
+
+export { effectiveCorrelationId };
 
 export type OperationalAuditInput = {
   tenantId: string;

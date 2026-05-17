@@ -6,6 +6,8 @@ vi.mock('../../infra/db/pool.js', () => ({
 
 vi.mock('../../shared/operational-audit.js', () => ({
   writeOperationalAuditEvent: vi.fn(),
+  effectiveCorrelationId: (header: string | null | undefined, fallback: string) =>
+    header?.trim() ? header.trim() : fallback,
 }));
 
 import * as pool from '../../infra/db/pool.js';
