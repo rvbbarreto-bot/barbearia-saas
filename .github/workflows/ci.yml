@@ -12,6 +12,8 @@ on:
       - feature/piloto-staging-02-agenda-operacional
       # PILOTO-STAGING-03: QA operacional, n8n, painel homologação — PR exclusivo em piloto-staging-01.
       - feature/piloto-staging-03-qa-operacional-n8n-ready
+      # PILOTO-STAGING-05 — operação, gestão e automação.
+      - feature/piloto-staging-05-operacao-gestao-automacao
   pull_request:
     branches:
       - main

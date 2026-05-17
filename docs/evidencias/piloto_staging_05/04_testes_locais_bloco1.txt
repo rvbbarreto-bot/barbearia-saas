@@ -1,0 +1,104 @@
+# PILOTO-05 Bloco 1 — relatório de testes (sem ambiguidade)
+Data: 2026-05-17
+Branch: feature/piloto-staging-05-operacao-gestao-automacao
+Commit (correção CI): ver HEAD após push desta correção
+
+## Regra de interpretação
+
+| Tipo | Exit code esperado | Onde roda |
+|------|-------------------|-----------|
+| Unitário API (sem banco) | 0 | Local ou CI |
+| Unitário Web | 0 | Local ou CI |
+| Integração API (com Postgres/Redis) | 0 | **Somente** com env completo (CI ou Docker local alinhado) |
+| `npm test -- src/modules/outbox` (sem exclude) | Pode ser 1 local sem env | **Não usar** como comando “verde” local |
+
+---
+
+## 1) API — testes unitários Outbox (exit 0)
+
+**Comando (explícito — não inclui integração):**
+
+```bash
+cd apps/api
+npm run test:unit -- \
+  src/modules/outbox/classify-outbox-error.test.ts \
+  src/modules/outbox/list-messages.service.test.ts \
+  src/modules/outbox/outbox-row-mapper.test.ts \
+  src/modules/outbox/retry-message.service.test.ts
+```
+
+**Alternativa equivalente (todo o pacote unitário API):**
+
+```bash
+cd apps/api && npm run test:unit
+```
+
+**Resultado local 2026-05-17:** exit **0** — 4 ficheiros, **13** testes passed.  
+**Saída anexa:** `04_saida_teste_api_unit_outbox.txt`
+
+**Comando que NÃO deve ser declarado verde sem env:**
+
+```bash
+cd apps/api && npm test -- src/modules/outbox
+```
+
+Motivo: inclui `outbox.isolation.integration.test.ts` e `outbox.routes.integration.test.ts`, que exigem `DATABASE_URL`, `JWT_SECRET`, `REDIS_URL`.
+
+---
+
+## 2) API — typecheck (exit 0)
+
+```bash
+cd apps/api && npm run typecheck
+```
+
+**Resultado local após correção TS:** exit **0**
+
+**Causa raiz do check vermelho em e93f9cd (CI):** falha em `npm run typecheck` — erros em `classify-outbox-error.ts` e `list-messages.service.ts`. Corrigido neste commit.
+
+---
+
+## 3) Web — testes Outbox (exit 0)
+
+```bash
+cd apps/web
+npm test -- src/features/outbox src/config/nav.test.ts
+```
+
+**Resultado local 2026-05-17:** exit **0** — 5 ficheiros, **14** testes passed.  
+**Saída anexa:** `04_saida_teste_web_outbox.txt`
+
+---
+
+## 4) API — cross-tenant `outbox.isolation.integration.test.ts`
+
+**Comando:**
+
+```bash
+cd apps/api
+# Requer DATABASE_URL, JWT_SECRET, REDIS_URL (e Postgres acessível)
+npm test -- src/modules/outbox/outbox.isolation.integration.test.ts
+```
+
+**Local 2026-05-17:** exit **1** — timeout/autenticação Postgres (`.env` Docker `postgres:5432` não acessível em `127.0.0.1` sem credenciais alinhadas).  
+**Saída anexa:** `04_saida_teste_cross_tenant_integration.txt` (falha documentada).
+
+**Validação oficial:** job **API — typecheck · lint · test · build** no CI (integração com Postgres/Redis do workflow).  
+**Evidência:** `05_evidencia_cross_tenant_outbox.md` + link do run verde após push (atualizar P10).
+
+---
+
+## 5) CI GitHub Actions (fonte de verdade integração)
+
+Workflow: `.github/workflows/ci.yml`  
+Run falho (typecheck): https://github.com/rvbbarreto-bot/barbearia-saas/actions/runs/25994248190  
+Job falho: API — typecheck · lint · test · build (exit 2 no typecheck)
+
+Após correção TS: novo push → aguardar run verde → anexar URL em `10_relatorio_bloco1_outbox.md` e `P10_pr_ci_verde.png`.
+
+---
+
+## 6) Estado base `piloto-staging-01` / PR #6
+
+`origin/piloto-staging-01` @ `e6527e6` (merge PR #4). **PR #6 (PILOTO-04) ainda não mergeado** na base.  
+P05 não depende de `/operacao/status` (P04) para Outbox; rebase obrigatório **após** merge #6 se a base avançar antes do merge P05.

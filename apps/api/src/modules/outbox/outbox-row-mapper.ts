@@ -1,3 +1,9 @@
+import {
+  classifyOutboxError,
+  sanitizeLastErrorForOperator,
+  type OutboxErrorClass,
+} from './classify-outbox-error.js';
+
 /** UUID v4 — usado para derivar `appointment_id` a partir de `correlation_id` quando aplicável. */
 const APPOINTMENT_UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -52,6 +58,7 @@ export type OutboxMessageListItem = {
   destination: string | null;
   payload_summary: { type: string | null; preview: string | null };
   last_error: string | null;
+  error_class: OutboxErrorClass;
   attempts: number;
   max_attempts: number;
   correlation_id: string | null;
@@ -75,7 +82,8 @@ export function mapOutboxRow(row: OutboxMessageRowDb): OutboxMessageListItem {
     status: row.status,
     destination: phone ? maskPhone(phone) : null,
     payload_summary: summarizePayload(row.payload),
-    last_error: row.last_error,
+    last_error: sanitizeLastErrorForOperator(row.last_error),
+    error_class: classifyOutboxError(row.last_error),
     attempts: row.attempts,
     max_attempts: row.max_attempts,
     correlation_id: row.correlation_id,

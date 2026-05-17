@@ -332,6 +332,15 @@ export interface OutboxMessageRow {
   destination: string | null;
   payload_summary: { type: string | null; preview: string | null };
   last_error: string | null;
+  error_class:
+    | 'auth'
+    | 'network'
+    | 'timeout'
+    | 'provider'
+    | 'duplicate'
+    | 'not_found'
+    | 'other'
+    | null;
   attempts: number;
   max_attempts: number;
   correlation_id: string | null;

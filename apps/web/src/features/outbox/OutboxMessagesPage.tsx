@@ -23,13 +23,15 @@ import { EmptyState } from '@/components/shared/EmptyState';
 import { formatDate } from '@/lib/utils';
 import { getApiErrorMessage } from '@/lib/apiErrorMessage';
 import { formatOutboxLastError } from '@/lib/outboxErrorMessage';
-import { hasMinRole } from '@/lib/rbac';
+import { labelOutboxErrorClass, OUTBOX_ERROR_CLASS_LABELS } from './outboxErrorClass';
 import { useAuthStore } from '@/store/authStore';
+import { buildOutboxMessagesQuery, canShowOutboxRetryButton } from './outboxPageModel';
 import type { OutboxMessageRow } from '@/types/api';
 import { getOutboxMessage, listOutboxMessages, retryOutboxMessage } from './outboxMessagesService';
 import { toast } from 'sonner';
 
 const STATUS_OPTS = ['__all__', 'pending', 'processing', 'sent', 'failed', 'dead'] as const;
+const ERROR_CLASS_OPTS = ['__all__', ...Object.keys(OUTBOX_ERROR_CLASS_LABELS)] as const;
 
 const STATUS_LABELS: Record<string, string> = {
   pending: 'Pendente',
@@ -57,7 +59,6 @@ function statusBadgeClass(status: string): string {
 export function OutboxMessagesPage() {
   const qc = useQueryClient();
   const user = useAuthStore((s) => s.user);
-  const canRetry = !!user && hasMinRole(user.role, 'manager');
 
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState<string>('__all__');
@@ -67,23 +68,28 @@ export function OutboxMessagesPage() {
   const [correlationId, setCorrelationId] = useState('');
   const [appointmentId, setAppointmentId] = useState('');
   const [destination, setDestination] = useState('');
+  const [customerId, setCustomerId] = useState('');
+  const [errorClass, setErrorClass] = useState<string>('__all__');
   const [detailId, setDetailId] = useState<string | null>(null);
   const [confirmRetryOpen, setConfirmRetryOpen] = useState(false);
   const limit = 20;
 
   const filters = useMemo(
-    () => ({
-      page,
-      limit,
-      status: status === '__all__' ? undefined : status,
-      provider: provider.trim() || undefined,
-      from: from.trim() || undefined,
-      to: to.trim() || undefined,
-      correlation_id: correlationId.trim() || undefined,
-      appointment_id: appointmentId.trim() || undefined,
-      destination: destination.trim() || undefined,
-    }),
-    [page, limit, status, provider, from, to, correlationId, appointmentId, destination],
+    () =>
+      buildOutboxMessagesQuery({
+        page,
+        limit,
+        status,
+        provider,
+        from,
+        to,
+        correlationId,
+        appointmentId,
+        destination,
+        customerId,
+        errorClass,
+      }),
+    [page, limit, status, provider, from, to, correlationId, appointmentId, destination, customerId, errorClass],
   );
 
   const { data, isLoading, isError, error, refetch, isFetching } = useQuery({
@@ -122,6 +128,11 @@ export function OutboxMessagesPage() {
       },
       { key: 'destination', header: 'Destino', cell: (r: OutboxMessageRow) => r.destination ?? '—' },
       { key: 'provider', header: 'Provider', cell: (r: OutboxMessageRow) => r.provider ?? '—' },
+      {
+        key: 'error_class',
+        header: 'Classe erro',
+        cell: (r: OutboxMessageRow) => labelOutboxErrorClass(r.error_class),
+      },
       { key: 'attempts', header: 'Tent.', cell: (r: OutboxMessageRow) => `${r.attempts}/${r.max_attempts}` },
       {
         key: 'last_error',
@@ -141,7 +152,7 @@ export function OutboxMessagesPage() {
   );
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div className="flex flex-col gap-6 p-6" data-testid="outbox-page">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">Mensagens (outbox)</h1>
@@ -155,7 +166,7 @@ export function OutboxMessagesPage() {
         </Button>
       </div>
 
-      <div className="grid gap-4 rounded-xl border bg-card p-4 shadow-sm md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 rounded-xl border bg-card p-4 shadow-sm md:grid-cols-2 lg:grid-cols-3" data-testid="outbox-filters">
         <div className="space-y-2">
           <Label>Estado</Label>
           <Select
@@ -165,7 +176,7 @@ export function OutboxMessagesPage() {
               setPage(1);
             }}
           >
-            <SelectTrigger>
+            <SelectTrigger data-testid="outbox-filter-status">
               <SelectValue placeholder="Todos" />
             </SelectTrigger>
             <SelectContent>
@@ -237,6 +248,42 @@ export function OutboxMessagesPage() {
           />
         </div>
         <div className="space-y-2">
+          <Label htmlFor="ob-cust">customer_id</Label>
+          <Input
+            id="ob-cust"
+            data-testid="outbox-filter-customer-id"
+            value={customerId}
+            onChange={(e) => {
+              setCustomerId(e.target.value);
+              setPage(1);
+            }}
+            placeholder="UUID do cliente"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>Classe de erro</Label>
+          <Select
+            value={errorClass}
+            onValueChange={(v) => {
+              setErrorClass(v);
+              setPage(1);
+            }}
+          >
+            <SelectTrigger data-testid="outbox-filter-error-class">
+              <SelectValue placeholder="Todas" />
+            </SelectTrigger>
+            <SelectContent>
+              {ERROR_CLASS_OPTS.map((c) => (
+                <SelectItem key={c} value={c}>
+                  {c === '__all__'
+                    ? 'Todas'
+                    : OUTBOX_ERROR_CLASS_LABELS[c as keyof typeof OUTBOX_ERROR_CLASS_LABELS]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
           <Label htmlFor="ob-appt">appointment_id</Label>
           <Input
             id="ob-appt"
@@ -256,15 +303,20 @@ export function OutboxMessagesPage() {
       </div>
 
       {isError && (
-        <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+        <div
+          className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
+          data-testid="outbox-error-banner"
+        >
           {getApiErrorMessage(error, 'Erro ao carregar mensagens.')}
         </div>
       )}
 
       {!isLoading && !isError && !data?.data.length ? (
-        <EmptyState icon={Inbox} title="Sem mensagens" description="Ajuste filtros ou aguarde enfileiramento." />
+        <div data-testid="outbox-empty-state">
+          <EmptyState icon={Inbox} title="Sem mensagens" description="Ajuste filtros ou aguarde enfileiramento." />
+        </div>
       ) : (
-        <div className="rounded-xl border bg-card shadow-sm">
+        <div className="rounded-xl border bg-card shadow-sm" data-testid="outbox-table">
           <DataTable
             columns={columns}
             data={data?.data ?? []}
@@ -281,7 +333,7 @@ export function OutboxMessagesPage() {
       )}
 
       <Dialog open={!!detailId} onOpenChange={(o) => !o && setDetailId(null)}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg" data-testid="outbox-detail-dialog">
           <DialogHeader>
             <DialogTitle>Detalhe da mensagem</DialogTitle>
           </DialogHeader>
@@ -291,7 +343,9 @@ export function OutboxMessagesPage() {
             <div className="flex flex-col gap-3 text-sm">
               <DetailRow label="Estado" value={STATUS_LABELS[detail.status] ?? detail.status} />
               <DetailRow label="Provider" value={detail.provider ?? '—'} />
+              <DetailRow label="Classe erro" value={labelOutboxErrorClass(detail.error_class)} />
               <DetailRow label="Destino" value={detail.destination ?? '—'} />
+              <DetailRow label="customer_id" value={detail.customer_id ?? '—'} mono />
               <DetailRow label="Tentativas" value={`${detail.attempts} / ${detail.max_attempts}`} />
               <DetailRow
                 label="Último erro (operacional)"
@@ -323,8 +377,12 @@ export function OutboxMessagesPage() {
             <Button type="button" variant="outline" onClick={() => setDetailId(null)}>
               Fechar
             </Button>
-            {canRetry && detail && (detail.status === 'failed' || detail.status === 'dead') && (
-              <Button type="button" onClick={() => setConfirmRetryOpen(true)}>
+            {canShowOutboxRetryButton(user?.role, detail?.status) && (
+              <Button
+                type="button"
+                data-testid="outbox-retry-button"
+                onClick={() => setConfirmRetryOpen(true)}
+              >
                 Tentar novamente
               </Button>
             )}

@@ -1,9 +1,16 @@
 import { withTenant } from '../../infra/db/pool.js';
 import { AppError } from '../../shared/errors.js';
 import { parsePagination } from '../../shared/pagination.js';
+import {
+  isValidOutboxErrorClassFilter,
+  sqlConditionForErrorClass,
+  type OutboxErrorClass,
+} from './classify-outbox-error.js';
 import { mapOutboxRow, type OutboxMessageRowDb } from './outbox-row-mapper.js';
 
 const OUTBOX_STATUSES = new Set(['pending', 'processing', 'sent', 'failed', 'dead']);
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export type OutboxMessageListQuery = Record<string, unknown>;
 
@@ -58,6 +65,24 @@ export async function listOutboxMessages(tenantId: string, rawQuery: OutboxMessa
       ? String(rawQuery.destination).trim()
       : '';
 
+  const customerId =
+    rawQuery.customer_id !== undefined && rawQuery.customer_id !== null && rawQuery.customer_id !== ''
+      ? String(rawQuery.customer_id).trim()
+      : '';
+  if (customerId && !UUID_RE.test(customerId)) {
+    throw new AppError('VALIDATION_ERROR', 'customer_id inválido (UUID esperado).', 400);
+  }
+
+  const errorClassRaw =
+    rawQuery.error_class !== undefined && rawQuery.error_class !== null && rawQuery.error_class !== ''
+      ? String(rawQuery.error_class).trim()
+      : '';
+  if (errorClassRaw && !isValidOutboxErrorClassFilter(errorClassRaw)) {
+    throw new AppError('VALIDATION_ERROR', 'error_class inválido para outbox.', 400);
+  }
+  const errorClassFilter: NonNullable<OutboxErrorClass> | '' =
+    errorClassRaw && isValidOutboxErrorClassFilter(errorClassRaw) ? errorClassRaw : '';
+
   const correlationFilter = correlationId || appointmentId;
 
   return withTenant(tenantId, async (client) => {
@@ -91,6 +116,13 @@ export async function listOutboxMessages(tenantId: string, rawQuery: OutboxMessa
         filters.push(`mo.metadata->>'phone' ILIKE $${idx++}`);
         params.push(`%${safe}%`);
       }
+    }
+    if (customerId) {
+      filters.push(`mo.customer_id = $${idx++}::uuid`);
+      params.push(customerId);
+    }
+    if (errorClassFilter) {
+      filters.push(`(${sqlConditionForErrorClass(errorClassFilter)})`);
     }
 
     const where = filters.join(' AND ');
