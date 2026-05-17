@@ -1,26 +1,30 @@
-PR Bloco 2 — abrir manualmente (gh auth não disponível neste ambiente)
+PR Bloco 2 — PILOTO-05 Auditoria operacional
 
 Compare / criar PR:
 https://github.com/rvbbarreto-bot/barbearia-saas/compare/piloto-staging-01...feature/piloto-staging-05-operacao-gestao-automacao?expand=1
 
-Título sugerido:
+Título:
 feat(piloto-05): bloco 2 auditoria operacional e correlation_id
 
 Corpo: docs/evidencias/piloto_staging_05/21_pr_body.md
 
-Base: piloto-staging-01
-Head: feature/piloto-staging-05-operacao-gestao-automacao @ 642a8a6
+Base: piloto-staging-01 (nunca main)
+Head: feature/piloto-staging-05-operacao-gestao-automacao
+HEAD final branch: c2e4843
+Commit correção P18: 734fa62
 
-Commits no PR (apenas Bloco 2 vs base pós-PR#7):
+Commits no PR (Bloco 2 vs base pós-PR#7):
 - 8cb5f29 feat(piloto-05): bloco 2 auditoria operacional e correlation_id
 - 5fdea56 docs(piloto-05): QA bloco 2 auditoria, prints P11-P18 e corpo PR
 - 642a8a6 fix(tests): corrigir mocks CI bloco 2 auditoria
+- ffa9c34 docs(piloto-05): evidências bloco 2 P12/P19 e saída PR
+- 734fa62 fix(web): erro real em auditoria operacional quando API falha (P18)
+- c2e4843 docs(piloto-05): rastreabilidade PR bloco 2 @ HEAD final
 
-CI verde (4 jobs): https://github.com/rvbbarreto-bot/barbearia-saas/actions/runs/26002350139
-Print: docs/evidencias/piloto_staging_05/prints/P19_pr_bloco2_ci_verde.png
+CI verde (referência P18): https://github.com/rvbbarreto-bot/barbearia-saas/actions/runs/26003284708 @ 734fa62
 
+Evidências P11–P19: docs/evidencias/piloto_staging_05/prints/
 Roteiro QA: docs/evidencias/piloto_staging_05/04_roteiro_qa_bloco2_auditoria.md
-Prints P11–P19: docs/evidencias/piloto_staging_05/prints/
-P12 refinado: P12_filtro_event_type.png (+ P12b_filtro_event_type_tabela.png)
+P18: prints/P18_estado_erro_auditoria.png — tela /operacao/auditoria (aprovado tecnicamente)
 
-Após abrir PR: marcar checklist em 21_pr_body.md; PO merge só em piloto-staging-01.
+Merge: bloqueado até aceite formal PO/GP em piloto-staging-01 apenas.
