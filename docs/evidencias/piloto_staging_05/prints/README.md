@@ -30,7 +30,8 @@ Capturas **PNG/JPG** reais do portal Web (não substituir por `.txt`).
 | `P15_metadata_sanitizada.png` | Metadata truncada/sanitizada |
 | `P16_estado_vazio_auditoria.png` | Empty state |
 | `P17_attendant_sem_acesso.png` | Atendente sem acesso |
-| `P18_estado_erro_auditoria.png` | Erro de carregamento |
+| `P18_estado_erro_auditoria.png` | API down em `/operacao/auditoria` — banner erro, sem «Sem resultados» |
+| `P12b_filtro_event_type_tabela.png` | Complemento P12 — tabela filtrada |
 | `P19_pr_bloco2_ci_verde.png` | PR Bloco 2 CI verde |
 
 **Gerar:** `04_roteiro_qa_bloco2_auditoria.md` — Vite `:5173` ou Docker rebuild `:3001`.

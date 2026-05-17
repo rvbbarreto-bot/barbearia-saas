@@ -20,7 +20,9 @@
 | 2 | Auditoria | Metadata sanitizada | OK | `sanitize-operational-audit-metadata.ts` |
 | 2 | Auditoria | Cross-tenant | OK | `operational-audit.isolation.integration.test.ts` |
 | 2 | Auditoria | RBAC manager+ | OK | `rbac.ts`, `RoleGuard` |
-| 2 | Auditoria | Testes Web render/empty/error | OK | `OperationalAuditPage.test.tsx` |
+| 2 | Auditoria | Testes Web render/empty/error | OK | `OperationalAuditPage.test.tsx` (incl. API indisponível sem «Sem resultados») |
+| 2 | Auditoria | P18 erro real em `/operacao/auditoria` | OK | `prints/P18_estado_erro_auditoria.png` (banner, sem tabela vazia) |
+| 2 | Auditoria | Aceite PO / merge | PEND | PR vs `piloto-staging-01` + CI verde pós-correção P18 |
 | 3 | Gerencial | KPIs + CSV | PEND | |
 | 4 | Cliente 360 | Histórico RBAC | PEND | |
 | 5 | Waitlist | Fila + conversão | PEND | |

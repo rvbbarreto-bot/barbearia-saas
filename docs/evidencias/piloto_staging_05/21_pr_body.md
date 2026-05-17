@@ -14,7 +14,8 @@ PILOTO-05 **Bloco 2** — auditoria operacional read-only com `correlation_id`, 
 
 - [ ] CI 8/8 verde no PR
 - [ ] `04_roteiro_qa_bloco2_auditoria.md` — casos B2-01 a B2-15
-- [ ] Prints P11–P18 em `docs/evidencias/piloto_staging_05/prints/`
+- [ ] Prints P11–P19 em `docs/evidencias/piloto_staging_05/prints/`
+- [ ] **P18:** `/operacao/auditoria` com API indisponível → banner erro (sem «Sem resultados»)
 - [ ] API unit: `npm run test:unit -- src/shared/request-correlation.test.ts src/modules/audit/`
 - [ ] Web: `npm test -- src/features/auditoria/`
 - [ ] Integração: `operational-audit.isolation.integration.test.ts` (CI)

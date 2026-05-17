@@ -53,6 +53,9 @@ export function getApiErrorMessage(err: unknown, fallback = FALLBACK): string {
       if (code === 'TENANT_MISMATCH') return API_ERROR_MESSAGES.TENANT_MISMATCH!;
       return API_ERROR_MESSAGES.FORBIDDEN!;
     }
+    if (status === 502 || status === 503 || status === 504) {
+      return 'Sem ligação ao servidor. Verifique a rede e tente novamente.';
+    }
     const msg = typeof data?.message === 'string' ? data.message.trim() : '';
     if (msg && !isUnsafeTechnicalMessage(msg)) {
       return msg;

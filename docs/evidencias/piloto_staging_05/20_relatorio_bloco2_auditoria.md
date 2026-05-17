@@ -34,12 +34,18 @@ Capturas reais Docker `:3001` (rebuild API/Web com Bloco 2). Ver `prints/P11_*.p
 | P15 | Tabela com metadata truncada |
 | P16 | Empty state «Sem registos» |
 | P17 | Atendente → `/forbidden` (sem item no menu) |
-| P18 | Erro API indisponível (banner vermelho; RTL cobre auditoria) |
+| P18 | **Corrigido:** API parada → banner «Sem ligação ao servidor…» em `/operacao/auditoria`; **sem** tabela «Sem resultados» nem empty state |
+
+### Correção P18 (ressalva PO)
+
+- **Problema:** com API indisponível, a UI mostrava «Sem resultados» (DataTable) em vez de erro.
+- **Correção:** `OperationalAuditPage` não renderiza tabela nem empty quando `isError`; mensagem via `getApiErrorMessage` (igual Mensagens).
+- **Testes:** `OperationalAuditPage.test.tsx` — falha de rede + refetch após sucesso (sem dados obsoletos na UI).
 
 ## PR
 
-Abrir contra `piloto-staging-01` apenas — ver `21_pr_body.md`.
+Abrir contra `piloto-staging-01` apenas — ver `21_pr_body.md` e `04_saida_pr_bloco2_abrir.txt`.
 
 ## Parecer fábrica
 
-Bloco 2 **pronto para aceite PO/merge** após CI verde no PR. Blocos 3–10 não iniciados.
+Bloco 2 **aguarda aceite PO** após revisão do PR, CI verde e print P18 atualizado. Blocos 3–10 não iniciados.

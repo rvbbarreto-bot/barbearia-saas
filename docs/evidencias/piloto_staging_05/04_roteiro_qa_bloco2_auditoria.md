@@ -57,7 +57,7 @@ LIMIT 3;
 | B2-10 | Filtros sem resultado | Empty state «Sem registos» |
 | B2-11 | Login **atendente** | Menu sem «Auditoria operacional» |
 | B2-12 | Atendente: URL `/operacao/auditoria` | Forbidden ou redirect; API `GET operational-audit-events` → 403 |
-| B2-13 | Parar API e recarregar página | Banner erro visível |
+| B2-13 | Parar API → `/operacao/auditoria` → recarregar ou «Aplicar filtros» | Banner «Sem ligação ao servidor…»; **não** mostrar «Sem resultados» nem «Sem registos» |
 | B2-14 | Metadata na UI | Sem tokens/Bearer em claro (sanitizado) |
 | B2-15 | API integração: tenant A não vê eventos tenant B | Ver `05_evidencia_cross_tenant_operational_audit.md` |
 
@@ -91,7 +91,7 @@ Evento em `operational_audit_events` deve guardar `correlation_id = qa-corr-b2-0
 | `P15_metadata_sanitizada.png` | Coluna metadata sem segredos |
 | `P16_estado_vazio_auditoria.png` | Empty state |
 | `P17_attendant_sem_acesso.png` | Atendente: menu ou forbidden |
-| `P18_estado_erro_auditoria.png` | API indisponível |
+| `P18_estado_erro_auditoria.png` | API indisponível — **só** tela Auditoria, banner erro, sem tabela |
 | `P19_pr_bloco2_ci_verde.png` | PR Bloco 2 checks verdes GitHub |
 
 Ver `prints/README.md` (secção Bloco 2).

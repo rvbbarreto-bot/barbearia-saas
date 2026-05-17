@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { DataTable, type Column } from '@/components/shared/DataTable';
 import { EmptyState } from '@/components/shared/EmptyState';
+import { getApiErrorMessage } from '@/lib/apiErrorMessage';
 import { formatDate } from '@/lib/utils';
 import type { OperationalAuditEventRow } from '@/types/api';
 import { buildOperationalAuditQuery } from './operationalAuditPageModel';
@@ -78,6 +79,7 @@ export function OperationalAuditPage() {
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['operational-audit-events', filters],
     queryFn: () => listOperationalAuditEvents(filters),
+    retry: false,
   });
 
   return (
@@ -190,18 +192,21 @@ export function OperationalAuditPage() {
           className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
           data-testid="operational-audit-error"
         >
-          {(error as Error)?.message ?? 'Erro ao carregar auditoria operacional.'}
+          {getApiErrorMessage(error, 'Erro ao carregar auditoria operacional.')}
         </div>
       )}
 
-      {!isLoading && !isError && !data?.data.length ? (
-        <EmptyState
-          icon={ClipboardList}
-          title="Sem registos"
-          description="Ajuste filtros ou aguarde atividade auditada."
-        />
-      ) : (
-        <div className="rounded-xl border bg-card shadow-sm">
+      {!isError &&
+        (!isLoading && !data?.data.length ? (
+          <div data-testid="operational-audit-empty">
+            <EmptyState
+              icon={ClipboardList}
+              title="Sem registos"
+              description="Ajuste filtros ou aguarde atividade auditada."
+            />
+          </div>
+        ) : (
+          <div className="rounded-xl border bg-card shadow-sm" data-testid="operational-audit-table">
           <DataTable
             columns={columns}
             data={data?.data ?? []}
@@ -213,8 +218,8 @@ export function OperationalAuditPage() {
             emptyTitle="Sem resultados"
             emptyDescription="Tente outros filtros."
           />
-        </div>
-      )}
+          </div>
+        ))}
     </div>
   );
 }
