@@ -4,7 +4,7 @@ import { PoolClient } from 'pg';
 import { withTenant } from '../../infra/db/pool.js';
 import { AppError } from '../../shared/errors.js';
 import { writeAuditLog } from '../../shared/audit.js';
-import { writeOperationalAuditEvent } from '../../shared/operational-audit.js';
+import { effectiveCorrelationId, writeOperationalAuditEvent } from '../../shared/operational-audit.js';
 import { hasRequiredRole } from '../../middlewares/rbac.js';
 import {
   cancelAllPendingNotificationJobsForAppointment,
@@ -235,7 +235,7 @@ export async function confirmAppointmentInDb(
     actorUserId: actorUserId ?? null,
     actorRole: caller?.role ?? null,
     requestId: caller?.requestId ?? null,
-    correlationId: caller?.correlationId ?? null,
+    correlationId: effectiveCorrelationId(caller?.correlationId, appointmentId),
     metadata: { previous_status: appointment.status },
   });
 
@@ -460,7 +460,7 @@ export async function createAppointment(
         actorUserId: actorUserId ?? null,
         actorRole: caller?.role ?? null,
         requestId: caller?.requestId ?? null,
-        correlationId: caller?.correlationId ?? null,
+        correlationId: effectiveCorrelationId(caller?.correlationId, created.id as string),
         metadata: {
           explicit_confirmation: data.explicit_confirmation,
           source: data.source,
@@ -477,7 +477,7 @@ export async function createAppointment(
           actorUserId: actorUserId ?? null,
           actorRole: caller?.role ?? null,
           requestId: caller?.requestId ?? null,
-          correlationId: caller?.correlationId ?? null,
+          correlationId: effectiveCorrelationId(caller?.correlationId, created.id as string),
           metadata: { appointment_id: created.id },
         });
         return confirmed;
@@ -706,7 +706,7 @@ export async function cancelAppointment(
         actorUserId: actorUserId ?? null,
         actorRole: caller?.role ?? null,
         requestId: caller?.requestId ?? null,
-        correlationId: caller?.correlationId ?? null,
+        correlationId: effectiveCorrelationId(caller?.correlationId, appointmentId),
         metadata: { reason: reason ?? null, previous_status: appointment.status },
       });
 
@@ -890,7 +890,7 @@ export async function rescheduleAppointment(
         actorUserId: actorUserId ?? null,
         actorRole: caller?.role ?? null,
         requestId: caller?.requestId ?? null,
-        correlationId: caller?.correlationId ?? null,
+        correlationId: effectiveCorrelationId(caller?.correlationId, appointmentId),
         metadata: {
           previous_starts_at: appointment.starts_at,
           previous_ends_at: appointment.ends_at,
@@ -1081,7 +1081,7 @@ export async function completeAppointment(
         actorUserId: actorUserId ?? null,
         actorRole: caller?.role ?? null,
         requestId: caller?.requestId ?? null,
-        correlationId: caller?.correlationId ?? null,
+        correlationId: effectiveCorrelationId(caller?.correlationId, appointmentId),
         metadata: { previous_status: appointment.status },
       });
 
@@ -1165,7 +1165,7 @@ export async function noShowAppointment(
         actorUserId: actorUserId ?? null,
         actorRole: caller?.role ?? null,
         requestId: caller?.requestId ?? null,
-        correlationId: caller?.correlationId ?? null,
+        correlationId: effectiveCorrelationId(caller?.correlationId, appointmentId),
         metadata: { reason },
       });
 

@@ -43,9 +43,9 @@ export const permissionPolicy = {
     read: 'attendant',
     retry: 'manager',
   },
-  /** Eventos operacionais (`operational_audit_events`) — diagnóstico suporte; metadata sem segredos à escrita. */
+  /** Eventos operacionais (`operational_audit_events`) — gestão+; metadata sanitizada na listagem. */
   operationalAudit: {
-    read: 'attendant',
+    read: 'manager',
   },
   availability: {
     read: 'viewer',

@@ -19,8 +19,8 @@ Ver `03_matriz_aceite.md` — entrega incremental por bloco com testes e evidên
 
 | Bloco | Tema | Status |
 |-------|------|--------|
-| 1 | Outbox operacional completo | **PARCIAL** — `error_class`, filtro `customer_id`, cross-tenant test |
-| 2 | Auditoria + correlation | PEND |
+| 1 | Outbox operacional completo | **OK** — mergeado PR #7 em `piloto-staging-01` |
+| 2 | Auditoria + correlation | **OK** — ver `20_relatorio_bloco2_auditoria.md` |
 | 3 | Dashboard gerencial | PEND |
 | 4 | Histórico 360 cliente | PEND |
 | 5 | Waitlist operacional | PEND |

@@ -52,9 +52,10 @@ describe('rbac role checks', () => {
     expect(canAccess('manager', 'outbox', 'retry')).toBe(true);
   });
 
-  it('allows operational audit read from attendant+', () => {
+  it('allows operational audit read from manager+ only', () => {
     expect(canAccess('viewer', 'operationalAudit', 'read')).toBe(false);
-    expect(canAccess('attendant', 'operationalAudit', 'read')).toBe(true);
+    expect(canAccess('attendant', 'operationalAudit', 'read')).toBe(false);
     expect(canAccess('manager', 'operationalAudit', 'read')).toBe(true);
+    expect(canAccess('tenant_admin', 'operationalAudit', 'read')).toBe(true);
   });
 });

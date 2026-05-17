@@ -1,5 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import { requirePermission } from '../../middlewares/rbac.js';
+import { appointmentCallerFromRequest } from './appointment-request-caller.js';
 import {
   cancelAppointment,
   checkInAppointment,
@@ -76,12 +77,11 @@ export async function appointmentRoutes(app: FastifyInstance) {
     '/appointments',
     { preHandler: requirePermission('appointments', 'create') },
     async (request: any, reply) => {
-      const created = await createAppointment(request.tenantId, request.body, {
-        sub: request.user?.sub,
-        role: (request.user as { role?: string })?.role,
-        professional_id: (request.user as { professional_id?: string })?.professional_id,
-        requestId: request.id,
-      });
+      const created = await createAppointment(
+        request.tenantId,
+        request.body,
+        appointmentCallerFromRequest(request),
+      );
       return reply.code(201).send(created);
     },
   );
@@ -90,12 +90,11 @@ export async function appointmentRoutes(app: FastifyInstance) {
     '/appointments/walk-in',
     { preHandler: requirePermission('appointments', 'walkIn') },
     async (request: any, reply) => {
-      const created = await createWalkInAppointment(request.tenantId, request.body, {
-        sub: request.user?.sub,
-        role: (request.user as { role?: string })?.role,
-        professional_id: (request.user as { professional_id?: string })?.professional_id,
-        requestId: request.id,
-      });
+      const created = await createWalkInAppointment(
+        request.tenantId,
+        request.body,
+        appointmentCallerFromRequest(request),
+      );
       return reply.code(201).send(created);
     },
   );
@@ -104,10 +103,11 @@ export async function appointmentRoutes(app: FastifyInstance) {
     '/appointments/manual-override',
     { preHandler: requirePermission('appointments', 'manualOverride') },
     async (request: any, reply) => {
-      const created = await createManualOverrideAppointment(request.tenantId, request.body, {
-        sub: request.user?.sub,
-        role: (request.user as { role?: string })?.role,
-      });
+      const created = await createManualOverrideAppointment(
+        request.tenantId,
+        request.body,
+        appointmentCallerFromRequest(request),
+      );
       return reply.code(201).send(created);
     },
   );
@@ -116,24 +116,23 @@ export async function appointmentRoutes(app: FastifyInstance) {
     '/appointments/:appointmentId/confirm',
     { preHandler: requirePermission('appointments', 'confirm') },
     async (request: any) =>
-      confirmAppointment(request.tenantId, request.params.appointmentId, {
-        sub: request.user?.sub,
-        role: (request.user as { role?: string })?.role,
-        professional_id: (request.user as { professional_id?: string })?.professional_id,
-        requestId: request.id,
-      }),
+      confirmAppointment(
+        request.tenantId,
+        request.params.appointmentId,
+        appointmentCallerFromRequest(request, request.params.appointmentId),
+      ),
   );
 
   app.patch(
     '/appointments/:appointmentId/cancel',
     { preHandler: requirePermission('appointments', 'cancel') },
     async (request: any) =>
-      cancelAppointment(request.tenantId, request.params.appointmentId, request.body ?? {}, {
-        sub: request.user?.sub,
-        role: (request.user as { role?: string })?.role,
-        professional_id: (request.user as { professional_id?: string })?.professional_id,
-        requestId: request.id,
-      }),
+      cancelAppointment(
+        request.tenantId,
+        request.params.appointmentId,
+        request.body ?? {},
+        appointmentCallerFromRequest(request, request.params.appointmentId),
+      ),
   );
 
   app.patch(
@@ -144,12 +143,7 @@ export async function appointmentRoutes(app: FastifyInstance) {
         request.tenantId,
         request.params.appointmentId,
         request.body ?? {},
-        {
-          sub: request.user?.sub,
-          role: (request.user as { role?: string })?.role,
-          professional_id: (request.user as { professional_id?: string })?.professional_id,
-          requestId: request.id,
-        },
+        appointmentCallerFromRequest(request, request.params.appointmentId),
       ),
   );
 
@@ -157,47 +151,44 @@ export async function appointmentRoutes(app: FastifyInstance) {
     '/appointments/:appointmentId/check-in',
     { preHandler: requirePermission('appointments', 'checkIn') },
     async (request: any) =>
-      checkInAppointment(request.tenantId, request.params.appointmentId, {
-        sub: request.user?.sub,
-        role: (request.user as { role?: string })?.role,
-        professional_id: (request.user as { professional_id?: string })?.professional_id,
-        requestId: request.id,
-      }),
+      checkInAppointment(
+        request.tenantId,
+        request.params.appointmentId,
+        appointmentCallerFromRequest(request, request.params.appointmentId),
+      ),
   );
 
   app.patch(
     '/appointments/:appointmentId/start',
     { preHandler: requirePermission('appointments', 'start') },
     async (request: any) =>
-      startAppointmentService(request.tenantId, request.params.appointmentId, {
-        sub: request.user?.sub,
-        role: (request.user as { role?: string })?.role,
-        professional_id: (request.user as { professional_id?: string })?.professional_id,
-        requestId: request.id,
-      }),
+      startAppointmentService(
+        request.tenantId,
+        request.params.appointmentId,
+        appointmentCallerFromRequest(request, request.params.appointmentId),
+      ),
   );
 
   app.patch(
     '/appointments/:appointmentId/complete',
     { preHandler: requirePermission('appointments', 'complete') },
     async (request: any) =>
-      completeAppointment(request.tenantId, request.params.appointmentId, {
-        sub: request.user?.sub,
-        role: (request.user as { role?: string })?.role,
-        professional_id: (request.user as { professional_id?: string })?.professional_id,
-        requestId: request.id,
-      }),
+      completeAppointment(
+        request.tenantId,
+        request.params.appointmentId,
+        appointmentCallerFromRequest(request, request.params.appointmentId),
+      ),
   );
 
   app.patch(
     '/appointments/:appointmentId/no-show',
     { preHandler: requirePermission('appointments', 'noShow') },
     async (request: any) =>
-      noShowAppointment(request.tenantId, request.params.appointmentId, request.body ?? {}, {
-        sub: request.user?.sub,
-        role: (request.user as { role?: string })?.role,
-        professional_id: (request.user as { professional_id?: string })?.professional_id,
-        requestId: request.id,
-      }),
+      noShowAppointment(
+        request.tenantId,
+        request.params.appointmentId,
+        request.body ?? {},
+        appointmentCallerFromRequest(request, request.params.appointmentId),
+      ),
   );
 }

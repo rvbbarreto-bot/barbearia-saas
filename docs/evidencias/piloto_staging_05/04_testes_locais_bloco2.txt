@@ -1,0 +1,26 @@
+# Testes locais — PILOTO-05 Bloco 2 Auditoria
+
+Base: piloto-staging-01 @ 156cdab + commits Bloco 2 na feature branch.
+
+## API — unit (exit 0 esperado)
+
+cd apps/api
+npm run test:unit -- src/shared/request-correlation.test.ts src/modules/audit/sanitize-operational-audit-metadata.test.ts src/modules/audit/operational-audit-query.test.ts
+
+## API — integração cross-tenant (requer DATABASE_URL, JWT_SECRET, REDIS_URL)
+
+npm test -- src/modules/audit/operational-audit.isolation.integration.test.ts
+
+## Web (exit 0 esperado)
+
+cd apps/web
+npm test -- src/features/auditoria/operationalAuditPageModel.test.ts src/features/auditoria/operationalAuditSummary.test.ts src/features/auditoria/OperationalAuditPage.test.tsx src/lib/route-access.test.ts
+
+## Typecheck
+
+cd apps/api && npm run typecheck
+cd apps/web && npm run typecheck
+
+## Não misturar
+
+Não declarar verde com `npm test -- src/modules/audit` sem env (puxa integração).
