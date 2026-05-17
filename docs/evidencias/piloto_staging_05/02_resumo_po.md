@@ -1,6 +1,7 @@
 # Resumo PO — PILOTO-STAGING-05
 
-1. Branch `feature/piloto-staging-05-operacao-gestao-automacao` de `piloto-staging-01`; **base atual** após merge PR #7: `91d93f3`.
-2. **PR #7** mergeado em `piloto-staging-01` — https://github.com/rvbbarreto-bot/barbearia-saas/pull/7 — CI pré e pós-merge **8/8 verde** (`a88b191` / `91d93f3`).
-3. **Bloco 1 Outbox** fechado e mergeado — evidência `13_merge_pr7_piloto_staging_01.md`.
-4. **Bloco 2 (Auditoria)** em entrega na feature branch — ver `20_relatorio_bloco2_auditoria.md`. Blocos 3+ pendentes. Merge **nunca** em `main`.
+1. **Base piloto:** `piloto-staging-01` @ **`a0f47db`** (pós-merge PR #9 Bloco 2).
+2. **PR #7** (Bloco 1 Outbox) — mergeado — `13_merge_pr7_piloto_staging_01.md` — merge `91d93f3`.
+3. **PR #9** (Bloco 2 Auditoria) — mergeado — `22_merge_pr9_piloto_staging_01.md` — merge `a0f47db` — CI pós-merge `04_saida_ci_pos_merge_a0f47db.txt`.
+4. **PR #8** — fechar sem merge (base `main` indevida); PR válido = #9.
+5. **Blocos 3–10:** pendentes; não iniciados. Merge **nunca** em `main`.

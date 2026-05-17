@@ -46,6 +46,10 @@ Capturas reais Docker `:3001` (rebuild API/Web com Bloco 2). Ver `prints/P11_*.p
 
 Abrir contra `piloto-staging-01` apenas — ver `21_pr_body.md` e `04_saida_pr_bloco2_abrir.txt`.
 
+## Merge
+
+**PR #9** mergeado em `piloto-staging-01` @ **`a0f47db`** — ver `22_merge_pr9_piloto_staging_01.md`, CI `04_saida_ci_pos_merge_a0f47db.txt`.
+
 ## Parecer fábrica
 
-Bloco 2 **aguarda aceite PO** após revisão do PR, CI verde e print P18 atualizado. Blocos 3–10 não iniciados.
+Bloco 2 **fechado** (merge PO/GP). Blocos 3–10 não iniciados.
