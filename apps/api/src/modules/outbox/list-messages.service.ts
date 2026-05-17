@@ -1,7 +1,11 @@
 import { withTenant } from '../../infra/db/pool.js';
 import { AppError } from '../../shared/errors.js';
 import { parsePagination } from '../../shared/pagination.js';
-import { isValidOutboxErrorClassFilter, sqlConditionForErrorClass } from './classify-outbox-error.js';
+import {
+  isValidOutboxErrorClassFilter,
+  sqlConditionForErrorClass,
+  type OutboxErrorClass,
+} from './classify-outbox-error.js';
 import { mapOutboxRow, type OutboxMessageRowDb } from './outbox-row-mapper.js';
 
 const OUTBOX_STATUSES = new Set(['pending', 'processing', 'sent', 'failed', 'dead']);
@@ -76,6 +80,8 @@ export async function listOutboxMessages(tenantId: string, rawQuery: OutboxMessa
   if (errorClassRaw && !isValidOutboxErrorClassFilter(errorClassRaw)) {
     throw new AppError('VALIDATION_ERROR', 'error_class inválido para outbox.', 400);
   }
+  const errorClassFilter: NonNullable<OutboxErrorClass> | '' =
+    errorClassRaw && isValidOutboxErrorClassFilter(errorClassRaw) ? errorClassRaw : '';
 
   const correlationFilter = correlationId || appointmentId;
 
@@ -115,8 +121,8 @@ export async function listOutboxMessages(tenantId: string, rawQuery: OutboxMessa
       filters.push(`mo.customer_id = $${idx++}::uuid`);
       params.push(customerId);
     }
-    if (errorClassRaw) {
-      filters.push(`(${sqlConditionForErrorClass(errorClassRaw)})`);
+    if (errorClassFilter) {
+      filters.push(`(${sqlConditionForErrorClass(errorClassFilter)})`);
     }
 
     const where = filters.join(' AND ');

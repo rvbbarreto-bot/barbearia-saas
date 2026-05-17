@@ -83,7 +83,6 @@ export function sqlConditionForErrorClass(errorClass: NonNullable<OutboxErrorCla
       return `(${il('provider')} OR ${il('evolution')} OR ${il('whatsapp')})`;
     case 'other': {
       const known = (['auth', 'not_found', 'timeout', 'network', 'duplicate', 'provider'] as const)
-        .filter((c) => c !== 'other')
         .map((c) => `NOT (${sqlConditionForErrorClass(c)})`)
         .join(' AND ');
       return `(mo.last_error IS NOT NULL AND mo.last_error <> '' AND ${known})`;
