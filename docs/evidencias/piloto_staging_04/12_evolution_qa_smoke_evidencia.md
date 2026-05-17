@@ -1,11 +1,10 @@
 # Evidência — correção ambiente Evolution/n8n (smoke SendText)
 
-**Data:** 2026-05-16  
-**Status PO:** integração n8n → Evolution → WhatsApp **funcional** (evidência PO 2026-05-17).  
+**Data:** 2026-05-16 · **Aceite funcional PO:** 2026-05-17  
+**Status PO:** smoke n8n → Evolution → WhatsApp **APROVADO** (reimport workflow + Manual Trigger).  
 **Correção final:** classificador trata `status=PENDING` + `key.*` como **sucesso técnico** (`ok: true`).  
-**Commit classificador (aprovado PO):** `d687684` — `fix(n8n): classify Evolution PENDING SendText as technical success`  
-**Aceite funcional smoke:** **PEND** — ver secção «Gate final» abaixo.  
-**Merge:** **BLOQUEADO** até CI verde PR #6 + evidência final.
+**Commit aprovado PO (smoke):** `d687684` — `fix(n8n): classify Evolution PENDING SendText as technical success`  
+**Merge PR #6:** condicionado **apenas** a CI verde + regras PR contra `piloto-staging-01` (sem merge em `main`).
 
 ---
 
@@ -114,33 +113,22 @@ Classes de erro (quando falha real): `auth_401_invalid_api_key`, `not_found_404_
 
 ---
 
-## Gate final — aceite funcional (obrigatório PO)
+## Gate final — aceite funcional PO (2026-05-17)
 
 | Item | Estado |
 |------|--------|
-| Correção técnica classificador (`d687684`) | **APROVADO** |
+| Workflow sem `pinData` | **OK** |
+| Variáveis (number / instance / baseUrl) | **OK** |
+| URL real `host.docker.internal:8081` | **OK** |
+| Envio `5511973305448@s.whatsapp.net` | **OK** |
+| Evolution: `key.id` + `status=PENDING` | **OK** |
+| Classificador: `ok=true`, `delivery_status=queued_or_pending` | **OK** |
+| WhatsApp QA recebeu mensagem | **OK** |
+| Commit `d687684` (este ponto) | **APROVADO PO** |
 | Testes `n8n-qa-sendtext-classify-snippet.test.mjs` | **PASS** (local) |
-| CI verde PR #6 | **PEND** — verificar Actions no GitHub |
-| Reimport workflow + Manual Trigger + print classificador | **PEND operador** |
+| CI verde PR #6 | **PEND** — único bloqueio de merge |
 
-### Procedimento operador (n8n UI)
-
-1. Abrir `http://localhost:5679` → importar de novo:
-   - `n8n/workflows/03_QA_Barbearia_Evolution_SendText_Smoke.json`  
-   - (espelho: `docs/n8n/03_QA_Barbearia_Evolution_SendText_Smoke.json`)
-2. Confirmar **sem pinData** no workflow importado.
-3. Executar **Manual Trigger QA** (workflow `active=false`).
-4. No nó **Classificar sucesso ou erro**, capturar saída com **todos** os campos:
-   - `ok` = `true`
-   - `status` = `PENDING`
-   - `delivery_status` = `queued_or_pending`
-   - `message_id` preenchido
-   - `remoteJid` = `5511973305448@s.whatsapp.net` (ou equivalente)
-5. Salvar print em:
-   - `docs/evidencias/piloto_staging_04/13_n8n_classificador_ok_true.png`  
-   - (sem API keys visíveis no screenshot)
-
-Evidências anteriores (já aprovadas PO): nós 1–3 + WhatsApp recebido — manter no pacote QA.
+**Evidências finais:** pacote PO (prints n8n + confirmação WhatsApp); procedimento de reimport executado com workflow versionado no repo.
 
 ---
 
@@ -171,5 +159,6 @@ Evidências anteriores (já aprovadas PO): nós 1–3 + WhatsApp recebido — ma
 
 ## Governança
 
-- Sem merge em `main` / `piloto-staging-01` por esta correção isolada.
-- Aceite smoke n8n UI + mensagem WhatsApp QA = critério final PO.
+- PR épico **#6** apenas contra `piloto-staging-01`; **sem** merge em `main`.
+- Smoke n8n/Evolution SendText: **aceite funcional PO concluído** (`d687684`).
+- Merge autorizado quando **CI verde** no PR #6 (demais regras de governança inalteradas).

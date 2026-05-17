@@ -4,7 +4,7 @@
 
 **Proibido** mover `PEND→OK` sem **evidência objetiva** (teste automatizado nomeado ou artefacto anexado mascarado).  
 
-**Última actualização:** fatia B — dashboard operacional (API + Web + testes automatizados).
+**Última actualização:** fatia B + smoke QA n8n/Evolution SendText (`d687684`, PO 2026-05-17).
 
 ---
 
@@ -28,7 +28,8 @@
 | API `GET /api/v1/operational/status` + RBAC manager+ + cross-tenant + filtros | OK | `04_testes_locais.txt`, commit `d9df160` |
 | UI `/operacao/status` | OK | `operacaoStatusLabels.test.ts`, `nav.test.ts`, `route-access.test.ts`, `04_testes_locais.txt` |
 | Health API / DB (painel) | OK | Incluído em operational/status |
-| n8n + Evolution probe automático | PEND | `not_probed` + verificação manual |
+| n8n + Evolution probe automático (API painel) | PEND | `not_probed` quando env ausente; distinto do smoke workflow |
+| Smoke workflow `03_QA_Barbearia_Evolution_SendText` (reimport + Manual Trigger) | OK | `12_evolution_qa_smoke_evidencia.md`, commit `d687684`, PO 2026-05-17 |
 | Filtros avançados (período/correlation) | PEND | Próxima fatia |
 | Screenshots PNG piloto | PEND | `09_prints_ou_placeholders.md` |
 

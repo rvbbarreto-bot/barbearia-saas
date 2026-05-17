@@ -3,7 +3,7 @@
 **Data:** 2026-05-16  
 **Branch:** `feature/piloto-staging-04-operacao-assistida-suite-produto`  
 **Base PR:** `piloto-staging-01` (proibido target `main`)  
-**Status PO Fatia 1:** aprovada funcionalmente · merge **bloqueado** até PR + CI verde  
+**Status PO Fatia 1:** aprovada funcionalmente · smoke n8n/Evolution **aprovado** (`d687684`) · merge **apenas** aguarda CI verde PR #6  
 
 ---
 
@@ -72,28 +72,32 @@ Desenvolvimento **não** em `main`. Sem force push / reset destrutivo.
 
 ---
 
-## 6. PEND / BLOCKED
+## 6. Smoke n8n / Evolution SendText (aprovado PO 2026-05-17)
+
+Workflow `03_QA_Barbearia_Evolution_SendText_Smoke` após reimport: sem pinData, env real, classificador `ok=true` com `PENDING`, WhatsApp QA recebeu. Commit **`d687684`** aprovado para este critério. Detalhe: `12_evolution_qa_smoke_evidencia.md`.
+
+## 7. PEND / BLOCKED
 
 - PR #5 contra `main`: fecho manual
-- E2E n8n credencial real: BLOCKED (Infra/Piloto)
-- Aceite final merge: aguarda CI verde no PR correto
+- E2E n8n credencial real (outros fluxos): BLOCKED (Infra/Piloto)
+- **Merge PR #6:** aguarda **CI verde** (único bloqueio restante para este pacote)
 
 ---
 
-## 7. Riscos residuais
+## 8. Riscos residuais
 
 - Probe HTTP ≠ validação de credencial
 - PR incorreto contra `main` até fecho formal
 
 ---
 
-## 8. Migrations
+## 9. Migrations
 
 Nenhuma na fatia 1.
 
 ---
 
-## 9. Variáveis de ambiente
+## 10. Variáveis de ambiente
 
 | Variável | Uso |
 |----------|-----|
@@ -102,15 +106,16 @@ Nenhuma na fatia 1.
 
 ---
 
-## 10. Evidências
+## 11. Evidências
 
 - `04_testes_locais.txt` (contagens e RBAC manager+ alinhados)
-- `03_matriz_aceite.md` secção B
-- Commits: `d9df160` (código aprovado), `7bc3165` (docs alinhados)
+- `03_matriz_aceite.md` secção B + smoke QA
+- `12_evolution_qa_smoke_evidencia.md` (smoke n8n/Evolution **OK PO**)
+- Commits: `d9df160` (fatia 1), `d687684` (classificador smoke), `f1f4dbc` (env Evolution)
 
 ---
 
-## 11. Comandos (local, pós-correção doc)
+## 12. Comandos (local, pós-correção doc)
 
 | Comando | Resultado |
 |---------|-----------|
@@ -122,7 +127,7 @@ Nenhuma na fatia 1.
 
 ---
 
-## 12. PR e CI
+## 13. PR e CI
 
 | Item | Valor |
 |------|-------|
@@ -131,6 +136,6 @@ Nenhuma na fatia 1.
 
 ---
 
-## 13. Confirmação
+## 14. Confirmação
 
-**Não houve merge em `main`.** Fatia 1 aprovada; merge do PR permanece bloqueado até CI verde e revisão GP.
+**Não houve merge em `main`.** Fatia 1 + smoke n8n/Evolution (`d687684`) aprovados pelo PO; merge do PR **#6** contra `piloto-staging-01` condicionado **apenas** a CI verde e regras de governança do PR.
