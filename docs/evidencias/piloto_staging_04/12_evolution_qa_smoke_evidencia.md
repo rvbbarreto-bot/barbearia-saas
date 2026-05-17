@@ -1,8 +1,9 @@
 # Evidência — correção ambiente Evolution/n8n (smoke SendText)
 
 **Data:** 2026-05-16  
-**Status PO:** smoke SendText **desbloqueado para revalidação** após alinhamento de chave (teste direto HTTP 201).  
-**Workflow n8n manual:** executar operador em `http://localhost:5679` e anexar prints dos 3 nós.
+**Status PO:** integração n8n → Evolution → WhatsApp **funcional** (evidência PO 2026-05-17).  
+**Correção final:** classificador trata `status=PENDING` + `key.*` como **sucesso técnico** (`ok: true`).  
+**Commit classificador:** ver branch `feature/piloto-staging-04-operacao-assistida-suite-produto` (após push).
 
 ---
 
@@ -80,22 +81,34 @@ Script repetível: `scripts/qa-evolution-env-align.ps1`
 
 ---
 
-## 8. Resultado teste via n8n
+## 8. Resultado teste via n8n (PO 2026-05-17)
 
 | Item | Estado |
 |------|--------|
-| Workflow JSON | `03_QA_Barbearia_Evolution_SendText_Smoke.json` atualizado (classificação erro) |
-| `pinData` no JSON | **Ausente** |
-| `evolution.test` no JSON | **Ausente** |
-| Execução manual UI | **PEND** — operador deve rodar Manual Trigger e anexar prints |
+| Workflow sem `pinData` | **OK** (evidência PO) |
+| Variáveis (number/instance/baseUrl) | **OK** |
+| Evolution SendText (remoteJid, key.id, PENDING) | **OK** |
+| WhatsApp QA recebeu mensagem | **OK** |
+| Classificador (antes do fix) | **REPROVADO** — confundia `status=PENDING` com HTTP |
+| Classificador (após fix) | **OK** — `ok: true`, `delivery_status=queued_or_pending` |
 
-Classificação de erro no nó final (após ajuste):
+**Causa do bug no classificador:** `Number(res.status ?? 0)` usava o campo **Evolution** `status: "PENDING"` em vez de `statusCode` HTTP → falha na regra 2xx.
 
-- `auth_401_invalid_api_key`
-- `not_found_404_instance_or_route`
-- `timeout`
-- `network_error`
-- `provider_error`
+**Saída esperada após reimport + execução:**
+
+```json
+{
+  "ok": true,
+  "status": "PENDING",
+  "delivery_status": "queued_or_pending",
+  "message_id": "<key.id>",
+  "remoteJid": "5511973305448@s.whatsapp.net",
+  "requires_whatsapp_confirmation": true,
+  "whatsapp_received_evidence": true
+}
+```
+
+Classes de erro (quando falha real): `auth_401_invalid_api_key`, `not_found_404_instance_or_route`, `timeout`, `network_error`, `provider_invalid_response`.
 
 ---
 

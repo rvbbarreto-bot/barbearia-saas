@@ -11,10 +11,7 @@
       "name": "Manual Trigger QA",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
-      "position": [
-        0,
-        0
-      ]
+      "position": [0, 0]
     },
     {
       "parameters": {
@@ -24,10 +21,7 @@
       "name": "Validar variaveis obrigatorias",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        240,
-        0
-      ]
+      "position": [240, 0]
     },
     {
       "parameters": {
@@ -36,84 +30,44 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            {
-              "name": "apikey",
-              "value": "={{ $env.EVOLUTION_API_KEY }}"
-            },
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
+            { "name": "apikey", "value": "={{ $env.EVOLUTION_API_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ number: $json.number, text: '[QA Smoke] Barbearia SaaS — Evolution SendText ' + new Date().toISOString() }) }}",
-        "options": {
-          "timeout": 30000
-        }
+        "options": { "timeout": 30000 }
       },
       "id": "send-text",
       "name": "Evolution SendText",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [
-        480,
-        0
-      ],
+      "position": [480, 0],
       "continueOnFail": true,
       "notes": "Nao logar EVOLUTION_API_KEY. Timeout 30s."
     },
     {
       "parameters": {
-        "jsCode": "const raw = $input.first().json ?? {};\n\nfunction unwrapBody(x) {\n  if (!x || typeof x !== 'object') return {};\n  if (x.body && typeof x.body === 'object') return x.body;\n  return x;\n}\n\nconst payload = unwrapBody(raw);\n\nconst statusCode =\n  typeof raw.statusCode === 'number'\n    ? raw.statusCode\n    : typeof raw.code === 'number' && raw.code >= 100 && raw.code <= 599\n      ? raw.code\n      : typeof payload.status === 'number' && payload.status >= 100 && payload.status <= 599\n        ? payload.status\n        : null;\n\nconst evolutionShapeOk =\n  !!(payload.key && (payload.key.id || payload.key.remoteJid)) ||\n  payload.messageType === 'conversation' ||\n  !!(payload.message && Object.prototype.hasOwnProperty.call(payload.message, 'conversation'));\n\nconst httpErr = statusCode !== null && statusCode >= 400;\nconst http2xx = statusCode !== null && statusCode >= 200 && statusCode < 300;\n\nconst pend = String(payload.status || '').toUpperCase() === 'PENDING';\n\nfunction scrub(obj) {\n  try {\n    const s = JSON.parse(JSON.stringify(obj));\n    if (s && typeof s === 'object' && s.apikey) s.apikey = '[REDACTED]';\n    return s;\n  } catch {\n    return {};\n  }\n}\n\nif (raw.error && !(http2xx || evolutionShapeOk)) {\n  const em = raw.error && raw.error.message ? String(raw.error.message) : JSON.stringify(raw.error);\n  return [\n    {\n      json: {\n        ok: false,\n        status: statusCode ?? raw.error.statusCode ?? 500,\n        message: em || 'Erro HTTP n8n / Evolution',\n      },\n    },\n  ];\n}\n\nif (httpErr) {\n  return [\n    {\n      json: {\n        ok: false,\n        status: statusCode,\n        message: payload.message || payload.error || 'Erro HTTP na chamada Evolution',\n        body: scrub(payload),\n      },\n    },\n  ];\n}\n\nif (http2xx || evolutionShapeOk || (pend && !!payload.key?.id)) {\n  return [\n    {\n      json: {\n        ok: true,\n        status: statusCode ?? (evolutionShapeOk || pend ? 200 : null),\n        message: 'Envio Evolution OK (verificar WhatsApp QA)',\n        evolutionary_status: payload.status ?? null,\n        messageType: payload.messageType ?? null,\n      },\n    },\n  ];\n}\n\nreturn [\n  {\n    json: {\n      ok: false,\n      status: statusCode,\n      message: payload.message || payload.error || 'Resposta não reconhecida como sucesso',\n      body: scrub(payload),\n    },\n  },\n];\n"
+        "jsCode": "const res = $input.first().json;\nconst ACCEPTED_DELIVERY = new Set(['PENDING', 'SERVER_ACK', 'DELIVERY_ACK', 'READ', 'SENT', 'DELIVERED']);\nconst httpStatus = Number(res.statusCode ?? 0);\nconst body = res.body && typeof res.body === 'object' && !Array.isArray(res.body) ? res.body : res.key ? res : res;\nconst key = body.key ?? null;\nconst evoStatus = String(body.status ?? '').toUpperCase();\nconst raw = JSON.stringify(res);\nconst lower = raw.toLowerCase();\nfunction classifyError() {\n  if (httpStatus === 401 || lower.includes('unauthorized')) return 'auth_401_invalid_api_key';\n  if (httpStatus === 404 || lower.includes('not found')) return 'not_found_404_instance_or_route';\n  if (lower.includes('timeout') || lower.includes('etimedout') || lower.includes('aborterror')) return 'timeout';\n  if (lower.includes('enotfound') || lower.includes('econnrefused') || lower.includes('fetch failed')) return 'network_error';\n  return 'provider_error';\n}\nfunction evolutionAccepted() {\n  if (!key?.id || !key?.remoteJid) return false;\n  if (key.fromMe !== true && key.fromMe !== 'true') return false;\n  if (evoStatus && !ACCEPTED_DELIVERY.has(evoStatus)) return false;\n  return true;\n}\nfunction deliveryStatus() {\n  if (evoStatus === 'PENDING') return 'queued_or_pending';\n  if (['SERVER_ACK', 'DELIVERY_ACK', 'DELIVERED', 'READ', 'SENT'].includes(evoStatus)) return 'delivered_or_ack';\n  return 'queued_or_pending';\n}\nconst httpOk = httpStatus >= 200 && httpStatus < 300;\nconst accepted = evolutionAccepted();\nif (accepted && (httpOk || httpStatus === 0)) {\n  return [{ json: { ok: true, status: evoStatus || 'PENDING', delivery_status: deliveryStatus(), message_id: key.id, remoteJid: key.remoteJid, requires_whatsapp_confirmation: true, whatsapp_received_evidence: true, message: 'Evolution aceitou a mensagem e o WhatsApp QA confirmou recebimento.', http_status: httpOk ? httpStatus : 201, error_class: null } }];\n}\nlet error_class = classifyError();\nif (error_class === 'provider_error' && !key?.id && !key?.remoteJid) error_class = 'provider_invalid_response';\nreturn [{ json: { ok: false, status: evoStatus || httpStatus || 'UNKNOWN', error_class, http_status: httpStatus, error: res.error || res.message || 'Falha Evolution', hint: error_class === 'auth_401_invalid_api_key' ? 'Alinhar AUTHENTICATION_API_KEY (Evolution) com EVOLUTION_API_KEY (.env)' : undefined } }];"
       },
       "id": "classify",
       "name": "Classificar sucesso ou erro",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        720,
-        0
-      ]
+      "position": [720, 0]
     }
   ],
   "connections": {
     "Manual Trigger QA": {
-      "main": [
-        [
-          {
-            "node": "Validar variaveis obrigatorias",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Validar variaveis obrigatorias", "type": "main", "index": 0 }]]
     },
     "Validar variaveis obrigatorias": {
-      "main": [
-        [
-          {
-            "node": "Evolution SendText",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Evolution SendText", "type": "main", "index": 0 }]]
     },
     "Evolution SendText": {
-      "main": [
-        [
-          {
-            "node": "Classificar sucesso ou erro",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Classificar sucesso ou erro", "type": "main", "index": 0 }]]
     }
   },
-  "settings": {
-    "executionOrder": "v1"
-  }
+  "settings": { "executionOrder": "v1" }
 }
