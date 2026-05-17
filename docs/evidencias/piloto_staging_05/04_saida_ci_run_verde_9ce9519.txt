@@ -1,0 +1,17 @@
+# CI verde — commit 9ce9519 (push branch P05)
+Run: https://github.com/rvbbarreto-bot/barbearia-saas/actions/runs/25994652688
+Data UTC: 2026-05-17
+
+| Job | Conclusão | URL |
+|-----|-----------|-----|
+| API — typecheck · lint · test · build | success | https://github.com/rvbbarreto-bot/barbearia-saas/actions/runs/25994652688/job/76406920652 |
+| Web — lint · typecheck · test · build | success | https://github.com/rvbbarreto-bot/barbearia-saas/actions/runs/25994652688/job/76406920664 |
+| Security — npm audit | success | https://github.com/rvbbarreto-bot/barbearia-saas/actions/runs/25994652688/job/76406920668 |
+| Security — Gitleaks | success | https://github.com/rvbbarreto-bot/barbearia-saas/actions/runs/25994652688/job/76406920665 |
+
+## Run falho anterior (causa raiz corrigida)
+Commit e93f9cd: https://github.com/rvbbarreto-bot/barbearia-saas/actions/runs/25994248190
+Falha: API typecheck exit 2 (TS2367, TS2345 em outbox).
+
+## Cross-tenant
+Integração `outbox.isolation.integration.test.ts` executada no job API (passo npm test -- --coverage) após typecheck verde.

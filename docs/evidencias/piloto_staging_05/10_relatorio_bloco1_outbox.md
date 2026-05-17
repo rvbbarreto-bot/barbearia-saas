@@ -1,56 +1,54 @@
 # Relatório Bloco 1 — Outbox operacional (PILOTO-05)
 
 **Branch:** `feature/piloto-staging-05-operacao-gestao-automacao`  
-**Base:** `piloto-staging-01` @ `e6527e6`  
-**Rebase PR #6:** **PEND** — `piloto-staging-01` ainda sem merge #6; rebase após merge.
+**HEAD:** `9ce9519`  
+**Base alvo:** `piloto-staging-01` @ `e6527e6`  
+**PR #6 (P04):** aberto, **não mergeado** em `piloto-staging-01` — rebase P05 após merge #6 se base avançar.
 
-## Entregue neste bloco
+## Checklist aceite PO (13 itens)
 
-| Item | Status |
-|------|--------|
-| Filtros status, período, provider, correlation, appointment, destination, **customer_id**, **error_class** | OK |
-| Detalhe sanitizado + `error_class` | OK |
-| Retry manual manager+ + auditoria | OK |
-| OpenAPI atualizado | OK |
-| Testes API unit + RBAC routes + cross-tenant integration | OK |
-| Testes Web render/empty/error + filtros + RBAC model | OK |
-| Roteiro QA | OK — `04_roteiro_qa_bloco1_outbox.md` |
-| Prints Web PNG | OK — `prints/P01`–`P09` |
-| PR + CI verde | **PEND** — `P10`; criar PR (`11_pr_piloto05.md`) + `gh auth login` |
+| # | Critério | Status | Evidência |
+|---|----------|--------|-----------|
+| 1 | PR P05 vs `piloto-staging-01` | **PEND** | Abrir PR (ver `11_pr_piloto05.md`); `gh` local sem auth |
+| 2 | CI verde no PR | **OK branch** | Run https://github.com/rvbbarreto-bot/barbearia-saas/actions/runs/25994652688 |
+| 3 | Print P10 | **OK** | `prints/P10_pr_ci_verde.png` (run verde `9ce9519`; repetir na página do PR após abertura) |
+| 4 | Relatório testes sem ambiguidade | **OK** | `04_testes_locais_bloco1.txt` + saídas `04_saida_*` |
+| 5 | Unit API exit 0 | **OK** | 13 testes — `04_saida_teste_api_unit_outbox.txt` |
+| 6 | Web exit 0 | **OK** | 14 testes — `04_saida_teste_web_outbox.txt` |
+| 7 | Cross-tenant | **OK CI** | Job API success run 25994652688 — `05_evidencia_cross_tenant_outbox.md` |
+| 8 | Check vermelho e93f9cd | **OK** | `12_ci_investigacao_e93f9cd.md` — typecheck TS; corrigido em `9ce9519` |
+| 9 | Prints P01–P09 | **OK** | `prints/` |
+| 10 | Relatório final | **OK** | Este ficheiro |
+| 11 | Working tree limpa | **OK** | Apenas untracked ignorados (`.gitignore`) |
+| 12 | Bloco 2 não iniciado | **OK** | Sem commits de auditoria/UI bloco 2 |
+| 13 | Sem secrets / `.env` | **OK** | `.env` no `.gitignore`; nada commitado |
 
-## Testes (local)
+## Comandos testes (resumo)
 
-Ver `04_testes_locais_bloco1.txt` — API outbox unit 17/17; Web outbox 14/14 (2026-05-17).
+Ver `04_testes_locais_bloco1.txt` — **não** declarar verde: `npm test -- src/modules/outbox` sem env.
 
-**Ambiente prints:** Vite dev `http://127.0.0.1:5173` (branch P05) + API Docker `http://127.0.0.1:3000`.
+## CI verde (commit 9ce9519)
 
-## Prints (matriz PO)
+| Job | Resultado |
+|-----|-----------|
+| API — typecheck · lint · test · build | success |
+| Web — lint · typecheck · test · build | success |
+| Security — npm audit | success |
+| Security — Gitleaks | success |
 
-| ID | Ficheiro | Data/hora (local) | Perfil | URL | Esperado | Obtido | Status |
-|----|----------|-------------------|--------|-----|----------|--------|--------|
-| P01 | `prints/P01_listagem_outbox.png` | 2026-05-17 ~11:45 | admin@demo.local (tenant_owner) | http://127.0.0.1:5173/operacao/mensagens | Lista com filtros incl. Classe erro | Lista 50 msgs, colunas visíveis | OK |
-| P02 | `prints/P02_filtro_status_failed.png` | 2026-05-17 ~11:46 | admin@demo.local | idem | Filtro estado failed | Combobox `failed`, lista filtrada/vazia | OK |
-| P03 | `prints/P03_filtro_customer_id.png` | 2026-05-17 ~11:46 | admin@demo.local | idem | Filtro customer_id | UUID `...4031` aplicado | OK |
-| P04 | `prints/P04_filtro_error_class_auth.png` | 2026-05-17 ~11:47 | admin@demo.local | idem | Classe Autenticação | Combobox `Autenticação` | OK |
-| P05 | `prints/P05_detalhe_sanitizado.png` | 2026-05-17 ~11:54 | atendente@demo.local | modal detalhe | Erro sem tokens; destino mascarado | `****0001`, diagnóstico HTTP 404 Evolution | OK |
-| P06 | `prints/P06_retry_manager.png` | 2026-05-17 ~11:52 | admin@demo.local | modal dead | Botão «Tentar novamente» | Botão visível (manager+) | OK |
-| P07 | `prints/P07_retry_ausente_attendant.png` | 2026-05-17 ~11:54 | atendente@demo.local | modal dead | Sem botão retry | «Tentar novamente» ausente | OK |
-| P08 | `prints/P08_estado_vazio.png` | 2026-05-17 ~11:55 | atendente@demo.local | filtros failed+auth | Empty state | «Sem mensagens» + hint filtros | OK |
-| P09 | `prints/P09_estado_erro.png` | 2026-05-17 ~11:56 | atendente@demo.local | API parada | Banner erro | «Erro ao carregar mensagens» (docker stop api) | OK |
-| P10 | `prints/P10_pr_ci_verde.png` | — | — | GitHub PR | Checks verdes | PR a abrir; capturar após CI | PEND |
+Detalhe: `04_saida_ci_run_verde_9ce9519.txt`
 
-## Evidências API (sem print)
+## Abrir PR (ação PO/fábrica com `gh auth login`)
 
-| Evidência | Ficheiro | Status |
-|-----------|----------|--------|
-| Retry RBAC | `05_evidencia_retry_rbac_api.md` | OK |
-| Cross-tenant | `05_evidencia_cross_tenant_outbox.md` | OK |
+```bash
+gh pr create --base piloto-staging-01 \
+  --head feature/piloto-staging-05-operacao-gestao-automacao \
+  --title "feat(piloto-05): bloco 1 outbox operacional completo" \
+  --body-file docs/evidencias/piloto_staging_05/11_pr_piloto05.md
+```
 
-## Parecer fábrica
+Compare: https://github.com/rvbbarreto-bot/barbearia-saas/compare/piloto-staging-01...feature/piloto-staging-05-operacao-gestao-automacao
 
-| Pergunta | Resposta |
-|----------|----------|
-| Bloco 1 código + testes | **Pronto** |
-| Bloco 1 aceite PO | **PEND** P10 (PR + CI screenshot) |
-| Merge | **Bloqueado** até PO + CI |
-| Iniciar Bloco 2 | **Não** até aceite Bloco 1 |
+## Parecer
+
+Bloco 1 **tecnicamente fechado** na branch; **aceite formal PEND** apenas de **PR aberto** (item 1) — bloqueio: CLI GitHub não autenticada neste ambiente.

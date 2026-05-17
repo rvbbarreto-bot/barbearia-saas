@@ -10,8 +10,8 @@ Cenário: tenant A não vê mensagens do tenant B (list + get por id).
 
 | Ambiente | Status | Notas |
 |----------|--------|-------|
-| Local sem env Postgres alinhado | **Falhou** (exit 1) | Ver `04_saida_teste_cross_tenant_integration.txt` |
-| CI GitHub Actions (job API com migrations) | **PEND → OK após push correção TS** | Run falho anterior: [25994248190](https://github.com/rvbbarreto-bot/barbearia-saas/actions/runs/25994248190) — falhou antes dos testes de integração (typecheck). Atualizar com run verde pós-correção. |
+| Local sem env Postgres alinhado | **Falhou** (exit 1) | Ver `04_saida_teste_cross_tenant_integration.txt` — não contar como verde |
+| CI GitHub Actions (job API com migrations) | **OK** | Run verde [25994652688](https://github.com/rvbbarreto-bot/barbearia-saas/actions/runs/25994652688) — commit `9ce9519`, job API success (typecheck + unit + integração com Postgres/Redis) |
 
 ## Comando CI (referência)
 
