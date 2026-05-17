@@ -21,7 +21,8 @@ Commits no PR (Bloco 2 vs base pós-PR#7):
 - ffa9c34 docs(piloto-05): evidências bloco 2 P12/P19 e saída PR
 - 734fa62 fix(web): erro real em auditoria operacional quando API falha (P18)
 - dda88d8 docs(piloto-05): rastreabilidade 04_saida PR bloco 2
-- a26f8bc docs(piloto-05): corpo PR HEAD final e P18 734fa62
+- a26f8bc docs(piloto-05): corpo PR e P18 734fa62
+- 8331de5 docs(piloto-05): HEAD final abertura PR (rastreabilidade c2e4843)
 
 CI verde (referência P18): https://github.com/rvbbarreto-bot/barbearia-saas/actions/runs/26003284708 @ 734fa62
 
