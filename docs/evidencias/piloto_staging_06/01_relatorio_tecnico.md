@@ -5,6 +5,8 @@
 - Branch: `feature/piloto-staging-06-expansao-operacional-gestao`
 - Base PR: `piloto-staging-01`
 - SHA inicial gate: `e421970c04d274da0780c16c2955d56bf3b86b57`
+- SHA correção CI (RLS): `1b50a7f1ea6a388f01a94e3b0c0b4615f942ec4a`
+- PR: https://github.com/rvbbarreto-bot/barbearia-saas/pull/11
 
 ## Entregas principais
 

@@ -14,6 +14,8 @@ on:
       - feature/piloto-staging-03-qa-operacional-n8n-ready
       # PILOTO-STAGING-05 — operação, gestão e automação.
       - feature/piloto-staging-05-operacao-gestao-automacao
+      # PILOTO-STAGING-06 — expansão operacional e gestão.
+      - feature/piloto-staging-06-expansao-operacional-gestao
   pull_request:
     branches:
       - main

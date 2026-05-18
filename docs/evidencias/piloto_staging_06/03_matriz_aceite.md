@@ -15,7 +15,7 @@
 | P01 | Portal tokenizado | OK | Migration 107 + rotas públicas `/portal/:token` |
 | N01 | n8n workflows | OK | `npm run n8n:validate-workflows` |
 | RBAC | Negativo manager+ | OK | Testes `management.rbac.test.ts` |
-| CI | PR verde | PEND | Push + abertura PR (gh não autenticado local) |
+| CI | PR verde | PEND | PR [#11](https://github.com/rvbbarreto-bot/barbearia-saas/pull/11) — corrigir após commit CT-073 |
 | Prints | UI reais | PEND | Pasta `prints/` — captura manual QA |
 
 **Legenda:** OK = implementado com teste; PEND = depende ambiente/QA; BLOCKED = WhatsApp E2E externo.

@@ -135,7 +135,8 @@ describe.skipIf(!run)('car wash integration', () => {
         starts_at: '2026-05-13T14:00:00.000Z',
         ends_at: '2026-05-13T15:00:00.000Z',
         idempotency_key: `idem-${randomUUID()}`,
-        source: 'manual',
+        // CT-073: attendant só pode `explicit_confirmation: false` em walk-in.
+        source: explicitConfirmation ? 'manual' : 'walk_in',
         explicit_confirmation: explicitConfirmation,
       },
       caller,

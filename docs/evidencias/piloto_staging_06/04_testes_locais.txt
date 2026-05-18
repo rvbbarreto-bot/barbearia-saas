@@ -11,6 +11,11 @@ npm run test → 19 files, 65 tests passed
 ## raiz
 npm run n8n:validate-workflows → passed
 
+## Correção CI (pós 1b50a7f)
+
+- Falha em `car-wash.integration.test.ts`: CT-073 — `source: manual` + `explicit_confirmation: false` com role `attendant` → 403.
+- Correção: usar `source: walk_in` quando `explicit_confirmation: false`.
+
 ## Não executado nesta sessão
 - npm audit (raiz — executar no CI)
 - npm run build (api/web)
