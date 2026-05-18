@@ -4,8 +4,8 @@ Pacote de expansão operacional e gestão **entregue e com CI verde** no [PR #12
 
 **SHA final:** `8983fa5` · **Relatório completo para aceite:** `11_relatorio_entrega_po_pr12.md`
 
-**Pronto para merge (fábrica):** dashboard gerencial, cliente 360, portal tokenizado (fluxo oficial), lava-rápido MVP, financeiro/waitlist, 367 testes API no CI.
+**Status:** **MERGED** em `piloto-staging-01` — merge commit `c8d6902` (2026-05-18). Ver `12_merge_executado_po.md`.
 
-**Aguardando PO/GP:** assinatura no relatório §10, prints L01–L14 (não bloqueante técnico), QA regressivo formal (staging 07).
+**Pós-merge (obrigatório):** prints L01–L14, QA regressivo formal (staging 07), cobertura 82% no próximo pacote.
 
 **Proibido:** merge em `main` sem decisão executiva.

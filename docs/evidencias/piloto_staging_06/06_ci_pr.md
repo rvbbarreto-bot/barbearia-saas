@@ -5,8 +5,10 @@
 - **Número:** [#12](https://github.com/rvbbarreto-bot/barbearia-saas/pull/12)
 - **Base:** `piloto-staging-01` ✓
 - **Head:** `feature/piloto-staging-06-expansao-operacional-gestao`
-- **SHA final:** `8983fa5e9b7db7a372a1cfe7f5776737f2eda00d`
-- **CI:** **verde** — 8/8 checks (API, Web, Gitleaks, npm audit × push + pull_request)
+- **SHA feature (pré-merge):** `1a84c94` / `8983fa5`
+- **Merge commit `piloto-staging-01`:** `c8d69024be246f5f390ad7441ab321de0386a41b`
+- **CI pré-merge PR:** verde — 8/8 checks
+- **CI pós-merge:** [run #117 — success](https://github.com/rvbbarreto-bot/barbearia-saas/actions/runs/26031913951) em `c8d6902`
 
 ## Jobs
 
@@ -33,5 +35,5 @@
 
 ## Governança
 
-- Merge alvo: **`piloto-staging-01`** após aceite PO (`11_relatorio_entrega_po_pr12.md`).
-- **Sem merge em `main`.**
+- **MERGED** em `piloto-staging-01` — `c8d6902` (autorização PO 2026-05-18). Detalhes: `12_merge_executado_po.md`.
+- **`main`:** inalterado (`276234e`).
