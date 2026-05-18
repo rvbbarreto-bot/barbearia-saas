@@ -1,9 +1,29 @@
 import { z } from 'zod';
 import type { PoolClient } from 'pg';
-import { pool, withTenant } from '../../infra/db/pool.js';
+import { getIntegrationLookupPool, pool, withTenant } from '../../infra/db/pool.js';
 import { AppError } from '../../shared/errors.js';
 import { writeAuditLog } from '../../shared/audit.js';
+import {
+  cancelAppointmentInDb,
+  confirmAppointmentInDb,
+  type AppointmentCaller,
+} from '../appointments/service.js';
 import { generatePortalTokenPlain, hashPortalToken } from './token.js';
+
+const PORTAL_CONFIRMABLE_STATUSES = new Set(['awaiting_confirmation', 'awaiting_payment']);
+const PORTAL_CANCELLABLE_STATUSES = new Set([
+  'awaiting_confirmation',
+  'awaiting_payment',
+  'confirmed',
+  'checked_in',
+]);
+
+function portalCallerForToken(tokenId: string): AppointmentCaller {
+  return {
+    correlationId: `portal:${tokenId}`,
+    requestId: `portal:${tokenId}`,
+  };
+}
 
 const TOKEN_TTL_HOURS = 72;
 
@@ -20,9 +40,10 @@ export type PortalAppointmentView = {
   tenant_display_name: string | null;
 };
 
-async function resolveTokenRow(client: PoolClient, plainToken: string) {
+/** Resolve token antes de `app.tenant_id` (RLS em `appointment_portal_tokens` exige tenant no contexto). */
+async function resolveTokenRow(plainToken: string) {
   const hash = hashPortalToken(plainToken);
-  const r = await client.query<{
+  const r = await getIntegrationLookupPool().query<{
     id: string;
     tenant_id: string;
     appointment_id: string;
@@ -85,8 +106,8 @@ async function loadAppointmentView(
   if (!r.rowCount) throw new AppError('APPOINTMENT_NOT_FOUND', 'Agendamento não encontrado.', 404);
   const row = r.rows[0];
   const status = row.status;
-  const can_confirm = status === 'pending_confirmation';
-  const can_cancel = ['pending_confirmation', 'confirmed', 'checked_in'].includes(status);
+  const can_confirm = PORTAL_CONFIRMABLE_STATUSES.has(status);
+  const can_cancel = PORTAL_CANCELLABLE_STATUSES.has(status);
   return {
     appointment_id: row.appointment_id,
     status: row.status,
@@ -145,14 +166,10 @@ export async function createAppointmentPortalToken(
 }
 
 export async function getPortalAppointmentByToken(plainToken: string): Promise<PortalAppointmentView> {
-  const client = await pool.connect();
-  try {
-    const tokenRow = await resolveTokenRow(client, plainToken);
-    await client.query(`SELECT set_config('app.tenant_id', $1, true)`, [tokenRow.tenant_id]);
-    return loadAppointmentView(client, tokenRow.tenant_id, tokenRow.appointment_id);
-  } finally {
-    client.release();
-  }
+  const tokenRow = await resolveTokenRow(plainToken);
+  return withTenant(tokenRow.tenant_id, async (client) =>
+    loadAppointmentView(client, tokenRow.tenant_id, tokenRow.appointment_id),
+  );
 }
 
 async function mutateByToken(
@@ -162,7 +179,7 @@ async function mutateByToken(
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const tokenRow = await resolveTokenRow(client, plainToken);
+    const tokenRow = await resolveTokenRow(plainToken);
     await client.query(`SELECT set_config('app.tenant_id', $1, true)`, [tokenRow.tenant_id]);
 
     const cur = await client.query<{ status: string }>(
@@ -172,36 +189,43 @@ async function mutateByToken(
     );
     if (!cur.rowCount) throw new AppError('APPOINTMENT_NOT_FOUND', 'Agendamento não encontrado.', 404);
     const status = cur.rows[0].status;
+    const caller = portalCallerForToken(tokenRow.id);
 
     if (action === 'confirm') {
-      if (status !== 'pending_confirmation') {
+      if (!PORTAL_CONFIRMABLE_STATUSES.has(status)) {
         throw new AppError('PORTAL_ACTION_NOT_ALLOWED', 'Confirmação não disponível para este agendamento.', 409);
       }
-      await client.query(
-        `UPDATE appointments SET status = 'confirmed', updated_at = now()
-          WHERE tenant_id = $1 AND id = $2`,
-        [tokenRow.tenant_id, tokenRow.appointment_id],
-      );
+      await confirmAppointmentInDb(client, tokenRow.tenant_id, tokenRow.appointment_id, caller);
+      await writeAuditLog(client, {
+        tenantId: tokenRow.tenant_id,
+        actorUserId: null,
+        action: 'PORTAL_APPOINTMENT_CONFIRMED',
+        entity: 'appointment',
+        entityId: tokenRow.appointment_id,
+        before: { status },
+        after: { status: 'confirmed', via: 'portal_token' },
+      });
     } else {
-      if (!['pending_confirmation', 'confirmed', 'checked_in'].includes(status)) {
+      if (!PORTAL_CANCELLABLE_STATUSES.has(status)) {
         throw new AppError('PORTAL_ACTION_NOT_ALLOWED', 'Cancelamento não disponível para este agendamento.', 409);
       }
-      await client.query(
-        `UPDATE appointments SET status = 'cancelled', updated_at = now()
-          WHERE tenant_id = $1 AND id = $2`,
-        [tokenRow.tenant_id, tokenRow.appointment_id],
+      await cancelAppointmentInDb(
+        client,
+        tokenRow.tenant_id,
+        tokenRow.appointment_id,
+        'Cancelado pelo cliente via portal',
+        caller,
       );
+      await writeAuditLog(client, {
+        tenantId: tokenRow.tenant_id,
+        actorUserId: null,
+        action: 'PORTAL_APPOINTMENT_CANCELLED',
+        entity: 'appointment',
+        entityId: tokenRow.appointment_id,
+        before: { status },
+        after: { status: 'cancelled', via: 'portal_token' },
+      });
     }
-
-    await writeAuditLog(client, {
-      tenantId: tokenRow.tenant_id,
-      actorUserId: null,
-      action: action === 'confirm' ? 'PORTAL_APPOINTMENT_CONFIRMED' : 'PORTAL_APPOINTMENT_CANCELLED',
-      entity: 'appointment',
-      entityId: tokenRow.appointment_id,
-      before: { status },
-      after: { status: action === 'confirm' ? 'confirmed' : 'cancelled', via: 'portal_token' },
-    });
 
     await client.query('COMMIT');
     return loadAppointmentView(client, tokenRow.tenant_id, tokenRow.appointment_id);

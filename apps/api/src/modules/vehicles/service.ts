@@ -80,6 +80,9 @@ export async function createVehicle(
 ) {
   const data = createVehicleSchema.parse(input);
   const normalized = normalizePlate(data.plate);
+  if (!normalized) {
+    throw new AppError('VEHICLE_PLATE_REQUIRED', 'Placa é obrigatória para cadastro de veículo.', 422);
+  }
 
   return withTenant(tenantId, async (client) => {
     const cust = await client.query(
@@ -98,7 +101,7 @@ export async function createVehicle(
         [
           tenantId,
           data.customer_id,
-          data.plate ?? null,
+          data.plate,
           normalized,
           data.brand ?? null,
           data.model ?? null,

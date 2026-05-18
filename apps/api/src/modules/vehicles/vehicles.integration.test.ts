@@ -65,6 +65,30 @@ describe.skipIf(!run)('vehicles integration', () => {
     ).rejects.toMatchObject({ code: 'VEHICLE_PLATE_ALREADY_EXISTS' });
   });
 
+  it('rejeita veículo sem placa', async () => {
+    const { createVehicle } = await import('./service.js');
+    await expect(
+      createVehicle(tenantA, { customer_id: customerA, plate: '' }),
+    ).rejects.toBeTruthy();
+  });
+
+  it('rejeita placa inválida', async () => {
+    const { createVehicle } = await import('./service.js');
+    await expect(
+      createVehicle(tenantA, { customer_id: customerA, plate: 'INVALID' }),
+    ).rejects.toBeTruthy();
+  });
+
+  it('permite mesma placa em tenants diferentes', async () => {
+    const { createVehicle } = await import('./service.js');
+    const { createCustomer } = await import('../customers/service.js');
+    const plate = sampleBrazilianPlate('MUL');
+    const cB = await createCustomer(tenantB, { phone: `5511${randomUUID().slice(0, 8)}`, whatsapp_opt_in: false });
+    await createVehicle(tenantA, { customer_id: customerA, plate });
+    const vB = await createVehicle(tenantB, { customer_id: cB.id as string, plate });
+    expect(vB.id).toBeTruthy();
+  });
+
   it('impede leitura cross-tenant via serviço', async () => {
     const { createVehicle, getVehicleById } = await import('./service.js');
     const { createCustomer } = await import('../customers/service.js');

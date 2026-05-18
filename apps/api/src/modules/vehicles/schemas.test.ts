@@ -2,6 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { createChecklistSchema, createVehicleSchema } from './schemas.js';
 
 describe('createVehicleSchema', () => {
+  it('exige placa', () => {
+    const r = createVehicleSchema.safeParse({
+      customer_id: '00000000-0000-4000-8000-000000000001',
+    });
+    expect(r.success).toBe(false);
+  });
+
   it('valida placa Mercosul', () => {
     const r = createVehicleSchema.safeParse({
       customer_id: '00000000-0000-4000-8000-000000000001',

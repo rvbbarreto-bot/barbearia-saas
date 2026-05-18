@@ -206,6 +206,68 @@ describe.skipIf(!run)('car wash integration', () => {
     expect(jobAfter.rows[0].stage).toBe('cancelled');
   });
 
+  it('idempotency_key repetida com mesmo vehicle_id retorna o mesmo agendamento', async () => {
+    const key = `idem-cw-same-${randomUUID().slice(0, 8)}`;
+    const payload = {
+      customer_id: customerId,
+      professional_id: professionalId,
+      service_id: serviceId,
+      vehicle_id: vehicleId,
+      starts_at: '2026-05-13T18:00:00.000Z',
+      ends_at: '2026-05-13T19:00:00.000Z',
+      source: 'walk_in' as const,
+      idempotency_key: key,
+      explicit_confirmation: false,
+    };
+    const { createAppointment } = await import('../appointments/service.js');
+    const first = await createAppointment(tenantId, payload, caller);
+    const second = await createAppointment(tenantId, payload, caller);
+    expect(second.id).toBe(first.id);
+  });
+
+  it('rejeita idempotency_key repetida com vehicle_id diferente', async () => {
+    const key = `idem-cw-diff-${randomUUID().slice(0, 8)}`;
+    const { createAppointment } = await import('../appointments/service.js');
+    const { createVehicle } = await import('../vehicles/service.js');
+    const other = await createVehicle(
+      tenantId,
+      { customer_id: customerId, plate: sampleBrazilianPlate('OTH') },
+      caller,
+    );
+    await createAppointment(
+      tenantId,
+      {
+        customer_id: customerId,
+        professional_id: professionalId,
+        service_id: serviceId,
+        vehicle_id: vehicleId,
+        starts_at: '2026-05-13T19:00:00.000Z',
+        ends_at: '2026-05-13T20:00:00.000Z',
+        source: 'walk_in',
+        idempotency_key: key,
+        explicit_confirmation: false,
+      },
+      caller,
+    );
+    await expect(
+      createAppointment(
+        tenantId,
+        {
+          customer_id: customerId,
+          professional_id: professionalId,
+          service_id: serviceId,
+          vehicle_id: other.id as string,
+          starts_at: '2026-05-13T19:00:00.000Z',
+          ends_at: '2026-05-13T20:00:00.000Z',
+          source: 'walk_in',
+          idempotency_key: key,
+          explicit_confirmation: false,
+        },
+        caller,
+      ),
+    ).rejects.toMatchObject({ code: 'DUPLICATE_IDEMPOTENCY_KEY' });
+  });
+
   it('impede transição inválida scheduled → ready', async () => {
     const { applyCarWashJobAction } = await import('./service.js');
     const appt = await createCarWashAppointment(false, 17);

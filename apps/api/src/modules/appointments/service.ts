@@ -356,14 +356,32 @@ export async function createAppointment(
           String(row.notes ?? '') === String(data.notes ?? '') &&
           appointmentInstantEquals(row.starts_at, data.starts_at) &&
           appointmentInstantEquals(row.ends_at, data.ends_at);
-        if (samePayload) {
-          return row;
+        if (!samePayload) {
+          throw new AppError(
+            'DUPLICATE_IDEMPOTENCY_KEY',
+            'Requisição duplicada: idempotency_key já utilizada para este tenant.',
+            409,
+          );
         }
-        throw new AppError(
-          'DUPLICATE_IDEMPOTENCY_KEY',
-          'Requisição duplicada: idempotency_key já utilizada para este tenant.',
-          409,
-        );
+        if (carWash) {
+          const jobVehicle = await client.query<{ vehicle_id: string }>(
+            `SELECT vehicle_id::text AS vehicle_id FROM car_wash_jobs
+              WHERE tenant_id = $1 AND appointment_id = $2 LIMIT 1`,
+            [tenantId, row.id],
+          );
+          const existingVehicleId = jobVehicle.rowCount
+            ? (jobVehicle.rows[0].vehicle_id as string)
+            : null;
+          const requestedVehicleId = data.vehicle_id ?? null;
+          if (existingVehicleId !== requestedVehicleId) {
+            throw new AppError(
+              'DUPLICATE_IDEMPOTENCY_KEY',
+              'idempotency_key já utilizada com outro vehicle_id para este tenant.',
+              409,
+            );
+          }
+        }
+        return row;
       }
 
       const svc = await loadBookableService(client, tenantId, data.professional_id, data.service_id);

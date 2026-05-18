@@ -6,7 +6,7 @@ const vehicleTypeSchema = z.enum(['car', 'motorcycle', 'pickup', 'suv', 'van', '
 export const createVehicleSchema = z
   .object({
     customer_id: z.string().uuid(),
-    plate: z.string().min(1).max(12).optional(),
+    plate: z.string().min(1).max(12),
     brand: z.string().max(80).optional(),
     model: z.string().max(80).optional(),
     color: z.string().max(40).optional(),
@@ -14,7 +14,7 @@ export const createVehicleSchema = z
     notes: z.string().max(2000).optional(),
   })
   .superRefine((data, ctx) => {
-    if (data.plate && !isValidBrazilianPlate(data.plate)) {
+    if (!isValidBrazilianPlate(data.plate)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: 'Placa inválida (formato Mercosul ou antigo).',
