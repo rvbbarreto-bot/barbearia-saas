@@ -26,6 +26,14 @@ describe.skipIf(!run)('car wash integration', () => {
   let professionalId = '';
   let serviceId = '';
 
+  /** Leituras sob RLS exigem `app.tenant_id` (pool da app sem set_config retorna 0 linhas). */
+  async function queryTenant<T extends pg.QueryResultRow = pg.QueryResultRow>(
+    sql: string,
+    params?: unknown[],
+  ) {
+    return withTenant(tenantId, async (c) => c.query<T>(sql, params));
+  }
+
   async function purge() {
     await withTenant(tenantId, async (c) => {
       await c.query(`DELETE FROM car_wash_checklists WHERE tenant_id = $1`, [tenantId]);
@@ -99,8 +107,8 @@ describe.skipIf(!run)('car wash integration', () => {
           [tenantId, professionalId, serviceId],
         );
         await c.query(
-          `INSERT INTO business_hours (tenant_id, professional_id, weekday, starts_at, ends_at)
-           VALUES ($1,$2,3,'08:00','20:00')`,
+          `INSERT INTO business_hours (tenant_id, professional_id, weekday, starts_at, ends_at, active)
+           SELECT $1, $2, d, '08:00', '20:00', true FROM generate_series(0, 6) AS d`,
           [tenantId, professionalId],
         );
       });
@@ -149,7 +157,7 @@ describe.skipIf(!run)('car wash integration', () => {
 
   it('cria appointment + job em transação', async () => {
     const appt = await createCarWashAppointment(false, 14);
-    const r = await pool.query(
+    const r = await queryTenant(
       `SELECT stage FROM car_wash_jobs WHERE tenant_id = $1 AND appointment_id = $2`,
       [tenantId, appt.id],
     );
@@ -159,7 +167,7 @@ describe.skipIf(!run)('car wash integration', () => {
   it('bloqueia chegada se appointment awaiting_confirmation', async () => {
     const { applyCarWashJobAction, createCarWashChecklist } = await import('./service.js');
     const appt = await createCarWashAppointment(true, 15);
-    const jobR = await pool.query(
+    const jobR = await queryTenant(
       `SELECT id FROM car_wash_jobs WHERE tenant_id = $1 AND appointment_id = $2`,
       [tenantId, appt.id],
     );
@@ -186,22 +194,22 @@ describe.skipIf(!run)('car wash integration', () => {
   it('cancelamento do job cancela appointment e libera slot', async () => {
     const { applyCarWashJobAction } = await import('./service.js');
     const appt = await createCarWashAppointment(false, 16);
-    const jobR = await pool.query(
+    const jobR = await queryTenant(
       `SELECT id FROM car_wash_jobs WHERE tenant_id = $1 AND appointment_id = $2`,
       [tenantId, appt.id],
     );
     const jobId = jobR.rows[0].id as string;
     await applyCarWashJobAction(tenantId, jobId, 'cancel', caller);
-    const apptAfter = await pool.query(`SELECT status FROM appointments WHERE id = $1`, [appt.id]);
+    const apptAfter = await queryTenant(`SELECT status FROM appointments WHERE id = $1`, [appt.id]);
     expect(apptAfter.rows[0].status).toBe('cancelled');
-    const jobAfter = await pool.query(`SELECT stage FROM car_wash_jobs WHERE id = $1`, [jobId]);
+    const jobAfter = await queryTenant(`SELECT stage FROM car_wash_jobs WHERE id = $1`, [jobId]);
     expect(jobAfter.rows[0].stage).toBe('cancelled');
   });
 
   it('impede transição inválida scheduled → ready', async () => {
     const { applyCarWashJobAction } = await import('./service.js');
     const appt = await createCarWashAppointment(false, 17);
-    const jobR = await pool.query(
+    const jobR = await queryTenant(
       `SELECT id FROM car_wash_jobs WHERE tenant_id = $1 AND appointment_id = $2`,
       [tenantId, appt.id],
     );
