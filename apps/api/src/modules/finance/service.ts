@@ -202,6 +202,34 @@ export async function listAppointmentFinancials(
   });
 }
 
+/** Exportação CSV (até 5000 linhas) com os mesmos filtros da listagem. */
+export async function exportAppointmentFinancialsCsv(
+  tenantId: string,
+  query: Record<string, unknown>,
+): Promise<string> {
+  const page = await listAppointmentFinancials(tenantId, { ...query, page: 1, limit: 5000 });
+  const lines = [
+    'appointment_id,starts_at,appointment_status,service_price_cents,deposit_paid_cents,discount_cents,balance_due_cents,settled',
+  ];
+  for (const row of page.data) {
+    const fin = row.financial as Record<string, unknown>;
+    const settled = fin.settled_at ? 'yes' : 'no';
+    lines.push(
+      [
+        row.appointment_id,
+        row.starts_at,
+        row.appointment_status,
+        fin.service_price_cents ?? 0,
+        fin.deposit_paid_cents ?? 0,
+        fin.discount_cents ?? 0,
+        row.balance_due_cents ?? 0,
+        settled,
+      ].join(','),
+    );
+  }
+  return lines.join('\n');
+}
+
 export async function getAppointmentFinancial(client: PoolClient, tenantId: string, appointmentId: string) {
   const appt = await client.query(
     `SELECT id::text, status::text FROM appointments WHERE tenant_id = $1 AND id = $2 LIMIT 1`,

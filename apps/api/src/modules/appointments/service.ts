@@ -44,6 +44,10 @@ import { ensureFinancialOnServiceCompleted } from '../finance/service.js';
 import { createCommissionEntryForCompletedAppointment } from '../commission/service.js';
 import { validateImplicitAppointmentConfirmation } from './explicit-confirmation-policy.js';
 import { assertAppointmentStartsNotInPast } from './appointment-scheduling-rules.js';
+import { loadTenantVerticalContextWithClient } from '../vertical/tenant-vertical.service.js';
+import { isCarWashVertical } from '../vertical/settings.js';
+import { assertVehicleBelongsToCustomer } from '../vehicles/service.js';
+import { createCarWashJobInTransaction } from '../carWash/service.js';
 import {
   assertAppointmentMutationScope,
   assertProfessionalBookingBodyScope,
@@ -274,6 +278,8 @@ export const createAppointmentSchema = z.object({
   customer_id: z.string().uuid(),
   professional_id: z.string().uuid(),
   service_id: z.string().uuid(),
+  /** Obrigatório em tenant `car_wash` quando `require_vehicle=true`; proibido em `barbershop`. */
+  vehicle_id: z.string().uuid().optional(),
   starts_at: z.string().datetime(),
   ends_at: z.string().datetime(),
   /** Opcional · se enviado, deve coincidir com o preço do serviço (WhatsApp/painel vs cadastro). */
@@ -306,6 +312,27 @@ export async function createAppointment(
   const lockKey = `lock:appointment:${tenantId}:${data.professional_id}:${data.starts_at}:${data.ends_at}`;
   return withAppointmentLock(lockKey, async () =>
     withTenant(tenantId, async (client) => {
+      const verticalCtx = await loadTenantVerticalContextWithClient(client, tenantId);
+      const carWash = isCarWashVertical(verticalCtx);
+
+      if (data.vehicle_id && !carWash) {
+        throw new AppError(
+          'VEHICLE_NOT_ALLOWED',
+          'vehicle_id não é permitido para tenant barbershop.',
+          400,
+        );
+      }
+      if (carWash && verticalCtx.car_wash.require_vehicle && !data.vehicle_id) {
+        throw new AppError(
+          'VEHICLE_REQUIRED',
+          'vehicle_id é obrigatório para agendamento de lava-rápido.',
+          422,
+        );
+      }
+      if (data.vehicle_id) {
+        await assertVehicleBelongsToCustomer(client, tenantId, data.vehicle_id, data.customer_id);
+      }
+
       if (data.hold_id) {
         await releaseHoldForBooking(client, tenantId, data.hold_id, {
           professional_id: data.professional_id,
@@ -422,6 +449,26 @@ export async function createAppointment(
       }
 
       const created = result.rows[0];
+
+      if (carWash && data.vehicle_id) {
+        try {
+          await createCarWashJobInTransaction(
+            client,
+            tenantId,
+            created.id as string,
+            data.vehicle_id,
+            {
+              sub: actorUserId,
+              role: caller?.role,
+              requestId: caller?.requestId,
+              correlationId: effectiveCorrelationId(caller?.correlationId, created.id as string),
+            },
+          );
+        } catch (jobErr) {
+          throw jobErr;
+        }
+      }
+
       await writeAppointmentEvent(client, {
         tenantId,
         appointmentId: created.id as string,
@@ -434,6 +481,7 @@ export async function createAppointment(
           explicit_confirmation_pending: data.explicit_confirmation,
           administrative_skip_client_explicit_confirm: !data.explicit_confirmation,
           hold_id: data.hold_id ?? null,
+          vehicle_id: data.vehicle_id ?? null,
         },
       });
       await writeAuditLog(client, {
@@ -641,6 +689,91 @@ const cancelAppointmentBodySchema = z.object({
   reason: z.string().min(3).max(500).optional(),
 });
 
+/** Cancela agendamento dentro de transação já aberta (ex.: cancelamento de job lava-rápido). */
+export async function cancelAppointmentInDb(
+  client: PoolClient,
+  tenantId: string,
+  appointmentId: string,
+  reason: string | null | undefined,
+  caller?: AppointmentCaller | null,
+): Promise<Record<string, unknown>> {
+  const actorUserId = caller?.sub;
+  const current = await client.query(
+    `SELECT * FROM appointments WHERE tenant_id = $1 AND id = $2 FOR UPDATE`,
+    [tenantId, appointmentId],
+  );
+  if (!current.rowCount) throw new AppError('APPOINTMENT_NOT_FOUND', 'Agendamento não encontrado', 404);
+  const appointment = current.rows[0];
+  await assertAppointmentMutationScope(tenantId, appointment, caller);
+  if (appointment.status === 'cancelled') return appointment;
+
+  const st = String(appointment.status);
+  if (st === 'completed' || st === 'no_show') {
+    throw new AppError(
+      'INVALID_STATUS_TRANSITION',
+      'Não é possível cancelar um agendamento finalizado ou marcado como falta.',
+      409,
+    );
+  }
+
+  const updated = await client.query(
+    `UPDATE appointments
+        SET status = 'cancelled',
+            cancelled_at = now(),
+            notes = COALESCE($3, notes),
+            updated_at = now()
+      WHERE tenant_id = $1 AND id = $2
+      RETURNING *`,
+    [tenantId, appointmentId, reason ?? null],
+  );
+
+  await writeAppointmentEvent(client, {
+    tenantId,
+    appointmentId,
+    eventType: 'CANCELLED',
+    actorUserId: actorUserId ?? null,
+    payload: { reason: reason ?? null, previous_status: appointment.status },
+  });
+  await writeAuditLog(client, {
+    tenantId,
+    actorUserId: actorUserId ?? null,
+    action: 'APPOINTMENT_CANCELLED',
+    entity: 'appointment',
+    entityId: appointmentId,
+    before: { status: appointment.status, starts_at: appointment.starts_at, ends_at: appointment.ends_at },
+    after: { status: 'cancelled', reason: reason ?? null },
+  });
+
+  await writeOperationalAuditEvent(client, {
+    tenantId,
+    entityType: 'appointment',
+    entityId: appointmentId,
+    eventType: 'appointment_cancelled',
+    actorUserId: actorUserId ?? null,
+    actorRole: caller?.role ?? null,
+    requestId: caller?.requestId ?? null,
+    correlationId: effectiveCorrelationId(caller?.correlationId, appointmentId),
+    metadata: { reason: reason ?? null, previous_status: appointment.status },
+  });
+
+  await cancelAllPendingNotificationJobsForAppointment(client, tenantId, appointmentId);
+
+  const svcId = appointment.service_id as string | null;
+  const profId = appointment.professional_id as string;
+  if (calendarSlotWasBlocked(appointment.status) && svcId) {
+    await tryEnqueueWaitlistOnSlotFreed(client, tenantId, {
+      professionalId: profId,
+      serviceId: svcId,
+      freedStartsAtIso: String(appointment.starts_at),
+      freedEndsAtIso: String(appointment.ends_at),
+      sourceAppointmentId: appointmentId,
+      reason: 'cancelled',
+    });
+  }
+
+  return updated.rows[0];
+}
+
 export async function cancelAppointment(
   tenantId: string,
   appointmentId: string,
@@ -648,85 +781,11 @@ export async function cancelAppointment(
   caller?: AppointmentCaller,
 ) {
   const { reason } = cancelAppointmentBodySchema.parse(body ?? {});
-  const actorUserId = caller?.sub;
   const lockKey = `lock:appointment:${tenantId}:${appointmentId}:cancel`;
   return withAppointmentLock(lockKey, async () =>
-    withTenant(tenantId, async (client) => {
-      const current = await client.query(
-        `SELECT * FROM appointments WHERE tenant_id = $1 AND id = $2 LIMIT 1`,
-        [tenantId, appointmentId],
-      );
-      if (!current.rowCount) throw new AppError('APPOINTMENT_NOT_FOUND', 'Agendamento não encontrado', 404);
-      const appointment = current.rows[0];
-      await assertAppointmentMutationScope(tenantId, appointment, caller);
-      if (appointment.status === 'cancelled') return appointment;
-
-      const st = String(appointment.status);
-      if (st === 'completed' || st === 'no_show') {
-        throw new AppError(
-          'INVALID_STATUS_TRANSITION',
-          'Não é possível cancelar um agendamento finalizado ou marcado como falta.',
-          409,
-        );
-      }
-
-      const updated = await client.query(
-        `UPDATE appointments
-            SET status = 'cancelled',
-                cancelled_at = now(),
-                notes = COALESCE($3, notes),
-                updated_at = now()
-          WHERE tenant_id = $1 AND id = $2
-          RETURNING *`,
-        [tenantId, appointmentId, reason ?? null],
-      );
-
-      await writeAppointmentEvent(client, {
-        tenantId,
-        appointmentId,
-        eventType: 'CANCELLED',
-        actorUserId: actorUserId ?? null,
-        payload: { reason: reason ?? null, previous_status: appointment.status },
-      });
-      await writeAuditLog(client, {
-        tenantId,
-        actorUserId: actorUserId ?? null,
-        action: 'APPOINTMENT_CANCELLED',
-        entity: 'appointment',
-        entityId: appointmentId,
-        before: { status: appointment.status, starts_at: appointment.starts_at, ends_at: appointment.ends_at },
-        after: { status: 'cancelled', reason: reason ?? null },
-      });
-
-      await writeOperationalAuditEvent(client, {
-        tenantId,
-        entityType: 'appointment',
-        entityId: appointmentId,
-        eventType: 'appointment_cancelled',
-        actorUserId: actorUserId ?? null,
-        actorRole: caller?.role ?? null,
-        requestId: caller?.requestId ?? null,
-        correlationId: effectiveCorrelationId(caller?.correlationId, appointmentId),
-        metadata: { reason: reason ?? null, previous_status: appointment.status },
-      });
-
-      await cancelAllPendingNotificationJobsForAppointment(client, tenantId, appointmentId);
-
-      const svcId = appointment.service_id as string | null;
-      const profId = appointment.professional_id as string;
-      if (calendarSlotWasBlocked(appointment.status) && svcId) {
-        await tryEnqueueWaitlistOnSlotFreed(client, tenantId, {
-          professionalId: profId,
-          serviceId: svcId,
-          freedStartsAtIso: String(appointment.starts_at),
-          freedEndsAtIso: String(appointment.ends_at),
-          sourceAppointmentId: appointmentId,
-          reason: 'cancelled',
-        });
-      }
-
-      return updated.rows[0];
-    }),
+    withTenant(tenantId, async (client) =>
+      cancelAppointmentInDb(client, tenantId, appointmentId, reason, caller),
+    ),
   );
 }
 

@@ -48,3 +48,16 @@ export async function convertWaitlistEntry(entryId: string, appointmentId: strin
   });
   return data;
 }
+
+export type WaitlistSlotSuggestion = {
+  waitlist_entry_id: string;
+  professional_id: string;
+  service_id: string;
+  date: string | null;
+  slot: { starts_at: string; ends_at: string } | null;
+};
+
+export async function suggestWaitlistSlot(entryId: string): Promise<WaitlistSlotSuggestion> {
+  const { data } = await api.get<WaitlistSlotSuggestion>(`/api/v1/waitlist/${entryId}/suggest-slot`);
+  return data;
+}

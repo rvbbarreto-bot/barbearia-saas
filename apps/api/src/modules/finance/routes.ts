@@ -3,6 +3,7 @@ import { withTenant } from '../../infra/db/pool.js';
 import { requirePermission } from '../../middlewares/rbac.js';
 import {
   applyAppointmentFinancialDiscount,
+  exportAppointmentFinancialsCsv,
   getAppointmentFinancial,
   getDailyFinanceReport,
   listAppointmentFinancials,
@@ -14,6 +15,21 @@ export async function financeRoutes(app: FastifyInstance) {
     '/finance/appointments',
     { preHandler: requirePermission('finance', 'readAppointment') },
     async (request: any) => listAppointmentFinancials(request.tenantId, request.query as Record<string, unknown>),
+  );
+
+  app.get(
+    '/finance/appointments/export.csv',
+    { preHandler: requirePermission('finance', 'readAppointment') },
+    async (request: any, reply) => {
+      const csv = await exportAppointmentFinancialsCsv(
+        request.tenantId,
+        request.query as Record<string, unknown>,
+      );
+      return reply
+        .header('Content-Type', 'text/csv; charset=utf-8')
+        .header('Content-Disposition', 'attachment; filename="financeiro-export.csv"')
+        .send(csv);
+    },
   );
 
   app.get(

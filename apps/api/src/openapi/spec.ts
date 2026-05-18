@@ -37,6 +37,9 @@ export const openApiDocument = {
     { name: 'audit', description: 'Audit log (read-only típico)' },
     { name: 'finance', description: 'Financeiro por agendamento (PIX real desativado por defeito)' },
     { name: 'commission', description: 'Regras, lançamentos e fechos (feature tenant `commission_enabled`)' },
+    { name: 'vehicles', description: 'Veículos do cliente (vertical car_wash)' },
+    { name: 'car_wash', description: 'Pátio operacional lava-rápido' },
+    { name: 'tenantOperational', description: 'Configurações operacionais e vertical do tenant' },
   ],
   components: {
     securitySchemes: {
@@ -239,7 +242,8 @@ export const openApiDocument = {
         summary: 'Criar agendamento',
         description:
           'RBAC: `appointments.create`. Campo `explicit_confirmation` (boolean): com `true`, o fluxo típico fica em `awaiting_confirmation` até confirmação explícita. ' +
-          'Com `false`, **criação administrativa / walk-in** sem confirmação explícita do cliente: permitido apenas para `tenant_admin`+ em `source` ≠ `walk_in`, ou `walk_in` com `attendant`+ (perfil `professional` bloqueado com `false`). Ver `docs/DECISAO_PRODUTO_CT073_EXPLICIT_CONFIRMATION.md`.',
+          'Com `false`, **criação administrativa / walk-in** sem confirmação explícita do cliente: permitido apenas para `tenant_admin`+ em `source` ≠ `walk_in`, ou `walk_in` com `attendant`+ (perfil `professional` bloqueado com `false`). Ver `docs/DECISAO_PRODUTO_CT073_EXPLICIT_CONFIRMATION.md`. ' +
+          'Vertical `car_wash`: `vehicle_id` obrigatório quando `require_vehicle=true`; em `barbershop`, enviar `vehicle_id` retorna **400** `VEHICLE_NOT_ALLOWED`. Cria `car_wash_jobs` na mesma transação.',
         requestBody: {
           required: true,
           content: { 'application/json': { schema: { type: 'object', additionalProperties: true } } },
@@ -251,7 +255,10 @@ export const openApiDocument = {
           '403': { description: 'FORBIDDEN (ex.: confirmação imediata sem perfil adequado)' },
           '404': { description: 'CUSTOMER_NOT_FOUND / recurso de catálogo inexistente' },
           '409': { description: 'SLOT_UNAVAILABLE / DUPLICATE_IDEMPOTENCY_KEY' },
-          '422': { description: 'APPOINTMENT_IN_PAST / restrições de cliente' },
+          '422': {
+            description:
+              'APPOINTMENT_IN_PAST / VEHICLE_REQUIRED / VEHICLE_NOT_ALLOWED (barbershop) / restrições de cliente',
+          },
         },
       },
     },
@@ -841,6 +848,170 @@ export const openApiDocument = {
           '404': { description: 'NOT_FOUND' },
           '409': { description: 'OUTBOX_RETRY_NOT_ALLOWED' },
         },
+      },
+    },
+    '/api/v1/tenant-settings/vertical': {
+      get: {
+        tags: ['tenantOperational'],
+        summary: 'Contexto de vertical do tenant (barbershop | car_wash)',
+        description: 'RBAC: `tenantOperational.read`. Retorna labels e flags `car_wash`.',
+        responses: {
+          '200': { description: 'vertical, labels, car_wash' },
+          '401': { description: 'Não autenticado' },
+          '403': { description: 'Sem permissão' },
+        },
+      },
+    },
+    '/api/v1/vehicles': {
+      get: {
+        tags: ['vehicles'],
+        summary: 'Listar veículos',
+        description: 'RBAC: attendant+. Query: search, customer_id, page, limit, active.',
+        responses: { '200': { description: 'Lista paginada' }, '401': { description: 'Não autenticado' } },
+      },
+      post: {
+        tags: ['vehicles'],
+        summary: 'Cadastrar veículo',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['customer_id'],
+                properties: {
+                  customer_id: { type: 'string', format: 'uuid' },
+                  plate: { type: 'string', example: 'ABC1D23' },
+                  brand: { type: 'string' },
+                  model: { type: 'string' },
+                  color: { type: 'string' },
+                  vehicle_type: {
+                    type: 'string',
+                    enum: ['car', 'motorcycle', 'pickup', 'suv', 'van', 'truck', 'other'],
+                  },
+                  notes: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          '201': { description: 'Criado' },
+          '409': { description: 'VEHICLE_PLATE_ALREADY_EXISTS' },
+          '422': { description: 'Placa inválida' },
+        },
+      },
+    },
+    '/api/v1/vehicles/{vehicleId}': {
+      get: {
+        tags: ['vehicles'],
+        summary: 'Obter veículo',
+        parameters: [{ name: 'vehicleId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        responses: { '200': { description: 'Veículo' }, '404': { description: 'VEHICLE_NOT_FOUND' } },
+      },
+      patch: {
+        tags: ['vehicles'],
+        summary: 'Atualizar veículo',
+        parameters: [{ name: 'vehicleId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        requestBody: { content: { 'application/json': { schema: { type: 'object', additionalProperties: true } } } },
+        responses: { '200': { description: 'Atualizado' }, '404': { description: 'VEHICLE_NOT_FOUND' } },
+      },
+    },
+    '/api/v1/car-wash/jobs': {
+      get: {
+        tags: ['car_wash'],
+        summary: 'Listar jobs do pátio',
+        description: 'RBAC: attendant+. Query: stage, date, plate, page, limit.',
+        responses: { '200': { description: 'Board data' } },
+      },
+    },
+    '/api/v1/car-wash/jobs/{jobId}/arrive': {
+      patch: {
+        tags: ['car_wash'],
+        summary: 'Marcar chegada',
+        description:
+          'Exige appointment confirmado (não `awaiting_confirmation`), checklist de entrada se configurado. Sincroniza check-in.',
+        parameters: [{ name: 'jobId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        responses: {
+          '200': { description: 'Job arrived' },
+          '422': { description: 'APPOINTMENT_NOT_CONFIRMED | CHECKLIST_REQUIRED | INVALID_CAR_WASH_STAGE_TRANSITION' },
+        },
+      },
+    },
+    '/api/v1/car-wash/jobs/{jobId}/start': {
+      patch: {
+        tags: ['car_wash'],
+        summary: 'Iniciar lavagem',
+        parameters: [{ name: 'jobId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        responses: { '200': { description: 'Job washing' }, '422': { description: 'Transição inválida' } },
+      },
+    },
+    '/api/v1/car-wash/jobs/{jobId}/quality-check': {
+      patch: {
+        tags: ['car_wash'],
+        summary: 'Enviar para conferência',
+        parameters: [{ name: 'jobId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        responses: { '200': { description: 'Job quality_check' } },
+      },
+    },
+    '/api/v1/car-wash/jobs/{jobId}/ready': {
+      patch: {
+        tags: ['car_wash'],
+        summary: 'Marcar pronto (pode enfileirar outbox WhatsApp)',
+        parameters: [{ name: 'jobId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        responses: { '200': { description: 'Job ready' } },
+      },
+    },
+    '/api/v1/car-wash/jobs/{jobId}/deliver': {
+      patch: {
+        tags: ['car_wash'],
+        summary: 'Entregar veículo',
+        description: 'Conclui appointment, financeiro e comissão conforme regras existentes.',
+        parameters: [{ name: 'jobId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        responses: { '200': { description: 'Job delivered' } },
+      },
+    },
+    '/api/v1/car-wash/jobs/{jobId}/cancel': {
+      patch: {
+        tags: ['car_wash'],
+        summary: 'Cancelar job',
+        description: 'Cancela o appointment vinculado e libera o slot quando aplicável.',
+        parameters: [{ name: 'jobId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        responses: { '200': { description: 'Job cancelled' } },
+      },
+    },
+    '/api/v1/car-wash/jobs/{jobId}/checklists': {
+      post: {
+        tags: ['car_wash'],
+        summary: 'Registrar checklist entrada/entrega',
+        parameters: [{ name: 'jobId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['checklist_type', 'items'],
+                properties: {
+                  checklist_type: { type: 'string', enum: ['arrival', 'delivery'] },
+                  items: {
+                    type: 'object',
+                    required: ['body_scratches', 'fuel_level', 'wheel_damage', 'interior_objects'],
+                    properties: {
+                      body_scratches: { type: 'boolean' },
+                      fuel_level: { type: 'string' },
+                      wheel_damage: { type: 'boolean' },
+                      interior_objects: { type: 'string' },
+                      general_notes: { type: 'string' },
+                    },
+                  },
+                  notes: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
+        responses: { '201': { description: 'Checklist criado' }, '409': { description: 'CHECKLIST_ALREADY_EXISTS' } },
       },
     },
     '/api/v1/customers': {

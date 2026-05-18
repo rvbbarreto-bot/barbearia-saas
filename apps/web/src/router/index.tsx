@@ -27,6 +27,21 @@ const OutboxMessagesPage = lazy(() =>
 const OperationalAuditPage = lazy(() =>
   import('@/features/auditoria/OperationalAuditPage').then((m) => ({ default: m.OperationalAuditPage })),
 );
+const VeiculosPage = lazy(() =>
+  import('@/features/veiculos/VeiculosPage').then((m) => ({ default: m.VeiculosPage })),
+);
+const CarWashBoardPage = lazy(() =>
+  import('@/features/lavaRapido/CarWashBoardPage').then((m) => ({ default: m.CarWashBoardPage })),
+);
+const ManagementDashboardPage = lazy(() =>
+  import('@/features/gestao/ManagementDashboardPage').then((m) => ({ default: m.ManagementDashboardPage })),
+);
+const Customer360Page = lazy(() =>
+  import('@/features/clientes/Customer360Page').then((m) => ({ default: m.Customer360Page })),
+);
+const PortalPublicPage = lazy(() =>
+  import('@/features/portal/PortalPublicPage').then((m) => ({ default: m.PortalPublicPage })),
+);
 
 function PageSuspense({ children }: { children: React.ReactNode }) {
   return (
@@ -57,6 +72,14 @@ export function AppRouter() {
         <Route element={<PublicRoute />}>
           <Route path="/login" element={<LoginPage />} />
         </Route>
+        <Route
+          path="/portal/:token"
+          element={
+            <PageSuspense>
+              <PortalPublicPage />
+            </PageSuspense>
+          }
+        />
 
         <Route element={<ProtectedRoute />}>
           <Route element={<AppShell />}>
@@ -98,6 +121,26 @@ export function AppRouter() {
                 <PageSuspense>
                   <RoleGuard minRole="attendant">
                     <ClientesPage />
+                  </RoleGuard>
+                </PageSuspense>
+              }
+            />
+            <Route
+              path="/clientes/:id/360"
+              element={
+                <PageSuspense>
+                  <RoleGuard minRole="attendant">
+                    <Customer360Page />
+                  </RoleGuard>
+                </PageSuspense>
+              }
+            />
+            <Route
+              path="/gestao/dashboard"
+              element={
+                <PageSuspense>
+                  <RoleGuard minRole="manager">
+                    <ManagementDashboardPage />
                   </RoleGuard>
                 </PageSuspense>
               }
@@ -178,6 +221,26 @@ export function AppRouter() {
                 <PageSuspense>
                   <RoleGuard minRole="manager">
                     <ComissaoPage />
+                  </RoleGuard>
+                </PageSuspense>
+              }
+            />
+            <Route
+              path="/veiculos"
+              element={
+                <PageSuspense>
+                  <RoleGuard minRole="attendant">
+                    <VeiculosPage />
+                  </RoleGuard>
+                </PageSuspense>
+              }
+            />
+            <Route
+              path="/operacao/lava-rapido"
+              element={
+                <PageSuspense>
+                  <RoleGuard minRole="attendant">
+                    <CarWashBoardPage />
                   </RoleGuard>
                 </PageSuspense>
               }

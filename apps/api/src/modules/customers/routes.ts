@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { requireRole } from '../../middlewares/rbac.js';
 import { createCustomer, getCustomerById, listCustomers, updateCustomer } from './service.js';
+import { getCustomerOverview } from './overview.js';
 
 export async function customerRoutes(app: FastifyInstance) {
   app.get(
@@ -13,6 +14,12 @@ export async function customerRoutes(app: FastifyInstance) {
     '/customers/:customerId',
     { preHandler: requireRole('attendant') },
     async (request: any) => getCustomerById(request.tenantId, request.params.customerId),
+  );
+
+  app.get(
+    '/customers/:customerId/overview',
+    { preHandler: requireRole('attendant') },
+    async (request: any) => getCustomerOverview(request.tenantId, request.params.customerId),
   );
 
   app.post(

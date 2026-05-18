@@ -63,6 +63,21 @@ export async function createWaitlistEntry(
       }
     }
 
+    const dup = await client.query(
+      `SELECT id FROM waitlist_entries
+        WHERE tenant_id = $1 AND customer_id = $2 AND service_id = $3 AND status = 'active'
+          AND preferred_date_from <= $5::date AND preferred_date_to >= $4::date
+        LIMIT 1`,
+      [tenantId, data.customer_id, data.service_id, data.preferred_date_from, data.preferred_date_to],
+    );
+    if (dup.rowCount) {
+      throw new AppError(
+        'WAITLIST_DUPLICATE',
+        'Já existe entrada ativa na fila para este cliente, serviço e período.',
+        409,
+      );
+    }
+
     const ins = await client.query(
       `INSERT INTO waitlist_entries
          (tenant_id, customer_id, service_id, professional_id, preferred_date_from, preferred_date_to,
@@ -308,6 +323,74 @@ export async function pickBestWaitlistEntryForSlot(
     }
   }
   return null;
+}
+
+/** Primeiro slot disponível dentro da janela preferida da entrada de fila. */
+export async function suggestWaitlistSlot(tenantId: string, entryId: string) {
+  const { getAvailability } = await import('../availability/service.js');
+
+  return withTenant(tenantId, async (client) => {
+    const cur = await client.query<{
+      id: string;
+      service_id: string;
+      professional_id: string | null;
+      preferred_date_from: string;
+      preferred_date_to: string;
+      status: string;
+    }>(
+      `SELECT id::text, service_id::text, professional_id::text, preferred_date_from::text,
+              preferred_date_to::text, status::text
+         FROM waitlist_entries WHERE tenant_id = $1 AND id = $2 LIMIT 1`,
+      [tenantId, entryId],
+    );
+    if (!cur.rowCount) throw new AppError('WAITLIST_ENTRY_NOT_FOUND', 'Entrada de fila não encontrada', 404);
+    const row = cur.rows[0];
+    if (row.status !== 'active') {
+      throw new AppError('WAITLIST_NOT_ACTIVE', 'Entrada já não está ativa.', 409);
+    }
+
+    let professionalId = row.professional_id;
+    if (!professionalId) {
+      const p = await client.query<{ professional_id: string }>(
+        `SELECT professional_id::text FROM professional_services
+          WHERE tenant_id = $1 AND service_id = $2
+          LIMIT 1`,
+        [tenantId, row.service_id],
+      );
+      professionalId = p.rows[0]?.professional_id ?? null;
+    }
+    if (!professionalId) {
+      throw new AppError('WAITLIST_NO_PROFESSIONAL', 'Nenhum profissional habilitado para o serviço.', 422);
+    }
+
+    const from = new Date(`${row.preferred_date_from}T12:00:00Z`);
+    const to = new Date(`${row.preferred_date_to}T12:00:00Z`);
+    for (let d = new Date(from); d <= to; d.setUTCDate(d.getUTCDate() + 1)) {
+      const dateStr = d.toISOString().slice(0, 10);
+      const avail = await getAvailability(tenantId, {
+        professional_id: professionalId,
+        service_id: row.service_id,
+        date: dateStr,
+      });
+      if (avail.slots.length > 0) {
+        return {
+          waitlist_entry_id: row.id,
+          professional_id: professionalId,
+          service_id: row.service_id,
+          date: dateStr,
+          slot: avail.slots[0],
+        };
+      }
+    }
+
+    return {
+      waitlist_entry_id: row.id,
+      professional_id: professionalId,
+      service_id: row.service_id,
+      date: null,
+      slot: null,
+    };
+  });
 }
 
 export type SlotFreedReason = 'cancelled' | 'rescheduled';

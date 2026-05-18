@@ -7,6 +7,13 @@ import { NotificationJobType } from './types.js';
 import { loadTenantTimeZone } from './schedule.js';
 import { resolveWhatsAppOutboundRouting } from './routing.js';
 import { executeRecallPromotional } from '../recall/process-send.js';
+import { loadTenantVerticalContextWithClient } from '../vertical/tenant-vertical.service.js';
+import { isCarWashVertical } from '../vertical/settings.js';
+import {
+  buildCarWashConfirmationText,
+  formatAppointmentDateTimeLabel,
+  loadVehicleLabelForAppointment,
+} from '../carWash/messages.js';
 
 type JobRow = {
   id: string;
@@ -140,8 +147,37 @@ export async function processNotificationJob(client: PoolClient, job: JobRow): P
           await skipSent('SKIP_APPOINTMENT_NOT_CONFIRMED');
           return;
         }
-        const startLabel = formatStartLabel(appt.starts_at);
-        const text = `O seu agendamento foi confirmado (ID ${String(appt.id).slice(0, 8)}…) para ${startLabel}. Obrigado.`;
+        const vertical = await loadTenantVerticalContextWithClient(client, tenantId);
+        let text: string;
+        if (isCarWashVertical(vertical)) {
+          const detail = await client.query<{
+            customer_name: string | null;
+            trade_name: string;
+            service_name: string | null;
+          }>(
+            `SELECT c.name AS customer_name, t.trade_name, s.name AS service_name
+               FROM appointments a
+               JOIN customers c ON c.tenant_id = a.tenant_id AND c.id = a.customer_id
+               JOIN tenants t ON t.id = a.tenant_id
+               LEFT JOIN services s ON s.tenant_id = a.tenant_id AND s.id = a.service_id
+              WHERE a.tenant_id = $1 AND a.id = $2 LIMIT 1`,
+            [tenantId, appt.id],
+          );
+          const row = detail.rows[0];
+          const dateTimeLabel = await formatAppointmentDateTimeLabel(client, tenantId, appt.starts_at);
+          text = await buildCarWashConfirmationText(
+            client,
+            tenantId,
+            appt.id,
+            row?.customer_name?.trim() || 'Cliente',
+            row?.trade_name || 'nosso estabelecimento',
+            dateTimeLabel,
+            row?.service_name?.trim() || 'Serviço',
+          );
+        } else {
+          const startLabel = formatStartLabel(appt.starts_at);
+          text = `O seu agendamento foi confirmado (ID ${String(appt.id).slice(0, 8)}…) para ${startLabel}. Obrigado.`;
+        }
         await enqueueOutboundMessage(
           {
             tenantId,
@@ -183,14 +219,29 @@ export async function processNotificationJob(client: PoolClient, job: JobRow): P
           await skipSent('SKIP_APPOINTMENT_NOT_CONFIRMED');
           return;
         }
-        const startLabel = formatStartLabel(appt.starts_at);
-        const text = `Lembrete: tem agendamento confirmado em ${startLabel} (ID ${String(appt.id).slice(0, 8)}).`;
+        const verticalD1 = await loadTenantVerticalContextWithClient(client, tenantId);
+        let textD1: string;
+        if (isCarWashVertical(verticalD1)) {
+          const tz = await loadTenantTimeZone(client, tenantId);
+          const startsAt = typeof appt.starts_at === 'string' ? new Date(appt.starts_at) : appt.starts_at;
+          const hora = startsAt.toLocaleTimeString('pt-BR', { timeZone: tz, hour: '2-digit', minute: '2-digit' });
+          const tenantRow = await client.query<{ trade_name: string }>(
+            `SELECT trade_name FROM tenants WHERE id = $1 LIMIT 1`,
+            [tenantId],
+          );
+          const vehicle = await loadVehicleLabelForAppointment(client, tenantId, appt.id);
+          const vehicleLine = vehicle ? `\nVeículo: ${vehicle}.` : '';
+          textD1 = `Lembrete: seu horário no ${tenantRow.rows[0]?.trade_name ?? 'estabelecimento'} é hoje às ${hora}.${vehicleLine}`;
+        } else {
+          const startLabel = formatStartLabel(appt.starts_at);
+          textD1 = `Lembrete: tem agendamento confirmado em ${startLabel} (ID ${String(appt.id).slice(0, 8)}).`;
+        }
         const idemD1 = `reminder_d1:${appt.id}`;
         const enqD1 = await enqueueOutboundMessage(
           {
             tenantId,
             customerId,
-            payload: { type: 'text', text },
+            payload: { type: 'text', text: textD1 },
             metadata: {
               phone: routing.phone,
               instance_name: routing.instance_name,

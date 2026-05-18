@@ -1,0 +1,40 @@
+# CI / PR — Lava Rápido MVP
+
+## Pull Request
+
+- **Número:** #10
+- **Título:** feat(car-wash): vertical lava-rapido MVP aditiva por tenant
+- **URL:** https://github.com/rvbbarreto-bot/barbearia-saas/pull/10
+- **Base:** `piloto-staging-01`
+- **Head:** `feature/lava-rapido-mvp`
+
+## Commits na PR (até governança validada)
+
+| SHA | Mensagem |
+|-----|----------|
+| `17e9770` | feat(car-wash): vertical lava-rapido MVP aditiva por tenant |
+| `b3da14c` | fix(vehicles): gerar placas validas nos testes de integracao |
+
+## CI (validado PO — SHA `b3da14c`)
+
+| Job | Resultado | Duração aprox. |
+|-----|-----------|----------------|
+| CI / API — typecheck · lint · test · build | **success** | ~1m |
+| CI / Web — lint · typecheck · test · build | **success** | ~59s |
+| CI / Security — Gitleaks | **success** | ~5s |
+| CI / Security — npm audit | **success** | ~19s |
+
+**Status GitHub:** All checks have passed  
+**Conflitos:** nenhum com `piloto-staging-01`
+
+## Commit pós-correções PO
+
+| SHA | Mensagem |
+|-----|----------|
+| `1edc6ea` | fix(car-wash): regras PO arrive/cancel, checklist obrigatorio, OpenAPI e testes |
+
+Aguardar CI verde neste SHA no PR #10.
+
+## Merge
+
+**NÃO AUTORIZADO** até aceite formal PO/GP.
