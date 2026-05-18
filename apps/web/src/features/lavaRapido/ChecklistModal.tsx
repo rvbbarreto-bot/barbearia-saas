@@ -78,7 +78,10 @@ export function ChecklistModal({ open, jobId, type, onClose, onSaved }: Props) {
             <Label htmlFor="notes">Observações gerais</Label>
             <Textarea id="notes" value={generalNotes} onChange={(e) => setGeneralNotes(e.target.value)} />
           </div>
-          <Button onClick={() => mutation.mutate()} disabled={mutation.isPending}>
+          <Button
+            onClick={() => mutation.mutate()}
+            disabled={mutation.isPending || !fuelLevel.trim() || !interiorObjects.trim()}
+          >
             Salvar checklist
           </Button>
         </div>

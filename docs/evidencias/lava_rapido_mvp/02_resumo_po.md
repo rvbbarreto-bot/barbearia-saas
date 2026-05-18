@@ -1,9 +1,28 @@
 # Resumo PO — Lava Rápido MVP
 
-Entrega da vertical **car_wash** de forma aditiva, preservando barbearia como default.
+## Situação
 
-**Incluído:** veículos, agendamento com veículo, pátio operacional, checklist entrada/entrega, WhatsApp (templates + outbox), auditoria, entrega dispara financeiro/comissão.
+A PR **#10** está **tecnicamente pronta para revisão final**, com CI verde em `b3da14c` e governança correta (base `piloto-staging-01`, sem merge).
 
-**Não incluído:** Bloco 3 Dashboard Gerencial, oficina mecânica, upload de fotos, LPR, app mobile.
+## Entregue nesta rodada (autorizado PO)
 
-**Aceite:** aguarda prints reais, CI verde no PR e homologação PO/GP.
+- OpenAPI das rotas novas.
+- Regra: chegada bloqueada sem appointment confirmado.
+- Regra: cancelamento do job cancela o appointment.
+- Checklist com campos mínimos obrigatórios no backend.
+- Testes de integração dos fluxos críticos.
+- Matriz de aceite com OK / PEND / BLOCKED explícitos.
+
+## Ainda pendente para aceite formal
+
+| Item | Status |
+|------|--------|
+| Prints L01–L13 no portal | PEND |
+| WhatsApp real / Evolution | BLOCKED (ambiente) |
+| Homologação PO em tenant piloto `car_wash` | PEND |
+
+## Fora de escopo (confirmado)
+
+- Bloco 3 Dashboard Gerencial  
+- Oficina mecânica  
+- Merge (aguardando aceite)

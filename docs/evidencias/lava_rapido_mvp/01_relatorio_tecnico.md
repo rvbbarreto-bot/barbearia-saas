@@ -1,41 +1,32 @@
 # Relatório técnico — Lava Rápido MVP
 
+**PR:** [#10](https://github.com/rvbbarreto-bot/barbearia-saas/pull/10)  
 **Branch:** `feature/lava-rapido-mvp`  
 **Base:** `piloto-staging-01`  
-**HEAD inicial:** `e421970c04d274da0780c16c2955d56bf3b86b57`
+**HEAD inicial:** `e421970c04d274da0780c16c2955d56bf3b86b57`  
+**HEAD CI validado PO:** `b3da14c`  
+**Merge:** bloqueado até aceite PO/GP
 
-## Arquitetura
+## Correções pós-validação PO (esta entrega)
 
-- Vertical `car_wash` em `tenant_settings.settings` (Zod + helper).
-- Tabelas aditivas: `customer_vehicles`, `car_wash_jobs`, `car_wash_checklists` (migration `105_car_wash_mvp.sql`).
-- RLS + FORCE RLS + policy `tenant_id = app_tenant_id()`.
-- `appointments.status` inalterado; operação física em `car_wash_jobs.stage`.
-- Criação appointment + job na mesma transação `withTenant`.
-- Outbox idempotente (`car_wash_ready:{jobId}`, confirmação/lembrete com veículo).
-- `correlation_id` propagado em auditoria e outbox.
+1. **OpenAPI** — rotas `/vehicles`, `/car-wash/*`, `/tenant-settings/vertical`; `vehicle_id` em POST appointments.
+2. **Chegada** — `PATCH …/arrive` retorna `422 APPOINTMENT_NOT_CONFIRMED` se appointment em `awaiting_confirmation` (ou outro status não confirmado).
+3. **Cancelamento** — `PATCH …/cancel` chama `cancelAppointmentInDb` (cancela appointment, libera slot via waitlist quando aplicável).
+4. **Checklist** — Zod exige `body_scratches`, `fuel_level`, `wheel_damage`, `interior_objects`.
+5. **Testes** — `car-wash.integration.test.ts` (job+appointment, arrive bloqueado, cancel, FSM inválida).
 
-## Módulos API
+## Arquitetura (inalterada)
 
-| Módulo | Responsabilidade |
-|--------|------------------|
-| `vertical/` | Parse settings, labels |
-| `vehicles/` | CRUD, placa, auditoria |
-| `carWash/` | Board, FSM, checklist, entrega → financeiro |
+- Vertical aditiva; `appointments.status` preservado; `car_wash_jobs.stage` para pátio.
+- Migration `105_car_wash_mvp.sql` com RLS FORCE.
+- Transação appointment + job; outbox idempotente; `correlation_id` em auditoria.
 
-## Web
+## Endpoints
 
-- Hook `useTenantVertical`, menu condicional, labels Box/equipe.
-- `/veiculos`, `/operacao/lava-rapido`, aba veículos no cliente.
-- Modal agendamento com passo veículo (car_wash).
+Ver OpenAPI `apps/api/src/openapi/spec.ts` e PR #10.
 
-## Testes locais
+## Pendências residuais
 
-- API: `plate.test`, `stages.test`, `schemas.test`, `vehicles.integration` (com `DATABASE_URL`).
-- Web: `labels.test`, `newAppointmentSteps.test`.
-- `npm run typecheck` e `npm run build` OK em API e Web.
-
-## Pendências
-
-- Prints L01–L14: **PEND** (ambiente local sem tenant car_wash configurado + sem sessão browser nesta entrega).
-- CI PR: **PEND** até push e workflow GitHub.
-- E2E WhatsApp real: **BLOCKED** sem Evolution/n8n ativos neste workspace.
+- Prints L01–L13 (homologação visual local).
+- Smoke WhatsApp real (Evolution).
+- E2E financeiro/comissão em ambiente com migration 021 ativa.

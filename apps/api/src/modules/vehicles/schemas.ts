@@ -43,11 +43,12 @@ export const updateVehicleSchema = z
     }
   });
 
+/** Campos mínimos obrigatórios do checklist MVP (entrada e entrega). */
 export const checklistItemsSchema = z.object({
-  body_scratches: z.boolean().optional(),
-  fuel_level: z.string().max(40).optional(),
-  wheel_damage: z.boolean().optional(),
-  interior_objects: z.string().max(500).optional(),
+  body_scratches: z.boolean(),
+  fuel_level: z.string().min(1).max(40),
+  wheel_damage: z.boolean(),
+  interior_objects: z.string().min(1).max(500),
   general_notes: z.string().max(2000).optional(),
 });
 

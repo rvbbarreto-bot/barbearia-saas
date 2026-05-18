@@ -3,7 +3,7 @@ import { withTenant } from '../../infra/db/pool.js';
 import { AppError } from '../../shared/errors.js';
 import { parsePagination } from '../../shared/pagination.js';
 import { writeOperationalAuditEvent, effectiveCorrelationId } from '../../shared/operational-audit.js';
-import { writeAppointmentEvent } from '../appointments/service.js';
+import { cancelAppointmentInDb, writeAppointmentEvent } from '../appointments/service.js';
 import { ensureFinancialOnServiceCompleted } from '../finance/service.js';
 import { createCommissionEntryForCompletedAppointment } from '../commission/service.js';
 import { cancelAllPendingNotificationJobsForAppointment } from '../notificationJobs/schedule.js';
@@ -24,6 +24,13 @@ export type CarWashCaller = {
   requestId?: string;
   correlationId?: string;
 };
+
+/** Status de agenda que permitem marcar chegada no pátio. */
+const APPOINTMENT_STATUSES_ALLOW_ARRIVE = new Set([
+  'confirmed',
+  'checked_in',
+  'no_show_pending',
+]);
 
 const BOARD_STAGES: CarWashStage[] = [
   'scheduled',
@@ -145,7 +152,7 @@ async function loadJobForUpdate(
        FROM car_wash_jobs j
        JOIN appointments a ON a.tenant_id = j.tenant_id AND a.id = j.appointment_id
       WHERE j.tenant_id = $1 AND j.id = $2
-      FOR UPDATE OF j`,
+      FOR UPDATE OF j, a`,
     [tenantId, jobId],
   );
   if (!r.rowCount) throw new AppError('CAR_WASH_JOB_NOT_FOUND', 'Job de lava-rápido não encontrado.', 404);
@@ -172,6 +179,17 @@ async function transitionJobStage(
     );
   }
   assertCarWashStageTransition(current, spec.to);
+
+  if (action === 'arrive') {
+    const apptStatus = String(job.appointment_status);
+    if (!APPOINTMENT_STATUSES_ALLOW_ARRIVE.has(apptStatus)) {
+      throw new AppError(
+        'APPOINTMENT_NOT_CONFIRMED',
+        `Chegada só permitida com agendamento confirmado (status atual: '${apptStatus}').`,
+        422,
+      );
+    }
+  }
 
   const vertical = await loadTenantVerticalContextWithClient(client, tenantId);
   if (action === 'arrive' && vertical.car_wash.require_checklist_on_arrival) {
@@ -299,6 +317,17 @@ async function syncAppointmentForStage(
       payload: { source: 'car_wash_deliver' },
     });
     await cancelAllPendingNotificationJobsForAppointment(client, tenantId, appointmentId);
+    return;
+  }
+
+  if (stage === 'cancelled') {
+    await cancelAppointmentInDb(
+      client,
+      tenantId,
+      appointmentId,
+      'Cancelado via pátio lava-rápido',
+      caller,
+    );
   }
 }
 

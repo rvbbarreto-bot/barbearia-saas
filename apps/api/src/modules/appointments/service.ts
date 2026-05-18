@@ -689,6 +689,91 @@ const cancelAppointmentBodySchema = z.object({
   reason: z.string().min(3).max(500).optional(),
 });
 
+/** Cancela agendamento dentro de transação já aberta (ex.: cancelamento de job lava-rápido). */
+export async function cancelAppointmentInDb(
+  client: PoolClient,
+  tenantId: string,
+  appointmentId: string,
+  reason: string | null | undefined,
+  caller?: AppointmentCaller | null,
+): Promise<Record<string, unknown>> {
+  const actorUserId = caller?.sub;
+  const current = await client.query(
+    `SELECT * FROM appointments WHERE tenant_id = $1 AND id = $2 FOR UPDATE`,
+    [tenantId, appointmentId],
+  );
+  if (!current.rowCount) throw new AppError('APPOINTMENT_NOT_FOUND', 'Agendamento não encontrado', 404);
+  const appointment = current.rows[0];
+  await assertAppointmentMutationScope(tenantId, appointment, caller);
+  if (appointment.status === 'cancelled') return appointment;
+
+  const st = String(appointment.status);
+  if (st === 'completed' || st === 'no_show') {
+    throw new AppError(
+      'INVALID_STATUS_TRANSITION',
+      'Não é possível cancelar um agendamento finalizado ou marcado como falta.',
+      409,
+    );
+  }
+
+  const updated = await client.query(
+    `UPDATE appointments
+        SET status = 'cancelled',
+            cancelled_at = now(),
+            notes = COALESCE($3, notes),
+            updated_at = now()
+      WHERE tenant_id = $1 AND id = $2
+      RETURNING *`,
+    [tenantId, appointmentId, reason ?? null],
+  );
+
+  await writeAppointmentEvent(client, {
+    tenantId,
+    appointmentId,
+    eventType: 'CANCELLED',
+    actorUserId: actorUserId ?? null,
+    payload: { reason: reason ?? null, previous_status: appointment.status },
+  });
+  await writeAuditLog(client, {
+    tenantId,
+    actorUserId: actorUserId ?? null,
+    action: 'APPOINTMENT_CANCELLED',
+    entity: 'appointment',
+    entityId: appointmentId,
+    before: { status: appointment.status, starts_at: appointment.starts_at, ends_at: appointment.ends_at },
+    after: { status: 'cancelled', reason: reason ?? null },
+  });
+
+  await writeOperationalAuditEvent(client, {
+    tenantId,
+    entityType: 'appointment',
+    entityId: appointmentId,
+    eventType: 'appointment_cancelled',
+    actorUserId: actorUserId ?? null,
+    actorRole: caller?.role ?? null,
+    requestId: caller?.requestId ?? null,
+    correlationId: effectiveCorrelationId(caller?.correlationId, appointmentId),
+    metadata: { reason: reason ?? null, previous_status: appointment.status },
+  });
+
+  await cancelAllPendingNotificationJobsForAppointment(client, tenantId, appointmentId);
+
+  const svcId = appointment.service_id as string | null;
+  const profId = appointment.professional_id as string;
+  if (calendarSlotWasBlocked(appointment.status) && svcId) {
+    await tryEnqueueWaitlistOnSlotFreed(client, tenantId, {
+      professionalId: profId,
+      serviceId: svcId,
+      freedStartsAtIso: String(appointment.starts_at),
+      freedEndsAtIso: String(appointment.ends_at),
+      sourceAppointmentId: appointmentId,
+      reason: 'cancelled',
+    });
+  }
+
+  return updated.rows[0];
+}
+
 export async function cancelAppointment(
   tenantId: string,
   appointmentId: string,
@@ -696,85 +781,11 @@ export async function cancelAppointment(
   caller?: AppointmentCaller,
 ) {
   const { reason } = cancelAppointmentBodySchema.parse(body ?? {});
-  const actorUserId = caller?.sub;
   const lockKey = `lock:appointment:${tenantId}:${appointmentId}:cancel`;
   return withAppointmentLock(lockKey, async () =>
-    withTenant(tenantId, async (client) => {
-      const current = await client.query(
-        `SELECT * FROM appointments WHERE tenant_id = $1 AND id = $2 LIMIT 1`,
-        [tenantId, appointmentId],
-      );
-      if (!current.rowCount) throw new AppError('APPOINTMENT_NOT_FOUND', 'Agendamento não encontrado', 404);
-      const appointment = current.rows[0];
-      await assertAppointmentMutationScope(tenantId, appointment, caller);
-      if (appointment.status === 'cancelled') return appointment;
-
-      const st = String(appointment.status);
-      if (st === 'completed' || st === 'no_show') {
-        throw new AppError(
-          'INVALID_STATUS_TRANSITION',
-          'Não é possível cancelar um agendamento finalizado ou marcado como falta.',
-          409,
-        );
-      }
-
-      const updated = await client.query(
-        `UPDATE appointments
-            SET status = 'cancelled',
-                cancelled_at = now(),
-                notes = COALESCE($3, notes),
-                updated_at = now()
-          WHERE tenant_id = $1 AND id = $2
-          RETURNING *`,
-        [tenantId, appointmentId, reason ?? null],
-      );
-
-      await writeAppointmentEvent(client, {
-        tenantId,
-        appointmentId,
-        eventType: 'CANCELLED',
-        actorUserId: actorUserId ?? null,
-        payload: { reason: reason ?? null, previous_status: appointment.status },
-      });
-      await writeAuditLog(client, {
-        tenantId,
-        actorUserId: actorUserId ?? null,
-        action: 'APPOINTMENT_CANCELLED',
-        entity: 'appointment',
-        entityId: appointmentId,
-        before: { status: appointment.status, starts_at: appointment.starts_at, ends_at: appointment.ends_at },
-        after: { status: 'cancelled', reason: reason ?? null },
-      });
-
-      await writeOperationalAuditEvent(client, {
-        tenantId,
-        entityType: 'appointment',
-        entityId: appointmentId,
-        eventType: 'appointment_cancelled',
-        actorUserId: actorUserId ?? null,
-        actorRole: caller?.role ?? null,
-        requestId: caller?.requestId ?? null,
-        correlationId: effectiveCorrelationId(caller?.correlationId, appointmentId),
-        metadata: { reason: reason ?? null, previous_status: appointment.status },
-      });
-
-      await cancelAllPendingNotificationJobsForAppointment(client, tenantId, appointmentId);
-
-      const svcId = appointment.service_id as string | null;
-      const profId = appointment.professional_id as string;
-      if (calendarSlotWasBlocked(appointment.status) && svcId) {
-        await tryEnqueueWaitlistOnSlotFreed(client, tenantId, {
-          professionalId: profId,
-          serviceId: svcId,
-          freedStartsAtIso: String(appointment.starts_at),
-          freedEndsAtIso: String(appointment.ends_at),
-          sourceAppointmentId: appointmentId,
-          reason: 'cancelled',
-        });
-      }
-
-      return updated.rows[0];
-    }),
+    withTenant(tenantId, async (client) =>
+      cancelAppointmentInDb(client, tenantId, appointmentId, reason, caller),
+    ),
   );
 }
 

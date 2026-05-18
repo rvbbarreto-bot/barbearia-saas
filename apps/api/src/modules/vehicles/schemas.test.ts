@@ -33,4 +33,16 @@ describe('createChecklistSchema', () => {
     });
     expect(r.success).toBe(true);
   });
+
+  it('rejeita checklist sem fuel_level', () => {
+    const r = createChecklistSchema.safeParse({
+      checklist_type: 'arrival',
+      items: {
+        body_scratches: true,
+        wheel_damage: false,
+        interior_objects: 'Nenhum',
+      },
+    });
+    expect(r.success).toBe(false);
+  });
 });

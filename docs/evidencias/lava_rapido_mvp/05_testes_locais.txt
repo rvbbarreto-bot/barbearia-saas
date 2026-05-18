@@ -1,29 +1,26 @@
 # Testes locais — Lava Rápido MVP
 
-Data: 2026-05-17
-Branch: feature/lava-rapido-mvp
+Atualizado após correções PO (OpenAPI, arrive, cancel, checklist, integração).
 
 ## API
 
 npm run typecheck — OK
 npm run build — OK
-npm test -- --run src/modules/vehicles src/modules/carWash — 11 passed
+npm test -- src/modules/vehicles src/modules/carWash — 13 passed (unit; integração skip sem DATABASE_URL local)
 
-Suite completa (sem DATABASE_URL): integrações skipped/fail env — pré-existente no workspace.
+## CI (PR #10, SHA b3da14c)
 
-## Web
+342 tests API (341 passed + integrações com DB no runner)
+65 tests Web — OK
 
-npm run typecheck — OK
-npm run build — OK
-npm test -- --run — 65 passed (19 files)
+## Novos testes
 
-## Segurança
+- apps/api/src/modules/carWash/car-wash.integration.test.ts
+- apps/api/src/modules/vehicles/vehicles.integration.test.ts
+- apps/api/src/modules/carWash/stages.test.ts
+- apps/api/src/modules/vehicles/schemas.test.ts (checklist obrigatório)
 
-npm audit — executar no CI / local com rede
-gitleaks — executar no pipeline
+## Comandos integração local
 
-## Configurar tenant demo
-
-UPDATE tenant_settings
-   SET settings = jsonb_set(COALESCE(settings,'{}'), '{vertical}', '"car_wash"')
- WHERE tenant_id = '<uuid>';
+cd apps/api
+DATABASE_URL=... JWT_SECRET=... REDIS_URL=... npm test -- src/modules/carWash/car-wash.integration.test.ts
