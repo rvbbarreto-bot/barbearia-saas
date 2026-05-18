@@ -4,6 +4,7 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import pg from 'pg';
+import { withTenant } from '../../infra/db/pool.js';
 import { withAppTenant } from '../../test-utils/with-app-tenant.js';
 import { sampleBrazilianPlate } from '../vehicles/plate.js';
 
@@ -26,18 +27,20 @@ describe.skipIf(!run)('car wash integration', () => {
   let serviceId = '';
 
   async function purge() {
-    await pool.query(`DELETE FROM car_wash_checklists WHERE tenant_id = $1`, [tenantId]);
-    await pool.query(`DELETE FROM car_wash_jobs WHERE tenant_id = $1`, [tenantId]);
-    await pool.query(`DELETE FROM customer_vehicles WHERE tenant_id = $1`, [tenantId]);
-    await pool.query(`DELETE FROM appointment_events WHERE tenant_id = $1`, [tenantId]);
-    await pool.query(`DELETE FROM appointments WHERE tenant_id = $1`, [tenantId]);
-    await pool.query(`DELETE FROM professional_services WHERE tenant_id = $1`, [tenantId]);
-    await pool.query(`DELETE FROM business_hours WHERE tenant_id = $1`, [tenantId]);
-    await pool.query(`DELETE FROM customers WHERE tenant_id = $1`, [tenantId]);
-    await pool.query(`DELETE FROM services WHERE tenant_id = $1`, [tenantId]);
-    await pool.query(`DELETE FROM professionals WHERE tenant_id = $1`, [tenantId]);
-    await pool.query(`DELETE FROM tenant_settings WHERE tenant_id = $1`, [tenantId]);
-    await pool.query(`DELETE FROM users WHERE tenant_id = $1`, [tenantId]);
+    await withTenant(tenantId, async (c) => {
+      await c.query(`DELETE FROM car_wash_checklists WHERE tenant_id = $1`, [tenantId]);
+      await c.query(`DELETE FROM car_wash_jobs WHERE tenant_id = $1`, [tenantId]);
+      await c.query(`DELETE FROM customer_vehicles WHERE tenant_id = $1`, [tenantId]);
+      await c.query(`DELETE FROM appointment_events WHERE tenant_id = $1`, [tenantId]);
+      await c.query(`DELETE FROM appointments WHERE tenant_id = $1`, [tenantId]);
+      await c.query(`DELETE FROM professional_services WHERE tenant_id = $1`, [tenantId]);
+      await c.query(`DELETE FROM business_hours WHERE tenant_id = $1`, [tenantId]);
+      await c.query(`DELETE FROM customers WHERE tenant_id = $1`, [tenantId]);
+      await c.query(`DELETE FROM services WHERE tenant_id = $1`, [tenantId]);
+      await c.query(`DELETE FROM professionals WHERE tenant_id = $1`, [tenantId]);
+      await c.query(`DELETE FROM tenant_settings WHERE tenant_id = $1`, [tenantId]);
+      await c.query(`DELETE FROM users WHERE tenant_id = $1`, [tenantId]);
+    });
     await pool.query(`DELETE FROM tenants WHERE id = $1`, [tenantId]);
   }
 
@@ -50,21 +53,24 @@ describe.skipIf(!run)('car wash integration', () => {
        VALUES ($1,'LW','Lava','trial','active')`,
       [tenantId],
     );
-    await pool.query(
-      `INSERT INTO tenant_settings (tenant_id, settings) VALUES ($1, $2::jsonb)`,
-      [
-        tenantId,
-        JSON.stringify({
-          vertical: 'car_wash',
-          car_wash: { require_vehicle: true, require_checklist_on_arrival: true, notify_when_ready: false },
-        }),
-      ],
-    );
-    await pool.query(
-      `INSERT INTO users (id, tenant_id, name, email, password_hash, role)
-       VALUES ($1,$2,'Att','${attendantUserId}@t.test','x','attendant'::user_role)`,
-      [attendantUserId, tenantId],
-    );
+    await withTenant(tenantId, async (c) => {
+      await c.query(
+        `INSERT INTO tenant_settings (tenant_id, settings) VALUES ($1, $2::jsonb)
+         ON CONFLICT (tenant_id) DO UPDATE SET settings = EXCLUDED.settings`,
+        [
+          tenantId,
+          JSON.stringify({
+            vertical: 'car_wash',
+            car_wash: { require_vehicle: true, require_checklist_on_arrival: true, notify_when_ready: false },
+          }),
+        ],
+      );
+      await c.query(
+        `INSERT INTO users (id, tenant_id, name, email, password_hash, role)
+         VALUES ($1,$2,'Att',$3,'x','attendant'::user_role)`,
+        [attendantUserId, tenantId, `${attendantUserId}@t.test`],
+      );
+    });
 
     professionalId = randomUUID();
     customerId = randomUUID();
