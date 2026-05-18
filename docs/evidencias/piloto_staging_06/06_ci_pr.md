@@ -3,7 +3,8 @@
 ## PR
 
 - **Número:** [#11](https://github.com/rvbbarreto-bot/barbearia-saas/pull/11)
-- **Base:** `piloto-staging-01`
+- **Base atual (incorreta):** `main` — ver `00_governanca_pr11.md` para correção
+- **Base exigida:** `piloto-staging-01`
 - **Head:** `feature/piloto-staging-06-expansao-operacional-gestao`
 
 ## Histórico SHA relevante

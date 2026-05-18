@@ -123,8 +123,12 @@ describe.skipIf(!run)('car wash integration', () => {
     await pool.end();
   });
 
-  async function createCarWashAppointment(explicitConfirmation: boolean) {
+  /** Horários distintos por teste — evita GiST overlap / SLOT_UNAVAILABLE no mesmo profissional. */
+  async function createCarWashAppointment(explicitConfirmation: boolean, hourUtc: number) {
     const { createAppointment } = await import('../appointments/service.js');
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const startsAt = `2026-05-13T${pad(hourUtc)}:00:00.000Z`;
+    const endsAt = `2026-05-13T${pad(hourUtc + 1)}:00:00.000Z`;
     return createAppointment(
       tenantId,
       {
@@ -132,8 +136,8 @@ describe.skipIf(!run)('car wash integration', () => {
         professional_id: professionalId,
         service_id: serviceId,
         vehicle_id: vehicleId,
-        starts_at: '2026-05-13T14:00:00.000Z',
-        ends_at: '2026-05-13T15:00:00.000Z',
+        starts_at: startsAt,
+        ends_at: endsAt,
         idempotency_key: `idem-${randomUUID()}`,
         // CT-073: attendant só pode `explicit_confirmation: false` em walk-in.
         source: explicitConfirmation ? 'manual' : 'walk_in',
@@ -144,7 +148,7 @@ describe.skipIf(!run)('car wash integration', () => {
   }
 
   it('cria appointment + job em transação', async () => {
-    const appt = await createCarWashAppointment(false);
+    const appt = await createCarWashAppointment(false, 14);
     const r = await pool.query(
       `SELECT stage FROM car_wash_jobs WHERE tenant_id = $1 AND appointment_id = $2`,
       [tenantId, appt.id],
@@ -154,7 +158,7 @@ describe.skipIf(!run)('car wash integration', () => {
 
   it('bloqueia chegada se appointment awaiting_confirmation', async () => {
     const { applyCarWashJobAction, createCarWashChecklist } = await import('./service.js');
-    const appt = await createCarWashAppointment(true);
+    const appt = await createCarWashAppointment(true, 15);
     const jobR = await pool.query(
       `SELECT id FROM car_wash_jobs WHERE tenant_id = $1 AND appointment_id = $2`,
       [tenantId, appt.id],
@@ -181,7 +185,7 @@ describe.skipIf(!run)('car wash integration', () => {
 
   it('cancelamento do job cancela appointment e libera slot', async () => {
     const { applyCarWashJobAction } = await import('./service.js');
-    const appt = await createCarWashAppointment(false);
+    const appt = await createCarWashAppointment(false, 16);
     const jobR = await pool.query(
       `SELECT id FROM car_wash_jobs WHERE tenant_id = $1 AND appointment_id = $2`,
       [tenantId, appt.id],
@@ -196,7 +200,7 @@ describe.skipIf(!run)('car wash integration', () => {
 
   it('impede transição inválida scheduled → ready', async () => {
     const { applyCarWashJobAction } = await import('./service.js');
-    const appt = await createCarWashAppointment(false);
+    const appt = await createCarWashAppointment(false, 17);
     const jobR = await pool.query(
       `SELECT id FROM car_wash_jobs WHERE tenant_id = $1 AND appointment_id = $2`,
       [tenantId, appt.id],
