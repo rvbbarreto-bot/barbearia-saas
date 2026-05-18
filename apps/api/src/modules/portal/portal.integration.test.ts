@@ -51,7 +51,9 @@ describe.skipIf(!run)('portal integration', () => {
     await pool.query(`DELETE FROM tenants WHERE id = $1`, [tenantId]);
   }
 
-  async function seedAppointmentAwaitingConfirmation() {
+  /** Horário distinto por teste — evita GiST overlap após confirmar slot anterior. */
+  async function seedAppointmentAwaitingConfirmation(hourUtc: number) {
+    const pad = (n: number) => String(n).padStart(2, '0');
     const { createAppointment } = await import('../appointments/service.js');
     return createAppointment(
       tenantId,
@@ -59,8 +61,8 @@ describe.skipIf(!run)('portal integration', () => {
         customer_id: customerId,
         professional_id: professionalId,
         service_id: serviceId,
-        starts_at: '2026-05-13T14:00:00.000Z',
-        ends_at: '2026-05-13T14:30:00.000Z',
+        starts_at: `2026-05-13T${pad(hourUtc)}:00:00.000Z`,
+        ends_at: `2026-05-13T${pad(hourUtc)}:30:00.000Z`,
         source: 'manual',
         idempotency_key: `idem-portal-${randomUUID()}`,
         explicit_confirmation: true,
@@ -147,7 +149,7 @@ describe.skipIf(!run)('portal integration', () => {
   });
 
   it('token válido confirma com eventos, auditoria, status history e notification job', async () => {
-    const appt = await seedAppointmentAwaitingConfirmation();
+    const appt = await seedAppointmentAwaitingConfirmation(14);
     const { token } = await issueToken(appt.id as string);
     const { confirmPortalAppointmentByToken } = await import('./service.js');
     const view = await confirmPortalAppointmentByToken(token);
@@ -184,7 +186,7 @@ describe.skipIf(!run)('portal integration', () => {
   });
 
   it('token válido cancela com eventos e auditoria', async () => {
-    const appt = await seedAppointmentAwaitingConfirmation();
+    const appt = await seedAppointmentAwaitingConfirmation(15);
     const { token } = await issueToken(appt.id as string);
     const { cancelPortalAppointmentByToken } = await import('./service.js');
     const view = await cancelPortalAppointmentByToken(token);
@@ -206,7 +208,7 @@ describe.skipIf(!run)('portal integration', () => {
   });
 
   it('rejeita token expirado', async () => {
-    const appt = await seedAppointmentAwaitingConfirmation();
+    const appt = await seedAppointmentAwaitingConfirmation(16);
     const { token } = await issueToken(appt.id as string, '2026-05-12T00:00:00.000Z');
     const { confirmPortalAppointmentByToken } = await import('./service.js');
     await expect(confirmPortalAppointmentByToken(token)).rejects.toMatchObject({
@@ -215,7 +217,7 @@ describe.skipIf(!run)('portal integration', () => {
   });
 
   it('rejeita token revogado', async () => {
-    const appt = await seedAppointmentAwaitingConfirmation();
+    const appt = await seedAppointmentAwaitingConfirmation(17);
     const { token } = await issueToken(appt.id as string);
     await queryTenant(
       `UPDATE appointment_portal_tokens SET revoked_at = now()

@@ -93,7 +93,7 @@ async function loadAppointmentView(
        s.name AS service_name,
        p.name AS professional_name,
        c.name AS customer_name,
-       t.name AS tenant_display_name
+       COALESCE(t.trade_name, t.legal_name) AS tenant_display_name
      FROM appointments a
      JOIN tenants t ON t.id = a.tenant_id
      LEFT JOIN services s ON s.tenant_id = a.tenant_id AND s.id = a.service_id
