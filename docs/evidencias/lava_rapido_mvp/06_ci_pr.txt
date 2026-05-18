@@ -27,9 +27,13 @@
 **Status GitHub:** All checks have passed  
 **Conflitos:** nenhum com `piloto-staging-01`
 
-## CI pós-correções PO (pendente push)
+## Commit pós-correções PO
 
-Após commit com: OpenAPI, regras arrive/cancel, checklist obrigatório, `car-wash.integration.test.ts` — aguardar novo run no PR.
+| SHA | Mensagem |
+|-----|----------|
+| `1edc6ea` | fix(car-wash): regras PO arrive/cancel, checklist obrigatorio, OpenAPI e testes |
+
+Aguardar CI verde neste SHA no PR #10.
 
 ## Merge
 
