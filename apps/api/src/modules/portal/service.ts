@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { PoolClient } from 'pg';
-import { getIntegrationLookupPool, pool, withTenant } from '../../infra/db/pool.js';
+import { getIntegrationLookupPool, withTenant } from '../../infra/db/pool.js';
 import { AppError } from '../../shared/errors.js';
 import { writeAuditLog } from '../../shared/audit.js';
 import {
@@ -176,12 +176,8 @@ async function mutateByToken(
   plainToken: string,
   action: 'confirm' | 'cancel',
 ): Promise<PortalAppointmentView> {
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-    const tokenRow = await resolveTokenRow(plainToken);
-    await client.query(`SELECT set_config('app.tenant_id', $1, true)`, [tokenRow.tenant_id]);
-
+  const tokenRow = await resolveTokenRow(plainToken);
+  return withTenant(tokenRow.tenant_id, async (client) => {
     const cur = await client.query<{ status: string }>(
       `SELECT status::text AS status FROM appointments
         WHERE tenant_id = $1 AND id = $2 FOR UPDATE`,
@@ -227,14 +223,8 @@ async function mutateByToken(
       });
     }
 
-    await client.query('COMMIT');
     return loadAppointmentView(client, tokenRow.tenant_id, tokenRow.appointment_id);
-  } catch (e) {
-    await client.query('ROLLBACK');
-    throw e;
-  } finally {
-    client.release();
-  }
+  });
 }
 
 export async function confirmPortalAppointmentByToken(plainToken: string) {
