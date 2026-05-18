@@ -105,6 +105,10 @@ export const permissionPolicy = {
     /** Totais por profissional — dono/administrador. */
     reportByProfessional: 'tenant_admin',
   },
+  management: {
+    readDashboard: 'manager',
+    createPortalToken: 'manager',
+  },
   recall: {
     readCandidates: 'viewer',
     /** Enfileira recall via outbox — operação sensível. */

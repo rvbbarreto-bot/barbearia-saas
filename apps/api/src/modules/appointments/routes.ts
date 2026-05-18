@@ -22,6 +22,7 @@ import {
   expireAppointmentHoldById,
   getAppointmentHoldById,
 } from './appointment-holds.service.js';
+import { createAppointmentPortalToken } from '../portal/service.js';
 
 export async function appointmentRoutes(app: FastifyInstance) {
   app.get(
@@ -190,5 +191,18 @@ export async function appointmentRoutes(app: FastifyInstance) {
         request.body ?? {},
         appointmentCallerFromRequest(request, request.params.appointmentId),
       ),
+  );
+
+  app.post(
+    '/appointments/:appointmentId/portal-token',
+    { preHandler: requirePermission('management', 'createPortalToken') },
+    async (request: any, reply) => {
+      const row = await createAppointmentPortalToken(
+        request.tenantId,
+        request.params.appointmentId,
+        request.user?.sub,
+      );
+      return reply.code(201).send(row);
+    },
   );
 }

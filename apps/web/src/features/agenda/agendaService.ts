@@ -32,6 +32,7 @@ export interface CreateAppointmentBody {
   customer_id: string;
   professional_id: string;
   service_id: string;
+  vehicle_id?: string;
   starts_at: string;
   ends_at: string;
   idempotency_key: string;

@@ -177,6 +177,23 @@ describe.skipIf(!run)('appointments integration (create, conflict, idempotency, 
     ).rejects.toMatchObject({ code: 'SLOT_UNAVAILABLE' });
   });
 
+  it('idempotency_key repetida com mesmo payload retorna o mesmo agendamento (barbershop)', async () => {
+    const key = `idem-same-${randomUUID().slice(0, 8)}`;
+    const payload = {
+      customer_id: customerA,
+      professional_id: profA,
+      service_id: serviceA,
+      starts_at: '2026-05-13T17:00:00.000Z',
+      ends_at: '2026-05-13T17:30:00.000Z',
+      source: 'api' as const,
+      idempotency_key: key,
+      explicit_confirmation: true,
+    };
+    const first = await createAppointment(tenantA, payload, attendantCaller);
+    const second = await createAppointment(tenantA, payload, attendantCaller);
+    expect(second.id).toBe(first.id);
+  });
+
   it('rejeita idempotency_key duplicada', async () => {
     const key = `idem-dup-${randomUUID().slice(0, 8)}`;
     await createAppointment(

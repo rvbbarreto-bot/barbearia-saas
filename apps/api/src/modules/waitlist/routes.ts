@@ -5,6 +5,7 @@ import {
   convertWaitlistEntry,
   createWaitlistEntry,
   listWaitlistEntries,
+  suggestWaitlistSlot,
 } from './service.js';
 
 export async function waitlistRoutes(app: FastifyInstance) {
@@ -28,6 +29,12 @@ export async function waitlistRoutes(app: FastifyInstance) {
     { preHandler: requirePermission('waitlist', 'cancel') },
     async (request: any) =>
       cancelWaitlistEntry(request.tenantId, request.params.entryId, request.user?.sub),
+  );
+
+  app.get(
+    '/waitlist/:entryId/suggest-slot',
+    { preHandler: requirePermission('waitlist', 'read') },
+    async (request: any) => suggestWaitlistSlot(request.tenantId, request.params.entryId),
   );
 
   app.post(

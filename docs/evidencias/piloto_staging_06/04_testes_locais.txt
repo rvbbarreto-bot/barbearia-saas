@@ -1,0 +1,23 @@
+# Testes locais — PILOTO-STAGING-06 (2026-05-17)
+
+## apps/api
+npm run typecheck → exit 0
+npm run test:unit → 46 files, 197 tests passed
+
+## apps/web
+npm run typecheck → exit 0
+npm run test → 19 files, 65 tests passed
+
+## raiz
+npm run n8n:validate-workflows → passed
+
+## Correção CI (pós 1b50a7f)
+
+- Falha em `car-wash.integration.test.ts`: CT-073 — `source: manual` + `explicit_confirmation: false` com role `attendant` → 403.
+- Correção: usar `source: walk_in` quando `explicit_confirmation: false`.
+
+## Não executado nesta sessão
+- npm audit (raiz — executar no CI)
+- npm run build (api/web)
+- testes integração com DATABASE_URL
+- docker compose E2E

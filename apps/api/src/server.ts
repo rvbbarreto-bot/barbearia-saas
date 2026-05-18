@@ -37,6 +37,10 @@ import { outboxRoutes } from './modules/outbox/routes.js';
 import { startWaitlistSweepWorker } from './modules/waitlist/sweep.worker.js';
 import { financeRoutes } from './modules/finance/routes.js';
 import { commissionRoutes } from './modules/commission/routes.js';
+import { managementRoutes } from './modules/management/routes.js';
+import { portalPublicRoutes } from './modules/portal/routes.js';
+import { vehicleRoutes } from './modules/vehicles/routes.js';
+import { carWashRoutes } from './modules/carWash/routes.js';
 import { isSessionRevoked } from './modules/auth/session.js';
 import { startOutboxWorker } from './infra/queues/outbox-worker.js';
 import { startNotificationJobsWorker } from './modules/notificationJobs/worker.js';
@@ -153,6 +157,7 @@ await registerOpenApi(app, env.NODE_ENV);
 await app.register(authRoutes);
 await app.register(whatsappRoutes);
 await app.register(pixWebhookRoutes);
+await app.register(portalPublicRoutes, { prefix: '/api/v1' });
 
 const PUBLIC_PATHS = [
   '/health',
@@ -163,6 +168,7 @@ const PUBLIC_PATHS = [
   '/auth/reset-password',
   '/webhooks/whatsapp/inbound',
   '/webhooks/payments/pix',
+  '/api/v1/public/portal',
 ];
 
 function isPublicPath(url: string): boolean {
@@ -214,6 +220,9 @@ await app.register(integrationsRoutes, { prefix: '/api/v1' });
 await app.register(outboxRoutes, { prefix: '/api/v1' });
 await app.register(financeRoutes, { prefix: '/api/v1' });
 await app.register(commissionRoutes, { prefix: '/api/v1' });
+await app.register(managementRoutes, { prefix: '/api/v1' });
+await app.register(vehicleRoutes, { prefix: '/api/v1' });
+await app.register(carWashRoutes, { prefix: '/api/v1' });
 await app.register(paymentRoutes, { prefix: '/api/v1' });
 
 // Varredura waitlist → notification_jobs (intervalo configurável; desativado por defeito no env)

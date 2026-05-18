@@ -14,6 +14,8 @@ import { listClientes } from '../clientes/clientesService';
 import { listServicos } from '../servicos/servicosService';
 import { listProfissionais } from '../profissionais/profissionaisService';
 import { createAppointment, getAvailability } from './agendaService';
+import { useTenantVertical } from '@/hooks/useTenantVertical';
+import { createVehicle, listVehicles, type Vehicle } from '../veiculos/veiculosService';
 import axios from 'axios';
 import { getApiErrorMessage } from '@/lib/apiErrorMessage';
 import { Label } from '@/components/ui/label';
@@ -26,7 +28,13 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-const STEPS = ['Cliente', 'Servico', 'Profissional', 'Horario'];
+type StepKind = 'customer' | 'vehicle' | 'service' | 'professional' | 'slot';
+
+function stepKinds(isCarWash: boolean): StepKind[] {
+  return isCarWash
+    ? ['customer', 'vehicle', 'service', 'professional', 'slot']
+    : ['customer', 'service', 'professional', 'slot'];
+}
 
 interface Props {
   open: boolean;
@@ -37,10 +45,19 @@ function NewAppointmentModalInner({ onClose }: { onClose: () => void }) {
   const qc = useQueryClient();
   const idempotencyKey = useRef(crypto.randomUUID());
   const isManager = useRoleGate('manager');
+  const { isCarWash, labels } = useTenantVertical();
+  const kinds = stepKinds(isCarWash);
+  const stepLabels = isCarWash
+    ? ['Cliente', labels.vehicle, labels.service, labels.professional, 'Horário']
+    : ['Cliente', 'Serviço', labels.professional, 'Horário'];
+  const lastStep = kinds.length - 1;
 
   const [step, setStep] = useState(0);
+  const currentKind = kinds[step] ?? 'customer';
   const [customerSearch, setCustomerSearch] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | undefined>();
+  const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | undefined>();
+  const [quickPlate, setQuickPlate] = useState('');
   const [selectedService, setSelectedService] = useState<Service | undefined>();
   const [selectedProfessional, setSelectedProfessional] = useState<Professional | undefined>();
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
@@ -53,21 +70,27 @@ function NewAppointmentModalInner({ onClose }: { onClose: () => void }) {
   const { data: customersData, isLoading: customersLoading } = useQuery({
     queryKey: ['modal-customers', debouncedSearch],
     queryFn: () => listClientes({ page: 1, limit: 10, search: debouncedSearch }),
-    enabled: step === 0,
+    enabled: currentKind === 'customer',
     staleTime: 15_000,
+  });
+
+  const { data: vehiclesData, isLoading: vehiclesLoading } = useQuery({
+    queryKey: ['modal-vehicles', selectedCustomer?.id],
+    queryFn: () => listVehicles({ customer_id: selectedCustomer!.id, limit: 50, page: 1 }),
+    enabled: currentKind === 'vehicle' && !!selectedCustomer?.id,
   });
 
   const { data: servicosData, isLoading: servicosLoading } = useQuery({
     queryKey: ['modal-servicos'],
     queryFn: () => listServicos({ page: 1, limit: 100, search: '' }),
-    enabled: step === 1,
+    enabled: currentKind === 'service',
     staleTime: 60_000,
   });
 
   const { data: profData, isLoading: profLoading } = useQuery({
     queryKey: ['modal-profissionais'],
     queryFn: () => listProfissionais({ page: 1, limit: 100, search: '' }),
-    enabled: step === 2,
+    enabled: currentKind === 'professional',
     staleTime: 60_000,
   });
 
@@ -78,8 +101,23 @@ function NewAppointmentModalInner({ onClose }: { onClose: () => void }) {
       service_id: selectedService!.id,
       date: selectedDate,
     }),
-    enabled: step === 3 && !!selectedProfessional && !!selectedService,
+    enabled: currentKind === 'slot' && !!selectedProfessional && !!selectedService,
     staleTime: 0,
+  });
+
+  const quickVehicleMutation = useMutation({
+    mutationFn: () =>
+      createVehicle({
+        customer_id: selectedCustomer!.id,
+        plate: quickPlate.toUpperCase(),
+      }),
+    onSuccess: (v) => {
+      setSelectedVehicle(v);
+      setQuickPlate('');
+      qc.invalidateQueries({ queryKey: ['modal-vehicles'] });
+      toast.success('Veículo cadastrado.');
+    },
+    onError: (err) => toast.error(getApiErrorMessage(err, 'Erro ao cadastrar veículo.')),
   });
 
   const mutation = useMutation({
@@ -88,6 +126,7 @@ function NewAppointmentModalInner({ onClose }: { onClose: () => void }) {
         customer_id: selectedCustomer!.id,
         professional_id: selectedProfessional!.id,
         service_id: selectedService!.id,
+        vehicle_id: isCarWash ? selectedVehicle?.id : undefined,
         starts_at: selectedSlot!.starts_at,
         ends_at: selectedSlot!.ends_at,
         idempotency_key: idempotencyKey.current,
@@ -123,10 +162,11 @@ function NewAppointmentModalInner({ onClose }: { onClose: () => void }) {
   });
 
   const canProceed =
-    (step === 0 && !!selectedCustomer) ||
-    (step === 1 && !!selectedService) ||
-    (step === 2 && !!selectedProfessional) ||
-    (step === 3 && !!selectedSlot);
+    (currentKind === 'customer' && !!selectedCustomer) ||
+    (currentKind === 'vehicle' && !!selectedVehicle) ||
+    (currentKind === 'service' && !!selectedService) ||
+    (currentKind === 'professional' && !!selectedProfessional) ||
+    (currentKind === 'slot' && !!selectedSlot);
 
   return (
     <>
@@ -136,7 +176,7 @@ function NewAppointmentModalInner({ onClose }: { onClose: () => void }) {
 
         {/* Stepper header */}
         <div className="flex items-center gap-1">
-          {STEPS.map((label, i) => (
+          {stepLabels.map((label, i) => (
             <div key={i} className="flex flex-1 items-center">
               <div className={`flex size-7 items-center justify-center rounded-full text-xs font-medium transition-colors ${
                 i < step ? 'bg-primary text-primary-foreground' :
@@ -148,13 +188,12 @@ function NewAppointmentModalInner({ onClose }: { onClose: () => void }) {
               <span className={`ml-1 text-xs ${i === step ? 'font-medium text-foreground' : 'text-muted-foreground'}`}>
                 {label}
               </span>
-              {i < STEPS.length - 1 && <ChevronRight className="mx-1 size-3 shrink-0 text-muted-foreground" />}
+              {i < stepLabels.length - 1 && <ChevronRight className="mx-1 size-3 shrink-0 text-muted-foreground" />}
             </div>
           ))}
         </div>
 
-        {/* Step 1: Cliente */}
-        {step === 0 && (
+        {currentKind === 'customer' && (
           <div className="flex flex-col gap-3">
             <Input
               placeholder="Buscar cliente por nome ou telefone..."
@@ -192,8 +231,45 @@ function NewAppointmentModalInner({ onClose }: { onClose: () => void }) {
           </div>
         )}
 
-        {/* Step 2: Servico */}
-        {step === 1 && (
+        {currentKind === 'vehicle' && (
+          <div className="flex flex-col gap-3">
+            <div className="flex max-h-40 flex-col gap-1 overflow-y-auto">
+              {vehiclesLoading ? (
+                Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-10" />)
+              ) : (
+                (vehiclesData?.data ?? []).map((v: Vehicle) => (
+                  <button
+                    key={v.id}
+                    type="button"
+                    onClick={() => setSelectedVehicle(v)}
+                    className={`flex w-full rounded-lg border px-3 py-2 text-left text-sm ${
+                      selectedVehicle?.id === v.id ? 'border-primary bg-primary/5' : 'hover:bg-muted/60'
+                    }`}
+                  >
+                    {v.plate} — {[v.brand, v.model].filter(Boolean).join(' ')}
+                  </button>
+                ))
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Input
+                placeholder="Cadastro rápido — placa"
+                value={quickPlate}
+                onChange={(e) => setQuickPlate(e.target.value)}
+              />
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={!quickPlate || quickVehicleMutation.isPending}
+                onClick={() => quickVehicleMutation.mutate()}
+              >
+                Adicionar
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {currentKind === 'service' && (
           <div className="flex max-h-64 flex-col gap-1 overflow-y-auto">
             {servicosLoading ? (
               Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-12" />)
@@ -218,8 +294,7 @@ function NewAppointmentModalInner({ onClose }: { onClose: () => void }) {
           </div>
         )}
 
-        {/* Step 3: Profissional */}
-        {step === 2 && (
+        {currentKind === 'professional' && (
           <div className="flex max-h-64 flex-col gap-1 overflow-y-auto">
             {profLoading ? (
               Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-12" />)
@@ -243,8 +318,7 @@ function NewAppointmentModalInner({ onClose }: { onClose: () => void }) {
           </div>
         )}
 
-        {/* Step 4: Slot */}
-        {step === 3 && (
+        {currentKind === 'slot' && (
           <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-2">
               <Label>Origem do agendamento</Label>
@@ -312,7 +386,7 @@ function NewAppointmentModalInner({ onClose }: { onClose: () => void }) {
           >
             {step > 0 ? 'Voltar' : 'Cancelar'}
           </Button>
-          {step < 3 ? (
+          {step < lastStep ? (
             <Button onClick={() => setStep(step + 1)} disabled={!canProceed}>
               Próximo
             </Button>
