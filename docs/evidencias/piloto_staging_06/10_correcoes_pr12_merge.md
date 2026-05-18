@@ -7,7 +7,7 @@
 | 1.1 Portal tokenizado → serviços oficiais | Corrigido |
 | 1.2 Idempotência `vehicle_id` (car_wash) | Corrigido |
 | 1.3 Placa obrigatória MVP | Corrigido |
-| CI verde | Aguardar run pós-push deste pacote |
+| CI verde | **OK** — PR #12 verde (SHA final `8983fa5`) |
 | Base PR | `piloto-staging-01` |
 | Merge em `main` | Não (governança piloto) |
 
@@ -102,6 +102,6 @@ Após match de payload base, se vertical `car_wash`, compara `vehicle_id` do `ca
 
 ## Parecer fábrica (pré-aceite PO/GP)
 
-**Tecnicamente pronto para revalidação de merge** após CI verde no commit deste pacote. **Merge formal** permanece com PO/GP (prints L01–L14 e matriz de aceite podem seguir em paralelo pós-correção crítica).
+**Tecnicamente aprovado para merge** — CI verde em `8983fa5`. **Merge formal** permanece com assinatura PO em `11_relatorio_entrega_po_pr12.md` §10.
 
 **Não aprovado para merge em `main`** — fora de escopo.

@@ -2,32 +2,36 @@
 
 ## PR
 
-- **Número:** [#11](https://github.com/rvbbarreto-bot/barbearia-saas/pull/11)
-- **Base atual (incorreta):** `main` — ver `00_governanca_pr11.md` para correção
-- **Base exigida:** `piloto-staging-01`
+- **Número:** [#12](https://github.com/rvbbarreto-bot/barbearia-saas/pull/12)
+- **Base:** `piloto-staging-01` ✓
 - **Head:** `feature/piloto-staging-06-expansao-operacional-gestao`
+- **SHA final:** `8983fa5e9b7db7a372a1cfe7f5776737f2eda00d`
+- **CI:** **verde** — 8/8 checks (API, Web, Gitleaks, npm audit × push + pull_request)
 
-## Histórico SHA relevante
+## Jobs
 
-| SHA | Descrição | CI API |
-|-----|-----------|--------|
-| `1e349c9` | Entrega MVP PS-06 + Lava Rápido | FAILURE — RLS `tenant_settings` no setup car-wash |
-| `1b50a7f` | fix RLS `withTenant` em car-wash.integration | FAILURE — CT-073 `FORBIDDEN` em `createAppointment` |
-| *(pendente push)* | fix `walk_in` para `explicit_confirmation: false` | Aguardar run |
+| Job | Status |
+|-----|--------|
+| API — typecheck · lint · test · build | Pass |
+| Web — lint · typecheck · test · build | Pass |
+| Security — Gitleaks | Pass |
+| Security — npm audit | Pass |
 
-## Correções aplicadas (fábrica)
+**Testes API:** 367 passed (integração + unitários, RLS `barbearia_app`).
 
-1. **RLS:** inserts/deletes em `tenant_settings` e `users` via `withTenant`.
-2. **CT-073:** testes com `explicit_confirmation: false` usam `source: 'walk_in'` (attendant+).
-3. **ci.yml:** branch `feature/piloto-staging-06-expansao-operacional-gestao` no trigger `push`.
+## Histórico de correções CI
 
-## Jobs esperados no PR
+| SHA | Descrição |
+|-----|-----------|
+| `1b50a7f` | RLS `tenant_settings` car-wash |
+| `aa1550d` | CT-073 `walk_in` |
+| `dfa4da0` | Slots distintos overlap |
+| `bb2863a` | Asserções `withTenant` car-wash |
+| `a9a4e65` | Portal oficial, idempotência, placa |
+| `a9f8ce2` | `trade_name` portal view |
+| `8983fa5` | `loadAppointmentView` pós-mutação em `withTenant` |
 
-- API — typecheck · lint · test · build
-- Web — lint · typecheck · test · build
-- Security — npm audit
-- Security — Gitleaks
+## Governança
 
-## Sem merge em main
-
-Nenhum PR aberto contra `main`. Merge em `piloto-staging-01` apenas com aceite PO/GP.
+- Merge alvo: **`piloto-staging-01`** após aceite PO (`11_relatorio_entrega_po_pr12.md`).
+- **Sem merge em `main`.**
