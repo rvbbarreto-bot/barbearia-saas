@@ -1,7 +1,8 @@
+import { runSweepSafely } from '../../infra/workers/safe-sweep.js';
 import { pool } from '../../infra/db/pool.js';
 import { expirePendingPixPaymentsForTenant } from './pix.service.js';
 
-export async function runPixPaymentExpirySweepOnce(): Promise<void> {
+async function runPixPaymentExpirySweep(): Promise<void> {
   const tenants = await pool.query(`SELECT id::text AS id FROM tenants WHERE status IN ('trial', 'active')`);
   for (const row of tenants.rows as { id: string }[]) {
     try {
@@ -10,6 +11,10 @@ export async function runPixPaymentExpirySweepOnce(): Promise<void> {
       console.error('[pix-expiry-worker] tenant sweep failed', { tenant_id: row.id, err });
     }
   }
+}
+
+export async function runPixPaymentExpirySweepOnce(): Promise<void> {
+  await runSweepSafely('pix-expiry-worker', runPixPaymentExpirySweep);
 }
 
 let timer: ReturnType<typeof setInterval> | undefined;
