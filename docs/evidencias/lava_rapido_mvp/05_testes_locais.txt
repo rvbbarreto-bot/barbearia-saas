@@ -1,0 +1,29 @@
+# Testes locais — Lava Rápido MVP
+
+Data: 2026-05-17
+Branch: feature/lava-rapido-mvp
+
+## API
+
+npm run typecheck — OK
+npm run build — OK
+npm test -- --run src/modules/vehicles src/modules/carWash — 11 passed
+
+Suite completa (sem DATABASE_URL): integrações skipped/fail env — pré-existente no workspace.
+
+## Web
+
+npm run typecheck — OK
+npm run build — OK
+npm test -- --run — 65 passed (19 files)
+
+## Segurança
+
+npm audit — executar no CI / local com rede
+gitleaks — executar no pipeline
+
+## Configurar tenant demo
+
+UPDATE tenant_settings
+   SET settings = jsonb_set(COALESCE(settings,'{}'), '{vertical}', '"car_wash"')
+ WHERE tenant_id = '<uuid>';

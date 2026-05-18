@@ -44,6 +44,10 @@ import { ensureFinancialOnServiceCompleted } from '../finance/service.js';
 import { createCommissionEntryForCompletedAppointment } from '../commission/service.js';
 import { validateImplicitAppointmentConfirmation } from './explicit-confirmation-policy.js';
 import { assertAppointmentStartsNotInPast } from './appointment-scheduling-rules.js';
+import { loadTenantVerticalContextWithClient } from '../vertical/tenant-vertical.service.js';
+import { isCarWashVertical } from '../vertical/settings.js';
+import { assertVehicleBelongsToCustomer } from '../vehicles/service.js';
+import { createCarWashJobInTransaction } from '../carWash/service.js';
 import {
   assertAppointmentMutationScope,
   assertProfessionalBookingBodyScope,
@@ -274,6 +278,8 @@ export const createAppointmentSchema = z.object({
   customer_id: z.string().uuid(),
   professional_id: z.string().uuid(),
   service_id: z.string().uuid(),
+  /** Obrigatório em tenant `car_wash` quando `require_vehicle=true`; proibido em `barbershop`. */
+  vehicle_id: z.string().uuid().optional(),
   starts_at: z.string().datetime(),
   ends_at: z.string().datetime(),
   /** Opcional · se enviado, deve coincidir com o preço do serviço (WhatsApp/painel vs cadastro). */
@@ -306,6 +312,27 @@ export async function createAppointment(
   const lockKey = `lock:appointment:${tenantId}:${data.professional_id}:${data.starts_at}:${data.ends_at}`;
   return withAppointmentLock(lockKey, async () =>
     withTenant(tenantId, async (client) => {
+      const verticalCtx = await loadTenantVerticalContextWithClient(client, tenantId);
+      const carWash = isCarWashVertical(verticalCtx);
+
+      if (data.vehicle_id && !carWash) {
+        throw new AppError(
+          'VEHICLE_NOT_ALLOWED',
+          'vehicle_id não é permitido para tenant barbershop.',
+          400,
+        );
+      }
+      if (carWash && verticalCtx.car_wash.require_vehicle && !data.vehicle_id) {
+        throw new AppError(
+          'VEHICLE_REQUIRED',
+          'vehicle_id é obrigatório para agendamento de lava-rápido.',
+          422,
+        );
+      }
+      if (data.vehicle_id) {
+        await assertVehicleBelongsToCustomer(client, tenantId, data.vehicle_id, data.customer_id);
+      }
+
       if (data.hold_id) {
         await releaseHoldForBooking(client, tenantId, data.hold_id, {
           professional_id: data.professional_id,
@@ -422,6 +449,26 @@ export async function createAppointment(
       }
 
       const created = result.rows[0];
+
+      if (carWash && data.vehicle_id) {
+        try {
+          await createCarWashJobInTransaction(
+            client,
+            tenantId,
+            created.id as string,
+            data.vehicle_id,
+            {
+              sub: actorUserId,
+              role: caller?.role,
+              requestId: caller?.requestId,
+              correlationId: effectiveCorrelationId(caller?.correlationId, created.id as string),
+            },
+          );
+        } catch (jobErr) {
+          throw jobErr;
+        }
+      }
+
       await writeAppointmentEvent(client, {
         tenantId,
         appointmentId: created.id as string,
@@ -434,6 +481,7 @@ export async function createAppointment(
           explicit_confirmation_pending: data.explicit_confirmation,
           administrative_skip_client_explicit_confirm: !data.explicit_confirmation,
           hold_id: data.hold_id ?? null,
+          vehicle_id: data.vehicle_id ?? null,
         },
       });
       await writeAuditLog(client, {

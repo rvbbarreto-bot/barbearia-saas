@@ -16,6 +16,8 @@ import { SkeletonRows } from '@/components/shared/SkeletonRows';
 import type { Customer } from '@/types/api';
 import { createCliente, updateCliente, getClienteAppointments } from './clientesService';
 import { formatDateTime } from '@/lib/utils';
+import { CustomerVehiclesTab } from './CustomerVehiclesTab';
+import { useTenantVertical } from '@/hooks/useTenantVertical';
 
 const schema = z.object({
   name:             z.string().optional(),
@@ -34,6 +36,7 @@ interface Props {
 export function ClienteDrawer({ open, onClose, cliente }: Props) {
   const qc = useQueryClient();
   const isEdit = !!cliente;
+  const { labels, isCarWash } = useTenantVertical();
 
   const { register, handleSubmit, reset, watch, setValue, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -77,6 +80,11 @@ export function ClienteDrawer({ open, onClose, cliente }: Props) {
         <Tabs defaultValue="dados" className="flex flex-col gap-4 px-6">
           <TabsList className="w-full">
             <TabsTrigger value="dados" className="flex-1">Dados</TabsTrigger>
+            {isEdit && isCarWash && (
+              <TabsTrigger value="veiculos" className="flex-1">
+                {labels.vehicles}
+              </TabsTrigger>
+            )}
             {isEdit && <TabsTrigger value="historico" className="flex-1">Historico</TabsTrigger>}
           </TabsList>
 
@@ -109,6 +117,12 @@ export function ClienteDrawer({ open, onClose, cliente }: Props) {
               </div>
             </form>
           </TabsContent>
+
+          {isEdit && isCarWash && cliente && (
+            <TabsContent value="veiculos">
+              <CustomerVehiclesTab customerId={cliente.id} />
+            </TabsContent>
+          )}
 
           {isEdit && (
             <TabsContent value="historico" className="flex flex-col gap-2">

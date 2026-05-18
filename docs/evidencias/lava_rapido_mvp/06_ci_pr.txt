@@ -1,0 +1,9 @@
+# CI / PR — Lava Rápido MVP
+
+Branch: feature/lava-rapido-mvp
+Base PR: piloto-staging-01 (não main)
+
+Link PR: preencher após `gh pr create`
+Link CI: preencher após push (GitHub Actions)
+
+Status: PEND — aguardando push remoto e workflow.
