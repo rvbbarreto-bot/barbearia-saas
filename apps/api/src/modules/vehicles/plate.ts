@@ -13,6 +13,15 @@ export function isValidBrazilianPlate(plate: string | null | undefined): boolean
   return PLATE_BR.test(n);
 }
 
+/** Placa Mercosul válida para testes (evita UUID em posições que exigem dígito). */
+export function sampleBrazilianPlate(prefix = 'ABC'): string {
+  const letters = prefix.replace(/[^A-Za-z]/g, '').toUpperCase().padEnd(3, 'X').slice(0, 3);
+  const digit = Math.floor(Math.random() * 10);
+  const mid = String.fromCharCode(65 + Math.floor(Math.random() * 26));
+  const tail = String(Math.floor(Math.random() * 100)).padStart(2, '0');
+  return `${letters}${digit}${mid}${tail}`;
+}
+
 export function formatVehicleLabel(parts: {
   plate?: string | null;
   brand?: string | null;

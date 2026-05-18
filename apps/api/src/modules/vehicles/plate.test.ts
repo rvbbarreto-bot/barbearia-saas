@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { formatVehicleLabel, isValidBrazilianPlate, normalizePlate } from './plate.js';
+import {
+  formatVehicleLabel,
+  isValidBrazilianPlate,
+  normalizePlate,
+  sampleBrazilianPlate,
+} from './plate.js';
 
 describe('normalizePlate', () => {
   it('remove espaços e hífen e aplica upper-case', () => {
@@ -21,6 +26,12 @@ describe('isValidBrazilianPlate', () => {
 
   it('rejeita formato inválido', () => {
     expect(isValidBrazilianPlate('AB123')).toBe(false);
+  });
+});
+
+describe('sampleBrazilianPlate', () => {
+  it('gera placa válida', () => {
+    expect(isValidBrazilianPlate(sampleBrazilianPlate())).toBe(true);
   });
 });
 

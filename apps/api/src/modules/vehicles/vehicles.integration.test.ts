@@ -7,6 +7,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import pg from 'pg';
+import { sampleBrazilianPlate } from './plate.js';
 
 const run =
   Boolean(process.env.DATABASE_URL) &&
@@ -56,7 +57,7 @@ describe.skipIf(!run)('vehicles integration', () => {
 
   it('CRUD veículo e bloqueia placa duplicada no tenant', async () => {
     const { createVehicle } = await import('./service.js');
-    const plate = `ABC${randomUUID().slice(0, 4).replace(/-/g, '').toUpperCase()}23`.slice(0, 7);
+    const plate = sampleBrazilianPlate('ABC');
     const v1 = await createVehicle(tenantA, { customer_id: customerA, plate, brand: 'Fiat' });
     expect(v1.id).toBeTruthy();
     await expect(
@@ -68,7 +69,7 @@ describe.skipIf(!run)('vehicles integration', () => {
     const { createVehicle, getVehicleById } = await import('./service.js');
     const { createCustomer } = await import('../customers/service.js');
     const cB = await createCustomer(tenantB, { phone: `5511${randomUUID().slice(0, 8)}`, whatsapp_opt_in: false });
-    const plate = `XYZ${randomUUID().slice(0, 4).replace(/-/g, '').toUpperCase()}99`.slice(0, 7);
+    const plate = sampleBrazilianPlate('XYZ');
     const vB = await createVehicle(tenantB, { customer_id: cB.id as string, plate });
     await expect(getVehicleById(tenantA, vB.id as string)).rejects.toMatchObject({
       code: 'VEHICLE_NOT_FOUND',
