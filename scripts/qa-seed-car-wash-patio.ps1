@@ -1,12 +1,12 @@
 <#
 .SYNOPSIS
-  PS-08.2 — Massa QA reproduzível: pátio lava-rápido com job em Agendados na data fixa.
+  PS-08.2 - Massa QA reproduzivel: patio lava-rapido com job em Agendados na data fixa.
 
 .DESCRIPTION
   - Ativa vertical car_wash no tenant demo
-  - Garante veículo com placa PS08QA1
-  - Cria agendamento confirmado em 2026-06-16 (se ainda não existir job scheduled nessa data)
-  - Idempotente: reexecução segura
+  - Garante veiculo com placa PS08QA1
+  - Cria agendamento confirmado em 2026-06-16 (se ainda nao existir job scheduled nessa data)
+  - Idempotente: reexecucao segura
 
 .EXAMPLE
   docker compose up -d postgres redis api
@@ -19,7 +19,7 @@ param(
   [string] $CustomerId = '00000000-0000-4000-8000-000000004031',
   [string] $ProfessionalId = '00000000-0000-4000-8000-000000004012',
   [string] $ServiceId = '00000000-0000-4000-8000-000000004022',
-  [string] $SeedPlate = 'PS08QA1'
+  [string] $SeedPlate = 'PSQ8A16'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -38,7 +38,7 @@ function Invoke-Psql([string] $Sql) {
   return ($out | Out-String).Trim()
 }
 
-Write-Host "=== PS-08.2: seed pátio $QaDate ===" -ForegroundColor Cyan
+Write-Host "=== PS-08.2: seed patio $QaDate ===" -ForegroundColor Cyan
 
 Invoke-Psql @"
 INSERT INTO tenant_settings (tenant_id, settings, updated_at)
@@ -57,19 +57,20 @@ Start-Sleep -Seconds 2
 $tok = Login-Token -ApiBase $ApiBase -Email 'atendente@demo.local' -Password 'admin12345'
 $hdr = New-QaAuthHeaders -Token $tok -TenantId $TenantId
 
-$jobsUrl = "$ApiBase/api/v1/car-wash/jobs?date=$QaDate&stage=scheduled&limit=5"
+$jobsUrl = "$ApiBase/api/v1/car-wash/jobs?date=$QaDate" + '&stage=scheduled&limit=5'
 $jr = Invoke-ApiRaw -Method Get -Url $jobsUrl -Headers $hdr
 if ($jr.Code -eq 200) {
   $existing = ($jr.Body | ConvertFrom-Json).data
   if (@($existing).Count -gt 0) {
     $first = $existing[0]
-    Write-Host "OK — já existe job scheduled em $QaDate (placa $($first.plate), id $($first.id))." -ForegroundColor Green
+    Write-Host "OK - ja existe job scheduled em $QaDate (placa $($first.plate), id $($first.id))." -ForegroundColor Green
     exit 0
   }
 }
 
 $vehicleId = $null
-$vr = Invoke-ApiRaw -Method Get -Url "$ApiBase/api/v1/vehicles?search=$SeedPlate&limit=5" -Headers $hdr
+$vehiclesUrl = "$ApiBase/api/v1/vehicles?search=$SeedPlate" + '&limit=5'
+$vr = Invoke-ApiRaw -Method Get -Url $vehiclesUrl -Headers $hdr
 if ($vr.Code -eq 200) {
   $rows = @(($vr.Body | ConvertFrom-Json).data)
   if ($rows.Count -gt 0) { $vehicleId = [string]$rows[0].id }
@@ -85,13 +86,13 @@ if (-not $vehicleId) {
   $cr = Invoke-ApiRaw -Method Post -Url "$ApiBase/api/v1/vehicles" -Headers $hdr -JsonBody $body
   if ($cr.Code -ne 201) { throw "POST vehicle falhou: HTTP $($cr.Code) $($cr.Body)" }
   $vehicleId = [string](($cr.Body | ConvertFrom-Json).id)
-  Write-Host "Veículo criado: $SeedPlate ($vehicleId)"
+  Write-Host "Veiculo criado: $SeedPlate ($vehicleId)"
 }
 
 $slots = Get-AvailabilitySlots -ApiBase $ApiBase -AuthHeaders $hdr `
   -ProfessionalId $ProfessionalId -ServiceId $ServiceId -DateStr $QaDate
 if ($slots.Count -lt 1) {
-  throw "Sem slots em $QaDate — verifique business_hours / seed 099 (profissional João, serviço Barba)."
+  throw "Sem slots em $QaDate - verifique business_hours / seed 099 (profissional Joao, servico Barba)."
 }
 $sc = $slots[0]
 $idem = 'qa-ps08-patio-2026-06-16'
@@ -108,7 +109,7 @@ $apptBody = (@{
   } | ConvertTo-Json -Compress)
 $ar = Invoke-ApiRaw -Method Post -Url "$ApiBase/api/v1/appointments" -Headers $hdr -JsonBody $apptBody
 if ($ar.Code -eq 409 -and ($ar.Body -match 'DUPLICATE_IDEMPOTENCY')) {
-  Write-Host 'Agendamento já existe (idempotency) — a confirmar estado do job...' -ForegroundColor DarkYellow
+  Write-Host 'Agendamento ja existe (idempotency) - a confirmar estado do job...' -ForegroundColor DarkYellow
 }
 elseif ($ar.Code -ne 201) {
   throw "POST appointment falhou: HTTP $($ar.Code) $($ar.Body)"
@@ -125,7 +126,7 @@ $jr2 = Invoke-ApiRaw -Method Get -Url $jobsUrl -Headers $hdr
 if ($jr2.Code -ne 200) { throw "GET jobs falhou: HTTP $($jr2.Code)" }
 $after = @(($jr2.Body | ConvertFrom-Json).data)
 if ($after.Count -lt 1) {
-  throw "Job scheduled não encontrado após seed — verifique vertical car_wash e appointment."
+  throw 'Job scheduled nao encontrado apos seed - verifique vertical car_wash e appointment.'
 }
-Write-Host "OK — $($after.Count) job(s) em Agendados em $QaDate (ex.: placa $($after[0].plate))." -ForegroundColor Green
-Write-Host 'Próximo: browser /operacao/lava-rapido com data 2026-06-16 (C15–C17).' -ForegroundColor DarkGray
+Write-Host "OK - $($after.Count) job(s) em Agendados em $QaDate (ex.: placa $($after[0].plate))." -ForegroundColor Green
+Write-Host 'Proximo: browser /operacao/lava-rapido com data 2026-06-16 (C15-C17).' -ForegroundColor DarkGray
