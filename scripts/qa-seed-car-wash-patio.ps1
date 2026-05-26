@@ -94,32 +94,35 @@ $slots = Get-AvailabilitySlots -ApiBase $ApiBase -AuthHeaders $hdr `
 if ($slots.Count -lt 1) {
   throw "Sem slots em $QaDate - verifique business_hours / seed 099 (profissional Joao, servico Barba)."
 }
-$sc = $slots[0]
-$idem = 'qa-ps08-patio-2026-06-16'
-$apptBody = (@{
-    customer_id           = $CustomerId
-    professional_id       = $ProfessionalId
-    service_id            = $ServiceId
-    vehicle_id            = $vehicleId
-    starts_at             = [string]$sc.starts_at
-    ends_at               = [string]$sc.ends_at
-    source                = 'api'
-    idempotency_key       = $idem
-    explicit_confirmation = $true
-  } | ConvertTo-Json -Compress)
-$ar = Invoke-ApiRaw -Method Post -Url "$ApiBase/api/v1/appointments" -Headers $hdr -JsonBody $apptBody
-if ($ar.Code -eq 409 -and ($ar.Body -match 'DUPLICATE_IDEMPOTENCY')) {
-  Write-Host 'Agendamento ja existe (idempotency) - a confirmar estado do job...' -ForegroundColor DarkYellow
-}
-elseif ($ar.Code -ne 201) {
+$created = $false
+foreach ($sc in $slots) {
+  $idem = "qa-ps08-patio-$([Guid]::NewGuid().ToString('N').Substring(0, 12))"
+  $apptBody = (@{
+      customer_id           = $CustomerId
+      professional_id       = $ProfessionalId
+      service_id            = $ServiceId
+      vehicle_id            = $vehicleId
+      starts_at             = [string]$sc.starts_at
+      ends_at               = [string]$sc.ends_at
+      source                = 'api'
+      idempotency_key       = $idem
+      explicit_confirmation = $true
+    } | ConvertTo-Json -Compress)
+  $ar = Invoke-ApiRaw -Method Post -Url "$ApiBase/api/v1/appointments" -Headers $hdr -JsonBody $apptBody
+  if ($ar.Code -eq 201) {
+    $appt = $ar.Body | ConvertFrom-Json
+    $apptId = [string]$appt.id
+    $cf = Invoke-ApiRaw -Method Patch -Url "$ApiBase/api/v1/appointments/$apptId/confirm" -Headers $hdr -JsonBody '{}'
+    if ($cf.Code -ne 200) { throw "PATCH confirm falhou: HTTP $($cf.Code) $($cf.Body)" }
+    Write-Host "Agendamento confirmado: $apptId ($($sc.starts_at))"
+    $created = $true
+    break
+  }
+  if ($ar.Code -eq 409) { continue }
   throw "POST appointment falhou: HTTP $($ar.Code) $($ar.Body)"
 }
-else {
-  $appt = $ar.Body | ConvertFrom-Json
-  $apptId = [string]$appt.id
-  $cf = Invoke-ApiRaw -Method Patch -Url "$ApiBase/api/v1/appointments/$apptId/confirm" -Headers $hdr -JsonBody '{}'
-  if ($cf.Code -ne 200) { throw "PATCH confirm falhou: HTTP $($cf.Code) $($cf.Body)" }
-  Write-Host "Agendamento confirmado: $apptId"
+if (-not $created) {
+  throw 'Nao foi possivel criar agendamento em nenhum slot disponivel para a data.'
 }
 
 $jr2 = Invoke-ApiRaw -Method Get -Url $jobsUrl -Headers $hdr
