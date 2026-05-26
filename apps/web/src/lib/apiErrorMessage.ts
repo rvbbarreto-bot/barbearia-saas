@@ -18,6 +18,7 @@ const API_ERROR_MESSAGES: Record<string, string> = {
   NOT_FOUND: 'Registo não encontrado.',
   VALIDATION_ERROR: 'Dados inválidos. Verifique os campos e tente novamente.',
   INTERNAL_ERROR: 'Não foi possível concluir a operação. Tente novamente ou contacte o suporte.',
+  VEHICLE_PLATE_ALREADY_EXISTS: 'Esta placa já está cadastrada nesta unidade.',
 };
 
 const FALLBACK = 'Não foi possível concluir a operação. Tente novamente ou contacte o suporte.';

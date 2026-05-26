@@ -6,6 +6,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { DataTable, type Column } from '@/components/shared/DataTable';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { usePaginatedQuery } from '@/hooks/usePaginatedQuery';
@@ -39,10 +46,29 @@ export function VeiculosPage() {
     fetcher: (p) => listVehicles(p),
   });
 
-  const { data: clientes } = useQuery({
+  const {
+    data: clientes,
+    isLoading: clientesLoading,
+    isError: clientesError,
+  } = useQuery({
     queryKey: ['veiculos-clientes'],
-    queryFn: () => listClientes({ page: 1, limit: 50, search: '' }),
+    queryFn: () => listClientes({ page: 1, limit: 100, search: '' }),
+    enabled: open,
+    staleTime: 30_000,
   });
+
+  function resetForm() {
+    setPlate('');
+    setBrand('');
+    setModel('');
+    setColor('');
+    setCustomerId('');
+  }
+
+  function handleOpenChange(next: boolean) {
+    setOpen(next);
+    if (!next) resetForm();
+  }
 
   const mutation = useMutation({
     mutationFn: () =>
@@ -56,7 +82,7 @@ export function VeiculosPage() {
     onSuccess: () => {
       toast.success(`${labels.vehicle} cadastrado.`);
       qc.invalidateQueries({ queryKey: ['veiculos'] });
-      setOpen(false);
+      handleOpenChange(false);
     },
     onError: (err) => toast.error(getApiErrorMessage(err, 'Erro ao cadastrar veículo.')),
   });
@@ -102,7 +128,7 @@ export function VeiculosPage() {
         </div>
       )}
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Novo {labels.vehicle}</DialogTitle>
@@ -110,18 +136,38 @@ export function VeiculosPage() {
           <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-1">
               <Label>{labels.customer}</Label>
-              <select
-                className="rounded-md border px-3 py-2 text-sm"
-                value={customerId}
-                onChange={(e) => setCustomerId(e.target.value)}
+              <Select
+                value={customerId || undefined}
+                onValueChange={setCustomerId}
+                disabled={clientesLoading || clientesError}
               >
-                <option value="">Selecione...</option>
-                {(clientes?.data ?? []).map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name ?? c.phone}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger aria-label={`Selecionar ${labels.customer.toLowerCase()}`}>
+                  <SelectValue
+                    placeholder={
+                      clientesLoading
+                        ? 'Carregando clientes...'
+                        : clientesError
+                          ? 'Erro ao carregar clientes'
+                          : 'Selecione...'
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent className="z-[100] max-h-72">
+                  {(clientes?.data ?? []).map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name ? `${c.name} (${c.phone})` : c.phone}
+                    </SelectItem>
+                  ))}
+                  {!clientesLoading && !clientesError && (clientes?.data.length ?? 0) === 0 && (
+                    <SelectItem value="__empty__" disabled>
+                      Nenhum cliente cadastrado
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+              {clientesError && (
+                <p className="text-xs text-destructive">Não foi possível listar clientes. Feche e abra o modal.</p>
+              )}
             </div>
             <div className="flex flex-col gap-1">
               <Label>Placa</Label>
