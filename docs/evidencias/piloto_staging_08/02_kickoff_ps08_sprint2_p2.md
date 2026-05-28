@@ -26,7 +26,7 @@ Consolidar na linha piloto o trabalho local que estava fora do merge #14 e prepa
 - [x] `npm run test:api:coverage:ps06` na raiz
 - [x] Perfil `viewer` — migration `108` + `scripts/qa-seed-viewer.ps1`
 - [x] RBAC read-only viewer (`rbac.ts` + testes)
-- [ ] CI verde no PR → base `piloto-staging-01`
+- [ ] CI verde no PR [#15](https://github.com/rvbbarreto-bot/barbearia-saas/pull/15) → base `piloto-staging-01` (fix typecheck PS-06 mocks em curso)
 - [ ] QA reexecuta `run-doc10.mjs` + assinatura PO Sprint 1 P1
 
 ---

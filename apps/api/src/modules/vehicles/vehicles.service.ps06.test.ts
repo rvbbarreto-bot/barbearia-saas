@@ -1,21 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import type { PoolClient } from 'pg';
 import { AppError } from '../../shared/errors.js';
-
-type FakeRow = Record<string, unknown>;
-
-function makeQueryClient(resolver: (sql: string, params?: unknown[]) => { rows?: FakeRow[]; rowCount?: number } | null) {
-  return {
-    query: vi.fn(async (sql: string, params?: unknown[]) => {
-      const r = resolver(String(sql), params);
-      if (!r) return { rows: [], rowCount: 0 };
-      return {
-        rows: (r.rows ?? []) as FakeRow[],
-        rowCount: r.rowCount ?? (r.rows ? r.rows.length : 0),
-      };
-    }),
-  } satisfies Pick<PoolClient, 'query'>;
-}
+import { mockPoolClient } from '../../test-utils/mockPoolClient.js';
 
 describe('PS-06: vehicles/service.ts', () => {
   beforeEach(() => {
@@ -24,7 +9,7 @@ describe('PS-06: vehicles/service.ts', () => {
   });
 
   it('listVehicles aplica filtros (customerId + search + activeOnly=true)', async () => {
-    const fakeClient = makeQueryClient((sql) => {
+    const fakeClient = mockPoolClient((sql) => {
       if (sql.includes('FROM customer_vehicles WHERE') && sql.includes('ORDER BY created_at DESC')) {
         return {
           rows: [
@@ -67,20 +52,15 @@ describe('PS-06: vehicles/service.ts', () => {
   });
 
   it('listVehicles ignora filtro is_active quando active=false', async () => {
-    const fakeClient = makeQueryClient((sql) => {
-      if (sql.includes('FROM customer_vehicles WHERE') && sql.includes('ORDER BY created_at DESC')) {
-        return { rows: [] };
-      }
-      if (sql.includes('SELECT COUNT(*)::int AS total FROM customer_vehicles')) return { rows: [{ total: 0 }] };
-      return null;
-    });
-
     let sqlSeen = '';
-    fakeClient.query.mockImplementation(async (sql: string, params?: unknown[]) => {
+    const query = vi.fn(async (sql: string) => {
       sqlSeen = String(sql);
-      if (String(sql).includes('SELECT COUNT(*)::int AS total FROM customer_vehicles')) return { rows: [{ total: 0 }], rowCount: 1 };
+      if (String(sql).includes('SELECT COUNT(*)::int AS total FROM customer_vehicles')) {
+        return { rows: [{ total: 0 }], rowCount: 1 };
+      }
       return { rows: [], rowCount: 0 };
     });
+    const fakeClient = { query } as unknown as import('pg').PoolClient;
 
     vi.doMock('../../infra/db/pool.js', () => ({
       withTenant: vi.fn((_tenantId: string, fn: (c: typeof fakeClient) => unknown) => fn(fakeClient)),
@@ -94,7 +74,7 @@ describe('PS-06: vehicles/service.ts', () => {
   });
 
   it('getVehicleById lança VEHICLE_NOT_FOUND quando não existe', async () => {
-    const fakeClient = makeQueryClient(() => ({ rows: [], rowCount: 0 }));
+    const fakeClient = mockPoolClient(() => ({ rows: [], rowCount: 0 }));
     vi.doMock('../../infra/db/pool.js', () => ({
       withTenant: vi.fn((_tenantId: string, fn: (c: typeof fakeClient) => unknown) => fn(fakeClient)),
     }));
@@ -105,7 +85,7 @@ describe('PS-06: vehicles/service.ts', () => {
 
   it('createVehicle valida placa e mapeia duplicate 23505 (VEHICLE_PLATE_ALREADY_EXISTS)', async () => {
     const plate = 'ABC1D23';
-    const fakeClient = makeQueryClient((sql) => {
+    const fakeClient = mockPoolClient((sql) => {
       if (sql.includes('SELECT 1 FROM customers')) return { rowCount: 1, rows: [{ '?column?': 1 }] };
       if (sql.includes('INSERT INTO customer_vehicles')) {
         const err = { code: '23505', constraint: 'customer_vehicles_normalized_plate_key' };
@@ -132,7 +112,7 @@ describe('PS-06: vehicles/service.ts', () => {
   });
 
   it('createVehicle happy path audita e retorna row', async () => {
-    const fakeClient = makeQueryClient((sql) => {
+    const fakeClient = mockPoolClient((sql) => {
       if (sql.includes('SELECT 1 FROM customers')) return { rowCount: 1, rows: [{ ok: 1 }] };
       if (sql.includes('INSERT INTO customer_vehicles')) {
         return {
@@ -188,7 +168,7 @@ describe('PS-06: vehicles/service.ts', () => {
   });
 
   it('updateVehicle lança VEHICLE_NOT_FOUND quando não existe', async () => {
-    const fakeClient = makeQueryClient(() => ({ rows: [], rowCount: 0 }));
+    const fakeClient = mockPoolClient(() => ({ rows: [], rowCount: 0 }));
     vi.doMock('../../infra/db/pool.js', () => ({
       withTenant: vi.fn((_tenantId: string, fn: (c: typeof fakeClient) => unknown) => fn(fakeClient)),
     }));
@@ -206,7 +186,7 @@ describe('PS-06: vehicles/service.ts', () => {
   });
 
   it('assertVehicleBelongsToCustomer lança quando não pertence/sem ativo', async () => {
-    const fakeClient = makeQueryClient(() => ({ rows: [], rowCount: 0 }));
+    const fakeClient = mockPoolClient(() => ({ rows: [], rowCount: 0 }));
     vi.doMock('../../infra/db/pool.js', () => ({
       withTenant: vi.fn((_tenantId: string, fn: (c: typeof fakeClient) => unknown) => fn(fakeClient)),
     }));
@@ -231,7 +211,7 @@ describe('PS-06: vehicles/service.ts', () => {
   });
 
   it('updateVehicle usa normalized_plate atual quando patch.plate é undefined', async () => {
-    const fakeClient = makeQueryClient((sql) => {
+    const fakeClient = mockPoolClient((sql) => {
       if (sql.includes('SELECT * FROM customer_vehicles WHERE')) {
         return {
           rowCount: 1,

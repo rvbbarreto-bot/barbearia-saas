@@ -1,21 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import type { PoolClient } from 'pg';
 import { AppError } from '../../shared/errors.js';
-
-type FakeRow = Record<string, unknown>;
-
-function makeQueryClient(resolver: (sql: string, params?: unknown[]) => { rows?: FakeRow[]; rowCount?: number } | null) {
-  return {
-    query: vi.fn(async (sql: string, params?: unknown[]) => {
-      const r = resolver(String(sql), params);
-      if (!r) return { rows: [], rowCount: 0 };
-      return {
-        rows: (r.rows ?? []) as FakeRow[],
-        rowCount: r.rowCount ?? (r.rows ? r.rows.length : 0),
-      };
-    }),
-  } satisfies Pick<PoolClient, 'query'>;
-}
+import { mockPoolClient } from '../../test-utils/mockPoolClient.js';
 
 describe('PS-06: portal/service.ts', () => {
   beforeEach(() => {
@@ -25,7 +10,7 @@ describe('PS-06: portal/service.ts', () => {
   });
 
   it('createAppointmentPortalToken cria token e registra audit', async () => {
-    const fakeClient = makeQueryClient((sql) => {
+    const fakeClient = mockPoolClient((sql) => {
       if (sql.includes('SELECT id FROM appointments')) {
         return { rowCount: 1, rows: [{ id: 'appt-1' }] };
       }
@@ -66,7 +51,7 @@ describe('PS-06: portal/service.ts', () => {
   });
 
   it('getPortalAppointmentByToken rejeita token inválido', async () => {
-    const fakeClient = makeQueryClient((sql) => {
+    const fakeClient = mockPoolClient((sql) => {
       if (sql.includes('FROM appointment_portal_tokens')) return { rowCount: 0, rows: [] };
       return null;
     });
@@ -90,7 +75,7 @@ describe('PS-06: portal/service.ts', () => {
   });
 
   it('getPortalAppointmentByToken rejeita token revogado', async () => {
-    const fakeClient = makeQueryClient((sql) => {
+    const fakeClient = mockPoolClient((sql) => {
       if (sql.includes('FROM appointment_portal_tokens'))
         return {
           rowCount: 1,
@@ -129,7 +114,7 @@ describe('PS-06: portal/service.ts', () => {
   });
 
   it('getPortalAppointmentByToken rejeita token expirado', async () => {
-    const fakeClient = makeQueryClient((sql) => {
+    const fakeClient = mockPoolClient((sql) => {
       if (sql.includes('FROM appointment_portal_tokens'))
         return {
           rowCount: 1,
@@ -168,7 +153,7 @@ describe('PS-06: portal/service.ts', () => {
   });
 
   it('getPortalAppointmentByToken retorna view com permissões de confirmar/cancelar', async () => {
-    const fakeClient = makeQueryClient((sql) => {
+    const fakeClient = mockPoolClient((sql) => {
       if (sql.includes('FROM appointment_portal_tokens')) {
         return {
           rowCount: 1,
@@ -228,7 +213,7 @@ describe('PS-06: portal/service.ts', () => {
 
   it('confirmPortalAppointmentByToken rejeita quando status não permite', async () => {
     const confirmAppointmentInDb = vi.fn();
-    const fakeClient = makeQueryClient((sql) => {
+    const fakeClient = mockPoolClient((sql) => {
       if (sql.includes('FROM appointment_portal_tokens')) {
         return {
           rowCount: 1,
@@ -273,7 +258,7 @@ describe('PS-06: portal/service.ts', () => {
   });
 
   it('getPortalAppointmentByToken lança APPOINTMENT_NOT_FOUND quando appt não existe', async () => {
-    const fakeClient = makeQueryClient((sql) => {
+    const fakeClient = mockPoolClient((sql) => {
       if (sql.includes('FROM appointment_portal_tokens')) {
         return {
           rowCount: 1,
@@ -315,7 +300,7 @@ describe('PS-06: portal/service.ts', () => {
   it('confirmPortalAppointmentByToken confirma quando status é confirmável', async () => {
     const confirmAppointmentInDb = vi.fn();
     const writeAuditLog = vi.fn();
-    const fakeClient = makeQueryClient((sql) => {
+    const fakeClient = mockPoolClient((sql) => {
       if (sql.includes('FROM appointment_portal_tokens')) {
         return {
           rowCount: 1,
@@ -377,7 +362,7 @@ describe('PS-06: portal/service.ts', () => {
   it('cancelPortalAppointmentByToken cancela quando status é cancelável', async () => {
     const cancelAppointmentInDb = vi.fn();
     const writeAuditLog = vi.fn();
-    const fakeClient = makeQueryClient((sql) => {
+    const fakeClient = mockPoolClient((sql) => {
       if (sql.includes('FROM appointment_portal_tokens')) {
         return {
           rowCount: 1,
@@ -437,7 +422,7 @@ describe('PS-06: portal/service.ts', () => {
   });
 
   it('createAppointmentPortalToken lança APPOINTMENT_NOT_FOUND quando appt não existe', async () => {
-    const fakeClient = makeQueryClient((sql) => {
+    const fakeClient = mockPoolClient((sql) => {
       if (sql.includes('SELECT id FROM appointments')) return { rowCount: 0, rows: [] };
       return null;
     });

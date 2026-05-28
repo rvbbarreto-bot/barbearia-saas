@@ -1,20 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import type { PoolClient } from 'pg';
-
-type FakeRow = Record<string, unknown>;
-
-function makeQueryClient(resolver: (sql: string) => { rows?: FakeRow[]; rowCount?: number }) {
-  const client = {
-    query: vi.fn(async (sql: string) => {
-      const r = resolver(String(sql));
-      return {
-        rows: (r.rows ?? []) as FakeRow[],
-        rowCount: r.rowCount ?? (r.rows ? r.rows.length : 0),
-      };
-    }),
-  } satisfies Pick<PoolClient, 'query'>;
-  return client;
-}
+import { mockPoolClient } from '../../test-utils/mockPoolClient.js';
 
 describe('PS-06: getManagementDashboard', () => {
   beforeEach(() => {
@@ -37,7 +22,7 @@ describe('PS-06: getManagementDashboard', () => {
   });
 
   it('carrega KPIs, rankings e erros recentes (happy path com filtros)', async () => {
-    const fakeClient = makeQueryClient((sql) => {
+    const fakeClient = mockPoolClient((sql) => {
       if (sql.includes('s.id::text AS service_id') && sql.includes('service_name')) {
         return { rows: [{ service_id: 's1', service_name: 'Corte', count: '3', revenue_cents: '7500' }] };
       }
@@ -112,7 +97,7 @@ describe('PS-06: getManagementDashboard', () => {
 
   it('não adiciona cláusula de appointment_status quando omitido', async () => {
     let countsSql: string | null = null;
-    const fakeClient = makeQueryClient((sql) => {
+    const fakeClient = mockPoolClient((sql) => {
       if (sql.includes('COUNT(*) FILTER')) {
         countsSql = sql;
         return { rows: [{ created: '0', completed: '0', cancelled: '0', no_show: '0' }] };

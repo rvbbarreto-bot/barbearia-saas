@@ -1,21 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import type { PoolClient } from 'pg';
 import { AppError } from '../../shared/errors.js';
-
-type FakeRow = Record<string, unknown>;
-
-function makeQueryClient(resolver: (sql: string) => { rows?: FakeRow[]; rowCount?: number } | null) {
-  return {
-    query: vi.fn(async (sql: string) => {
-      const r = resolver(String(sql));
-      if (!r) return { rows: [], rowCount: 0 };
-      return {
-        rows: (r.rows ?? []) as FakeRow[],
-        rowCount: r.rowCount ?? (r.rows ? r.rows.length : 0),
-      };
-    }),
-  } satisfies Pick<PoolClient, 'query'>;
-}
+import { mockPoolClient } from '../../test-utils/mockPoolClient.js';
 
 describe('PS-06: customers/overview.ts', () => {
   beforeEach(() => {
@@ -24,7 +9,7 @@ describe('PS-06: customers/overview.ts', () => {
   });
 
   it('lança CUSTOMER_NOT_FOUND quando cliente não existe', async () => {
-    const fakeClient = makeQueryClient(() => ({ rows: [], rowCount: 0 }));
+    const fakeClient = mockPoolClient(() => ({ rows: [], rowCount: 0 }));
     vi.doMock('../../infra/db/pool.js', () => ({
       withTenant: vi.fn((_tenantId: string, fn: (c: typeof fakeClient) => unknown) => fn(fakeClient)),
     }));
@@ -40,7 +25,7 @@ describe('PS-06: customers/overview.ts', () => {
   });
 
   it('monta overview com veículos quando vertical=car_wash', async () => {
-    const fakeClient = makeQueryClient((sql) => {
+    const fakeClient = mockPoolClient((sql) => {
       if (sql.includes('FROM customers WHERE')) {
         return {
           rowCount: 1,
@@ -98,7 +83,7 @@ describe('PS-06: customers/overview.ts', () => {
   });
 
   it('overview sem veículos quando vertical!=car_wash', async () => {
-    const fakeClient = makeQueryClient((sql) => {
+    const fakeClient = mockPoolClient((sql) => {
       if (sql.includes('FROM customers WHERE')) {
         return {
           rowCount: 1,

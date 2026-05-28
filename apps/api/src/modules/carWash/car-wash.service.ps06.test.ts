@@ -1,23 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import type { PoolClient } from 'pg';
 import { AppError } from '../../shared/errors.js';
-
-type FakeRow = Record<string, unknown>;
-
-function makeQueryClient(
-  resolver: (sql: string, params?: unknown[]) => { rows?: FakeRow[]; rowCount?: number } | null | never,
-) {
-  return {
-    query: vi.fn(async (sql: string, params?: unknown[]) => {
-      const r = resolver(String(sql), params);
-      if (!r) return { rows: [], rowCount: 0 };
-      return {
-        rows: (r.rows ?? []) as FakeRow[],
-        rowCount: r.rowCount ?? (r.rows ? r.rows.length : 0),
-      };
-    }),
-  } satisfies Pick<PoolClient, 'query'>;
-}
+import { mockPoolClient } from '../../test-utils/mockPoolClient.js';
 
 describe('PS-06: carWash/service.ts', () => {
   beforeEach(() => {
@@ -37,7 +20,7 @@ describe('PS-06: carWash/service.ts', () => {
   });
 
   it('createCarWashJobInTransaction insere job e escreve audit', async () => {
-    const fakeClient = makeQueryClient((sql) => {
+    const fakeClient = mockPoolClient((sql) => {
       if (sql.includes('INSERT INTO car_wash_jobs')) {
         return {
           rowCount: 1,
@@ -71,7 +54,7 @@ describe('PS-06: carWash/service.ts', () => {
   });
 
   it('listCarWashJobs cobre filtros: default stage (BOARD_STAGES) + pagination', async () => {
-    const fakeClient = makeQueryClient((sql) => {
+    const fakeClient = mockPoolClient((sql) => {
       if (sql.includes('SELECT j.id') && sql.includes('FROM car_wash_jobs j')) {
         return {
           rowCount: 1,
@@ -95,7 +78,7 @@ describe('PS-06: carWash/service.ts', () => {
   });
 
   it('applyCarWashJobAction arrive: valida checklist e atualiza status para checked_in', async () => {
-    const fakeClient = makeQueryClient((sql) => {
+    const fakeClient = mockPoolClient((sql) => {
       if (sql.includes('FROM car_wash_jobs j') && sql.includes('FOR UPDATE OF j, a')) {
         return {
           rowCount: 1,
@@ -106,7 +89,6 @@ describe('PS-06: carWash/service.ts', () => {
               appointment_id: 'appt-1',
               appointment_status: 'confirmed',
               customer_id: 'cust-1',
-              appointment_status: 'confirmed',
             },
           ],
         };
@@ -163,7 +145,7 @@ describe('PS-06: carWash/service.ts', () => {
     const enqueueCarWashReadyNotification = vi.fn().mockResolvedValue({ inserted: true });
     const updateReadyNotified = vi.fn();
 
-    const fakeClient = makeQueryClient((sql) => {
+    const fakeClient = mockPoolClient((sql) => {
       if (sql.includes('FOR UPDATE OF j, a')) {
         return {
           rowCount: 1,
@@ -227,7 +209,7 @@ describe('PS-06: carWash/service.ts', () => {
     const cancelAllPendingNotificationJobsForAppointment = vi.fn();
     const writeAppointmentEvent = vi.fn();
 
-    const fakeClient = makeQueryClient((sql) => {
+    const fakeClient = mockPoolClient((sql) => {
       if (sql.includes('FOR UPDATE OF j, a')) {
         return {
           rowCount: 1,
@@ -287,7 +269,7 @@ describe('PS-06: carWash/service.ts', () => {
   });
 
   it('createCarWashChecklist lança CHECKLIST_ALREADY_EXISTS quando INSERT falha com 23505', async () => {
-    const fakeClient = makeQueryClient((sql) => {
+    const fakeClient = mockPoolClient((sql) => {
       if (sql.includes('FOR UPDATE OF j, a')) {
         return { rowCount: 1, rows: [{ appointment_id: 'appt-1', id: 'job-1', stage: 'scheduled', appointment_status: 'confirmed', customer_id: 'cust-1' }] };
       }
@@ -329,7 +311,7 @@ describe('PS-06: carWash/service.ts', () => {
     const enqueueCarWashReadyNotification = vi.fn().mockResolvedValue({ inserted: false, skipped: 'SKIP_NO_ROUTING' });
     const updateReadyNotified = vi.fn();
 
-    const fakeClient = makeQueryClient((sql) => {
+    const fakeClient = mockPoolClient((sql) => {
       if (sql.includes('FOR UPDATE OF j, a')) {
         return {
           rowCount: 1,
@@ -387,7 +369,7 @@ describe('PS-06: carWash/service.ts', () => {
   });
 
   it('applyCarWashJobAction arrive lança CHECKLIST_REQUIRED quando checklist não existe', async () => {
-    const fakeClient = makeQueryClient((sql) => {
+    const fakeClient = mockPoolClient((sql) => {
       if (sql.includes('FROM car_wash_jobs j') && sql.includes('FOR UPDATE OF j, a')) {
         return {
           rowCount: 1,
@@ -437,7 +419,7 @@ describe('PS-06: carWash/service.ts', () => {
 
   it('applyCarWashJobAction cancel chama cancelAppointmentInDb', async () => {
     const cancelAppointmentInDb = vi.fn();
-    const fakeClient = makeQueryClient((sql) => {
+    const fakeClient = mockPoolClient((sql) => {
       if (sql.includes('FOR UPDATE OF j, a')) {
         return {
           rowCount: 1,
@@ -486,7 +468,7 @@ describe('PS-06: carWash/service.ts', () => {
   });
 
   it('createCarWashChecklist feliz (insert ok) retorna checklist row', async () => {
-    const fakeClient = makeQueryClient((sql) => {
+    const fakeClient = mockPoolClient((sql) => {
       if (sql.includes('FOR UPDATE OF j, a')) {
         return {
           rowCount: 1,
