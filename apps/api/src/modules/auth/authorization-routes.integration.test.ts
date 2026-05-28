@@ -1,6 +1,6 @@
 import Fastify from 'fastify';
 import jwt from '@fastify/jwt';
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { tenantMiddleware } from '../../middlewares/tenant.js';
 import { appointmentRoutes } from '../appointments/routes.js';
 import { availabilityRoutes } from '../availability/routes.js';
@@ -49,6 +49,10 @@ describe('authorization by endpoint policies', () => {
 
   afterAll(async () => {
     await app.close();
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
   it('allows viewer to read single appointment', async () => {

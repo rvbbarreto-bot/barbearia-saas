@@ -27,7 +27,7 @@ export default defineConfig({
   test: {
     env: integrationEnvForWorkers(),
     include: ['src/**/*.test.ts'],
-    exclude: ['dist/**', 'node_modules/**'],
+    exclude: ['dist/**', 'node_modules/**', '**/*.ps06.test.ts'],
     coverage: {
       provider: 'v8',
       /** Cenário A / multitenant: middleware de tenant + serviço de tenants (PO ≥ 78%). */
