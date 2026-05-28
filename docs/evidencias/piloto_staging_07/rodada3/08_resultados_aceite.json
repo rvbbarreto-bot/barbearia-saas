@@ -1,0 +1,328 @@
+{
+    "executed_at":  "2026-05-26T03:28:36.8403506Z",
+    "totals":  {
+                   "N_A":  0,
+                   "OK":  26,
+                   "FAIL":  0
+               },
+    "rodada":  3,
+    "script":  "scripts/qa-piloto-staging-07-rodada3.ps1",
+    "base_url":  "http://localhost:3000",
+    "tenant_id":  "00000000-0000-0000-0000-000000000001",
+    "cases":  [
+                  {
+                      "expected":  "200",
+                      "id":  "R3-000",
+                      "actual":  "HTTP 200",
+                      "status":  "OK",
+                      "steps":  [
+                                    "GET /health/ready"
+                                ],
+                      "area":  "Health ready",
+                      "evidence":  "",
+                      "defect":  ""
+                  },
+                  {
+                      "expected":  "403",
+                      "id":  "F08",
+                      "actual":  "HTTP 403 via revalidate-f08-gap01.ps1",
+                      "status":  "OK",
+                      "steps":  [
+                                    "fred.barbeiro POST"
+                                ],
+                      "area":  "RBAC professional POST /appointments",
+                      "evidence":  "",
+                      "defect":  ""
+                  },
+                  {
+                      "expected":  "201",
+                      "id":  "F01",
+                      "actual":  "HTTP 201",
+                      "status":  "OK",
+                      "steps":  [
+                                    "POST /appointments"
+                                ],
+                      "area":  "Criar appointment",
+                      "evidence":  "",
+                      "defect":  ""
+                  },
+                  {
+                      "expected":  "200",
+                      "id":  "F02a",
+                      "actual":  "HTTP 200",
+                      "status":  "OK",
+                      "steps":  [
+                                    "PATCH confirm"
+                                ],
+                      "area":  "Confirm",
+                      "evidence":  "",
+                      "defect":  ""
+                  },
+                  {
+                      "expected":  "200",
+                      "id":  "F02b",
+                      "actual":  "HTTP 200",
+                      "status":  "OK",
+                      "steps":  [
+                                    "PATCH check-in"
+                                ],
+                      "area":  "Check-in",
+                      "evidence":  "",
+                      "defect":  ""
+                  },
+                  {
+                      "expected":  "200",
+                      "id":  "F02c",
+                      "actual":  "HTTP 200",
+                      "status":  "OK",
+                      "steps":  [
+                                    "PATCH start"
+                                ],
+                      "area":  "Start",
+                      "evidence":  "",
+                      "defect":  ""
+                  },
+                  {
+                      "expected":  "200",
+                      "id":  "F02d",
+                      "actual":  "HTTP 200",
+                      "status":  "OK",
+                      "steps":  [
+                                    "PATCH complete"
+                                ],
+                      "area":  "Complete professional",
+                      "evidence":  "",
+                      "defect":  ""
+                  },
+                  {
+                      "expected":  "422",
+                      "id":  "F06",
+                      "actual":  "HTTP 422",
+                      "status":  "OK",
+                      "steps":  [
+                                    "POST past"
+                                ],
+                      "area":  "Data passada",
+                      "evidence":  "",
+                      "defect":  ""
+                  },
+                  {
+                      "expected":  "409",
+                      "id":  "F07",
+                      "actual":  "HTTP 409",
+                      "status":  "OK",
+                      "steps":  [
+                                    "POST mesmo slot"
+                                ],
+                      "area":  "Conflito slot",
+                      "evidence":  "",
+                      "defect":  ""
+                  },
+                  {
+                      "expected":  "201",
+                      "id":  "F03",
+                      "actual":  "HTTP 201",
+                      "status":  "OK",
+                      "steps":  [
+                                    "POST portal-token"
+                                ],
+                      "area":  "Portal token",
+                      "evidence":  "",
+                      "defect":  ""
+                  },
+                  {
+                      "expected":  "200",
+                      "id":  "F04",
+                      "actual":  "HTTP 200",
+                      "status":  "OK",
+                      "steps":  [
+                                    "GET public portal"
+                                ],
+                      "area":  "Portal GET pÃºblico",
+                      "evidence":  "",
+                      "defect":  ""
+                  },
+                  {
+                      "expected":  "200",
+                      "id":  "F05",
+                      "actual":  "HTTP 200",
+                      "status":  "OK",
+                      "steps":  [
+                                    "POST confirm"
+                                ],
+                      "area":  "Portal confirm",
+                      "evidence":  "",
+                      "defect":  ""
+                  },
+                  {
+                      "expected":  "201",
+                      "id":  "F09",
+                      "actual":  "HTTP 201",
+                      "status":  "OK",
+                      "steps":  [
+                                    "POST customer"
+                                ],
+                      "area":  "CRUD cliente",
+                      "evidence":  "",
+                      "defect":  ""
+                  },
+                  {
+                      "expected":  "404",
+                      "id":  "F11",
+                      "actual":  "HTTP 404",
+                      "status":  "OK",
+                      "steps":  [
+                                    "GET invalid token"
+                                ],
+                      "area":  "Portal token invÃ¡lido",
+                      "evidence":  "",
+                      "defect":  ""
+                  },
+                  {
+                      "expected":  "200 + car_wash",
+                      "id":  "C07",
+                      "actual":  "HTTP 200 car_wash OK",
+                      "status":  "OK",
+                      "steps":  [
+                                    "SQL tenant_settings",
+                                    "GET /tenant-settings/vertical"
+                                ],
+                      "area":  "Vertical car_wash",
+                      "evidence":  "",
+                      "defect":  ""
+                  },
+                  {
+                      "expected":  "201",
+                      "id":  "C08",
+                      "actual":  "HTTP 201",
+                      "status":  "OK",
+                      "steps":  [
+                                    "POST /vehicles"
+                                ],
+                      "area":  "Cadastrar veÃ­culo",
+                      "evidence":  "",
+                      "defect":  ""
+                  },
+                  {
+                      "expected":  "400 ou 422",
+                      "id":  "C09",
+                      "actual":  "HTTP 400",
+                      "status":  "OK",
+                      "steps":  [
+                                    "POST sem plate"
+                                ],
+                      "area":  "VeÃ­culo sem placa",
+                      "evidence":  "",
+                      "defect":  ""
+                  },
+                  {
+                      "expected":  "409",
+                      "id":  "C10",
+                      "actual":  "HTTP 409",
+                      "status":  "OK",
+                      "steps":  [
+                                    "POST duplicate plate"
+                                ],
+                      "area":  "Placa duplicada",
+                      "evidence":  "",
+                      "defect":  ""
+                  },
+                  {
+                      "expected":  "201",
+                      "id":  "C11",
+                      "actual":  "HTTP 201",
+                      "status":  "OK",
+                      "steps":  [
+                                    "POST appointment+vehicle"
+                                ],
+                      "area":  "Appointment com veiculo",
+                      "evidence":  "",
+                      "defect":  ""
+                  },
+                  {
+                      "expected":  "422",
+                      "id":  "C12",
+                      "actual":  "HTTP 422",
+                      "status":  "OK",
+                      "steps":  [
+                                    "POST sem vehicle"
+                                ],
+                      "area":  "Sem vehicle_id",
+                      "evidence":  "",
+                      "defect":  ""
+                  },
+                  {
+                      "expected":  "200",
+                      "id":  "C13",
+                      "actual":  "HTTP 200",
+                      "status":  "OK",
+                      "steps":  [
+                                    "GET /car-wash/jobs"
+                                ],
+                      "area":  "Listar jobs",
+                      "evidence":  "",
+                      "defect":  ""
+                  },
+                  {
+                      "expected":  "201",
+                      "id":  "C14",
+                      "actual":  "HTTP 201",
+                      "status":  "OK",
+                      "steps":  [
+                                    "POST checklist"
+                                ],
+                      "area":  "Checklist",
+                      "evidence":  "",
+                      "defect":  ""
+                  },
+                  {
+                      "expected":  "200",
+                      "id":  "C15a",
+                      "actual":  "HTTP 200",
+                      "status":  "OK",
+                      "steps":  [
+                                    "PATCH arrive"
+                                ],
+                      "area":  "Arrive",
+                      "evidence":  "",
+                      "defect":  ""
+                  },
+                  {
+                      "expected":  "200",
+                      "id":  "C15b",
+                      "actual":  "HTTP 200",
+                      "status":  "OK",
+                      "steps":  [
+                                    "PATCH start"
+                                ],
+                      "area":  "Start wash",
+                      "evidence":  "",
+                      "defect":  ""
+                  },
+                  {
+                      "expected":  "200",
+                      "id":  "C16",
+                      "actual":  "HTTP 200",
+                      "status":  "OK",
+                      "steps":  [
+                                    "quality-check",
+                                    "ready"
+                                ],
+                      "area":  "Ready",
+                      "evidence":  "",
+                      "defect":  ""
+                  },
+                  {
+                      "expected":  "200",
+                      "id":  "C17",
+                      "actual":  "HTTP 200",
+                      "status":  "OK",
+                      "steps":  [
+                                    "PATCH deliver"
+                                ],
+                      "area":  "Deliver",
+                      "evidence":  "",
+                      "defect":  ""
+                  }
+              ]
+}

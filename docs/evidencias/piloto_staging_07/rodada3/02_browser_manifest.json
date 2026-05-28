@@ -1,0 +1,72 @@
+﻿{
+    "generated_at":  "2026-05-19T20:35:00.000Z",
+    "web_base":  "http://localhost:5173",
+    "api_base":  "http://localhost:3000",
+    "portal_valid":  "http://localhost:5173/portal/H1hUJHItZDhFMY57PeMOZu2Wcib8navxsxD6DIZbtZw",
+    "portal_invalid":  "http://localhost:5173/portal/token-invalido-qa-staging07",
+    "routes_manual":  [
+                          {
+                              "print":  "P07_01_login_admin.png",
+                              "url":  "http://localhost:5173/login",
+                              "user":  "admin@demo.local"
+                          },
+                          {
+                              "print":  "P07_02_agenda_barbearia.png",
+                              "url":  "http://localhost:5173/agenda"
+                          },
+                          {
+                              "print":  "P07_04_dashboard_gestao.png",
+                              "url":  "http://localhost:5173/gestao/dashboard"
+                          },
+                          {
+                              "print":  "P07_03_cliente_360.png",
+                              "url":  "http://localhost:5173/clientes"
+                          },
+                          {
+                              "print":  "P07_09_outbox.png",
+                              "url":  "http://localhost:5173/operacao/mensagens"
+                          },
+                          {
+                              "print":  "P07_10_auditoria.png",
+                              "url":  "http://localhost:5173/operacao/auditoria"
+                          },
+                          {
+                              "print":  "P07_14_portal_token_valido.png",
+                              "url":  "http://localhost:5173/portal/H1hUJHItZDhFMY57PeMOZu2Wcib8navxsxD6DIZbtZw"
+                          },
+                          {
+                              "print":  "P07_15_portal_token_invalido.png",
+                              "url":  "http://localhost:5173/portal/token-invalido-qa-staging07"
+                          },
+                          {
+                              "print":  "P07_18_forbidden.png",
+                              "url":  "http://localhost:5173/gestao/dashboard",
+                              "user":  "atendente@demo.local"
+                          },
+                          {
+                              "print":  "P07_05_veiculos.png",
+                              "url":  "http://localhost:5173/veiculos",
+                              "note":  "vertical car_wash"
+                          },
+                          {
+                              "print":  "P07_06_agenda_lava_rapido_veiculo.png",
+                              "url":  "http://localhost:5173/agenda",
+                              "note":  "data 2026-06-16"
+                          },
+                          {
+                              "print":  "P07_07_patio_lava_rapido.png",
+                              "url":  "http://localhost:5173/operacao/lava-rapido",
+                              "note":  "data 2026-06-16"
+                          },
+                          {
+                              "print":  "P07_08_checklist_lava_rapido.png",
+                              "url":  "http://localhost:5173/operacao/lava-rapido",
+                              "note":  "modal checklist entrada"
+                          },
+                          {
+                              "print":  "P07_16_n8n.png",
+                              "url":  "http://localhost:5679",
+                              "note":  "BLOCKED ate docker n8n up"
+                          }
+                      ]
+}

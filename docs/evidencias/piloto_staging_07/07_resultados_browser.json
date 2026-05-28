@@ -1,0 +1,174 @@
+{
+  "executed_at": "2026-05-18T20:31:02.935Z",
+  "base_url": "http://localhost:3001",
+  "totals": {
+    "OK": 22,
+    "FAIL": 0,
+    "PEND": 1,
+    "BLOCKED": 0,
+    "N_A": 0
+  },
+  "results": [
+    {
+      "id": "C01",
+      "scenario": "Login admin + menu gestão",
+      "status": "OK",
+      "note": "",
+      "evidence": "P07_01_login_admin.png"
+    },
+    {
+      "id": "C02",
+      "scenario": "Login senha inválida",
+      "status": "OK",
+      "note": "E-mail ou senha incorretos.",
+      "evidence": "P07_01b_login_invalido.png"
+    },
+    {
+      "id": "C03",
+      "scenario": "Atendente /gestao/dashboard → forbidden",
+      "status": "OK",
+      "note": "http://localhost:3001/forbidden",
+      "evidence": "P07_18_forbidden_attendant.png"
+    },
+    {
+      "id": "C04",
+      "scenario": "Atendente menu sem Serviços",
+      "status": "OK",
+      "note": "Serviços visível=false",
+      "evidence": "P07_18b_menu_attendant.png"
+    },
+    {
+      "id": "C05",
+      "scenario": "Profissional sem botão Novo agendamento",
+      "status": "OK",
+      "note": "botão=false",
+      "evidence": "P07_02b_agenda_professional.png"
+    },
+    {
+      "id": "C06",
+      "scenario": "Admin abre modal Novo Agendamento",
+      "status": "OK",
+      "note": "",
+      "evidence": "P07_02_agenda_modal.png"
+    },
+    {
+      "id": "C07",
+      "scenario": "CRUD Cliente — criar (attendant)",
+      "status": "OK",
+      "note": "5511988231717",
+      "evidence": "P07_03_clientes_create.png"
+    },
+    {
+      "id": "C08",
+      "scenario": "Cliente 360 — navegação",
+      "status": "OK",
+      "note": "http://localhost:3001/clientes/00000000-0000-4000-8000-000000004032/360",
+      "evidence": "P07_03_cliente_360.png"
+    },
+    {
+      "id": "C09",
+      "scenario": "Serviços — botão Novo (owner)",
+      "status": "OK",
+      "note": "",
+      "evidence": "P07_servicos_owner.png"
+    },
+    {
+      "id": "C10",
+      "scenario": "Profissionais — listagem",
+      "status": "OK",
+      "note": "",
+      "evidence": "P07_profissionais.png"
+    },
+    {
+      "id": "C11",
+      "scenario": "Dashboard gestão (owner)",
+      "status": "OK",
+      "note": "http://localhost:3001/gestao/dashboard | Barbearia\nDashboard\nAgenda\nConversas\nCli",
+      "evidence": "P07_04_dashboard_gestao.png"
+    },
+    {
+      "id": "C12",
+      "scenario": "Financeiro (owner)",
+      "status": "OK",
+      "note": "",
+      "evidence": "P07_11_financeiro.png"
+    },
+    {
+      "id": "C13",
+      "scenario": "Comissões (owner)",
+      "status": "OK",
+      "note": "",
+      "evidence": "P07_12_comissao.png"
+    },
+    {
+      "id": "C14",
+      "scenario": "Outbox mensagens (attendant)",
+      "status": "OK",
+      "note": "",
+      "evidence": "P07_09_outbox.png"
+    },
+    {
+      "id": "C15",
+      "scenario": "Auditoria operacional (owner)",
+      "status": "OK",
+      "note": "",
+      "evidence": "P07_10_auditoria.png"
+    },
+    {
+      "id": "C16",
+      "scenario": "Audit logs tenant (owner)",
+      "status": "OK",
+      "note": "",
+      "evidence": "P07_auditoria_tenant.png"
+    },
+    {
+      "id": "C17",
+      "scenario": "Lista de espera (attendant)",
+      "status": "OK",
+      "note": "",
+      "evidence": "P07_13_waitlist.png"
+    },
+    {
+      "id": "C18",
+      "scenario": "Conversas/tickets (attendant)",
+      "status": "OK",
+      "note": "",
+      "evidence": "P07_conversas.png"
+    },
+    {
+      "id": "C19",
+      "scenario": "Configurações (owner)",
+      "status": "OK",
+      "note": "",
+      "evidence": "P07_configuracoes.png"
+    },
+    {
+      "id": "C20",
+      "scenario": "Atendente /servicos → forbidden",
+      "status": "OK",
+      "note": "http://localhost:3001/forbidden",
+      "evidence": "P07_18_forbidden_servicos.png"
+    },
+    {
+      "id": "C21",
+      "scenario": "Veículos (car_wash)",
+      "status": "OK",
+      "note": "",
+      "evidence": "P07_05_veiculos.png"
+    },
+    {
+      "id": "C22",
+      "scenario": "Portal token inválido",
+      "status": "OK",
+      "note": "Não foi possível abrir\n\nrelation \"appointment_portal_tokens\" does not exist",
+      "evidence": "P07_15_portal_token_invalido.png"
+    },
+    {
+      "id": "C23",
+      "scenario": "Agendamento E2E completo",
+      "status": "PEND",
+      "note": "Wizard parcial — validar slot manualmente",
+      "evidence": "P07_02_agenda_wizard_partial.png"
+    }
+  ]
+}

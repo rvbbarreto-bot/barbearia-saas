@@ -15,7 +15,7 @@
 | Base `piloto-staging-01` | OK no PR #12 |
 | Prints / evidências visuais | Pendente PO |
 
-**Decisão reunião:** merge PR #12 em `piloto-staging-01`? (sim/não/condicionado)
+**Decisão reunião (2026-05-19):** merge PR #12 **condicionado** — após GAP-01 fechado + F08 PASS em Docker.
 
 ---
 
@@ -118,8 +118,8 @@
 
 | Pergunta | Decisão |
 |----------|---------|
-| Merge PR #12 agora? | ☐ Sim ☐ Não ☐ Condicionado: __________ |
-| Escopo staging 07 aprovado? | ☐ Sim ☐ Ajustar: __________ |
-| Data alvo homologação? | __________ |
+| Merge PR #12 agora? | ☑ Condicionado → **Rodada 3 API OK** (2026-05-19); prints BDD pendentes |
+| Escopo staging 07 aprovado? | ☑ Sim |
+| Data alvo homologação? | Após prints `rodada3/prints/` + CI |
 
 **Participantes:** PO __ · Tech Lead __ · GP __ · Data __
