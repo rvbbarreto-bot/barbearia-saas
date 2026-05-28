@@ -10,7 +10,8 @@
     "lint": "npm exec eslint -- src",
     "test": "vitest run",
     "test:unit": "vitest run --exclude 'src/**/*.integration.test.ts'",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "test:coverage:ps06": "vitest run --coverage --config vitest.ps06.config.ts"
   },
   "dependencies": {
     "@fastify/cors": "11.2.0",

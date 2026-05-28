@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createChecklistSchema, createVehicleSchema } from './schemas.js';
+import { createChecklistSchema, createVehicleSchema, updateVehicleSchema } from './schemas.js';
 
 describe('createVehicleSchema', () => {
   it('exige placa', () => {
@@ -49,6 +49,23 @@ describe('createChecklistSchema', () => {
         wheel_damage: false,
         interior_objects: 'Nenhum',
       },
+    });
+    expect(r.success).toBe(false);
+  });
+});
+
+describe('updateVehicleSchema', () => {
+  it('aceita atualização com plate válida', () => {
+    const r = updateVehicleSchema.safeParse({
+      plate: 'ABC1D23',
+      brand: 'Honda',
+    });
+    expect(r.success).toBe(true);
+  });
+
+  it('rejeita plate inválida quando enviada', () => {
+    const r = updateVehicleSchema.safeParse({
+      plate: 'XX',
     });
     expect(r.success).toBe(false);
   });

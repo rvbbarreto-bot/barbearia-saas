@@ -36,8 +36,23 @@ describe('rbac role checks', () => {
     expect(canAccess('attendant', 'appointments', 'create')).toBe(true);
   });
 
-  it('denies appointments noShow for professional (API alinhada ao balcão/gestão)', () => {
-    expect(canAccess('professional', 'appointments', 'noShow')).toBe(false);
+  it('denies balcão appointment actions for professional (GAP-01 — não herda attendant por nível)', () => {
+    const balcaoActions = [
+      'create',
+      'confirm',
+      'cancel',
+      'reschedule',
+      'checkIn',
+      'start',
+      'noShow',
+      'walkIn',
+    ] as const;
+    for (const action of balcaoActions) {
+      expect(canAccess('professional', 'appointments', action)).toBe(false);
+    }
+    expect(canAccess('professional', 'appointments', 'read')).toBe(true);
+    expect(canAccess('professional', 'appointments', 'complete')).toBe(true);
+    expect(canAccess('attendant', 'appointments', 'create')).toBe(true);
     expect(canAccess('attendant', 'appointments', 'noShow')).toBe(true);
     expect(canAccess('manager', 'appointments', 'noShow')).toBe(true);
     expect(canAccess('tenant_owner', 'appointments', 'noShow')).toBe(true);

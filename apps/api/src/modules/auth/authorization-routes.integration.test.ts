@@ -208,38 +208,53 @@ describe('authorization by endpoint policies', () => {
     );
   });
 
-  it('cancel como professional repassa professional_id no caller ao serviço', async () => {
-    mocks.cancelAppointment.mockResolvedValueOnce({ id: 'appt-cancelled', status: 'cancelled' });
-    const tenantId = '11111111-1111-4111-8111-111111111111';
-    const apptId = '11111111-1111-4111-8111-111111111116';
-    const profId = '11111111-1111-4111-8111-111111111199';
-    const sub = '11111111-1111-4111-8111-111111111122';
+  it('denies professional to create appointment (GAP-01 / F08)', async () => {
     const token = await app.jwt.sign({
-      sub,
-      tenant_id: tenantId,
+      sub: '11111111-1111-4111-8111-111111111122',
+      tenant_id: '11111111-1111-4111-8111-111111111111',
       role: 'professional',
-      professional_id: profId,
-      jti: 'r-cancel-prof',
+      professional_id: '11111111-1111-4111-8111-111111111199',
+      jti: 'r-prof-create-deny',
+    });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/appointments',
+      headers: { authorization: `Bearer ${token}` },
+      payload: {
+        customer_id: '11111111-1111-4111-8111-111111111112',
+        professional_id: '11111111-1111-4111-8111-111111111113',
+        service_id: '11111111-1111-4111-8111-111111111114',
+        starts_at: '2026-01-01T10:00:00.000Z',
+        ends_at: '2026-01-01T10:30:00.000Z',
+        source: 'api',
+        idempotency_key: 'idem-prof-deny-01',
+        explicit_confirmation: true,
+      },
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(mocks.createAppointment).not.toHaveBeenCalled();
+  });
+
+  it('denies professional to cancel appointment (balcão — matriz staging 07)', async () => {
+    const token = await app.jwt.sign({
+      sub: '11111111-1111-4111-8111-111111111122',
+      tenant_id: '11111111-1111-4111-8111-111111111111',
+      role: 'professional',
+      professional_id: '11111111-1111-4111-8111-111111111199',
+      jti: 'r-cancel-prof-deny',
     });
 
     const response = await app.inject({
       method: 'PATCH',
-      url: `/api/v1/appointments/${apptId}/cancel`,
+      url: '/api/v1/appointments/11111111-1111-4111-8111-111111111116/cancel',
       headers: { authorization: `Bearer ${token}` },
       payload: { reason: 'Cliente pediu cancelamento' },
     });
 
-    expect(response.statusCode).toBe(200);
-    expect(mocks.cancelAppointment).toHaveBeenCalledWith(
-      tenantId,
-      apptId,
-      { reason: 'Cliente pediu cancelamento' },
-      expect.objectContaining({
-        sub,
-        role: 'professional',
-        professional_id: profId,
-      }),
-    );
+    expect(response.statusCode).toBe(403);
+    expect(mocks.cancelAppointment).not.toHaveBeenCalled();
   });
 
   it('allows attendant to reschedule appointment', async () => {
