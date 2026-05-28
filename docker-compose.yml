@@ -152,7 +152,61 @@ services:
       start_period: 90s
     restart: unless-stopped
 
+  # ── Evolution API (WhatsApp) — profile opcional PS-08.4 ─────────────────────
+  # Subir: docker compose -f docker-compose.yml -f docker-compose.evolution-stack.yml --profile evolution up -d
+  # Ver: docs/PILOTO_STAGING_01_N8N.md · scripts/qa-evolution-up.ps1
+  evolution-postgres:
+    profiles: ["evolution"]
+    image: postgres:16-alpine
+    container_name: barbearia-evolution-postgres
+    environment:
+      POSTGRES_DB: ${EVOLUTION_POSTGRES_DB:-evolution}
+      POSTGRES_USER: ${EVOLUTION_POSTGRES_USER:-evolution}
+      POSTGRES_PASSWORD: ${EVOLUTION_POSTGRES_PASSWORD:?EVOLUTION_POSTGRES_PASSWORD is required when using profile evolution. Copy .env.example to .env}
+    volumes:
+      - evolution_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${EVOLUTION_POSTGRES_USER:-evolution} -d ${EVOLUTION_POSTGRES_DB:-evolution}"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+      start_period: 15s
+
+  evolution:
+    profiles: ["evolution"]
+    image: atendai/evolution-api:v2.2.3
+    container_name: barbearia-evolution
+    depends_on:
+      evolution-postgres:
+        condition: service_healthy
+    ports:
+      - "8081:8080"
+    environment:
+      SERVER_URL: ${EVOLUTION_SERVER_URL:-http://localhost:8081}
+      AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY:?EVOLUTION_API_KEY is required when using profile evolution}
+      DATABASE_ENABLED: "true"
+      DATABASE_PROVIDER: postgresql
+      DATABASE_CONNECTION_URI: postgresql://${EVOLUTION_POSTGRES_USER:-evolution}:${EVOLUTION_POSTGRES_PASSWORD}@evolution-postgres:5432/${EVOLUTION_POSTGRES_DB:-evolution}?schema=public
+      DATABASE_CONNECTION_CLIENT_NAME: barbearia_evolution_v2
+      CACHE_REDIS_ENABLED: "false"
+      CACHE_LOCAL_ENABLED: "true"
+    volumes:
+      - evolution_instances:/evolution/instances
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'node -e "require(\"http\").get(\"http://127.0.0.1:8080/\",r=>process.exit(r.statusCode&&r.statusCode<500?0:1)).on(\"error\",()=>process.exit(1));"',
+        ]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 90s
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   redis_data:
   n8n_data:
+  evolution_postgres_data:
+  evolution_instances:

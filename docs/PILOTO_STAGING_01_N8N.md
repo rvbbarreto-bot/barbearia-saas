@@ -14,6 +14,24 @@
 
 Referência: `.env.example` e `.env.staging.example`.
 
+## Evolution no Compose (profile — PS-08.4)
+
+Para subir Evolution em `http://localhost:8081` **sem** instalar no host:
+
+```powershell
+# .env: EVOLUTION_API_KEY, EVOLUTION_POSTGRES_PASSWORD, EVOLUTION_INSTANCE, QA_WHATSAPP_NUMBER
+.\scripts\qa-evolution-up.ps1
+docker compose -f docker-compose.yml -f docker-compose.evolution-stack.yml --profile evolution up -d --force-recreate api n8n
+.\scripts\qa-evolution-smoke.ps1
+```
+
+| Modo | Compose | `EVOLUTION_API_URL` nos containers api/n8n |
+|------|---------|---------------------------------------------|
+| Host manual | `docker-compose.evolution-local.yml` | `http://host.docker.internal:8081` |
+| Profile `evolution` | `docker-compose.evolution-stack.yml` | `http://evolution:8080` |
+
+Imagem pinada: `atendai/evolution-api:v2.2.3` (serviço opcional — não sobe em `docker compose up` sem `--profile evolution`).
+
 ## Recriar o n8n após alterar `.env`
 
 ```powershell

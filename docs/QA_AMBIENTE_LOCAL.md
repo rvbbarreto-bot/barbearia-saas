@@ -16,6 +16,7 @@ Este documento é a referência oficial para o time de QA (e DevOps) reproduzir 
 | **GET /database/health** (só Postgres)       | `http://localhost:3000/database/health`                                     | idem                                                                                          |
 | **Swagger / OpenAPI UI**                     | `http://localhost:3000/docs` (desativado se `NODE_ENV=production`)          | idem                                                                                          |
 | **n8n**                                      | `http://localhost:5679` — mapeamento `**5679` (host) → `5678` (container)** | Não aplicável sem Docker                                                                      |
+| **Evolution API** (opcional, PS-08.4)        | `http://localhost:8081` — `docker compose --profile evolution` + `qa-evolution-up.ps1` | Não aplicável sem profile evolution                                                           |
 
 
 **Esclarecimento importante:** `localhost:3001` **no Docker** é o **portal**, não a API. A API é sempre `**3000`** neste projeto.

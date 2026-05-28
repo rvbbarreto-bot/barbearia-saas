@@ -1,0 +1,16 @@
+# PS-08.4 — Evolution no Compose (rede interna).
+# Uso com profile evolution: API/n8n chamam o serviço `evolution` em vez de host.docker.internal.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.evolution-stack.yml --profile evolution up -d
+#   .\scripts\qa-evolution-up.ps1
+#
+# Evolution no host (sem container): use docker-compose.evolution-local.yml em vez deste ficheiro.
+
+services:
+  api:
+    environment:
+      EVOLUTION_API_URL: http://evolution:8080
+
+  n8n:
+    environment:
+      EVOLUTION_API_URL: http://evolution:8080
