@@ -1,5 +1,4 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { AppError } from '../../shared/errors.js';
 import { mockPoolClient } from '../../test-utils/mockPoolClient.js';
 
 describe('PS-06: portal/service.ts', () => {
