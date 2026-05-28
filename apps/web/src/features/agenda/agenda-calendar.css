@@ -1,0 +1,141 @@
+/**
+ * react-big-calendar — tema Barbearia SaaS (dark)
+ * Escopo: .agenda-calendar (não afeta outros módulos)
+ */
+
+.agenda-calendar {
+  --agenda-surface: oklch(0.18 0.06 245);
+  --agenda-grid: oklch(0.2 0.045 246);
+  --agenda-grid-alt: oklch(0.17 0.04 248);
+  --agenda-border: oklch(0.28 0.04 248);
+  --agenda-text: oklch(0.87 0 0);
+  --agenda-text-muted: oklch(0.72 0 0);
+  --agenda-today: oklch(0.79 0.12 183 / 0.12);
+  --agenda-now: oklch(0.79 0.12 183);
+  --agenda-gutter: oklch(0.16 0.05 245);
+}
+
+.agenda-calendar .rbc-calendar {
+  height: 100%;
+  background: var(--agenda-surface);
+  color: var(--agenda-text);
+  font-family: inherit;
+}
+
+/* Toolbar interno desligado na app; mantido para fallback */
+.agenda-calendar .rbc-toolbar {
+  display: none;
+}
+
+.agenda-calendar .rbc-time-view,
+.agenda-calendar .rbc-time-header,
+.agenda-calendar .rbc-time-content {
+  border-color: var(--agenda-border);
+}
+
+.agenda-calendar .rbc-time-header-content {
+  border-color: var(--agenda-border);
+}
+
+.agenda-calendar .rbc-header {
+  padding: 10px 8px;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  color: var(--agenda-text);
+  background: var(--agenda-gutter);
+  border-color: var(--agenda-border) !important;
+}
+
+.agenda-calendar .rbc-time-gutter,
+.agenda-calendar .rbc-time-header-gutter {
+  background: var(--agenda-gutter);
+}
+
+.agenda-calendar .rbc-label {
+  color: var(--agenda-text-muted);
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0 10px;
+}
+
+.agenda-calendar .rbc-time-content {
+  background: var(--agenda-grid);
+}
+
+.agenda-calendar .rbc-day-slot .rbc-time-slot {
+  border-top: 1px solid var(--agenda-border);
+}
+
+.agenda-calendar .rbc-timeslot-group {
+  border-color: var(--agenda-border);
+  min-height: 48px;
+}
+
+/* Faixas alternadas — leitura de horários */
+.agenda-calendar .rbc-day-slot .rbc-timeslot-group:nth-child(even) {
+  background: var(--agenda-grid-alt);
+}
+
+.agenda-calendar .rbc-today {
+  background: var(--agenda-today);
+}
+
+.agenda-calendar .rbc-current-time-indicator {
+  background-color: var(--agenda-now);
+  height: 2px;
+}
+
+.agenda-calendar .rbc-current-time-indicator::before {
+  background-color: var(--agenda-now);
+}
+
+.agenda-calendar .rbc-event {
+  border: 1px solid oklch(1 0 0 / 0.08);
+  box-shadow: 0 1px 3px oklch(0 0 0 / 0.25);
+}
+
+.agenda-calendar .rbc-event:focus {
+  outline: 2px solid var(--agenda-now);
+  outline-offset: 1px;
+}
+
+.agenda-calendar .rbc-event.rbc-selected {
+  box-shadow: 0 0 0 2px var(--agenda-now);
+}
+
+.agenda-calendar .rbc-show-more {
+  color: var(--agenda-now);
+  font-weight: 600;
+  background: transparent;
+}
+
+.agenda-calendar .rbc-overlay {
+  background: var(--agenda-surface);
+  border: 1px solid var(--agenda-border);
+  border-radius: 0.5rem;
+  box-shadow: 0 8px 24px oklch(0 0 0 / 0.4);
+  color: var(--agenda-text);
+}
+
+.agenda-calendar .rbc-overlay-header {
+  border-color: var(--agenda-border);
+  color: var(--agenda-text-muted);
+}
+
+/* Vista semana — colunas */
+.agenda-calendar .rbc-time-header.rbc-overflowing {
+  border-color: var(--agenda-border);
+}
+
+.agenda-calendar .rbc-allday-cell {
+  border-color: var(--agenda-border);
+  background: var(--agenda-gutter);
+}
+
+.agenda-calendar .rbc-off-range-bg {
+  background: oklch(0.14 0.03 248);
+}
+
+.agenda-calendar .rbc-time-view .rbc-row {
+  min-height: 20px;
+}

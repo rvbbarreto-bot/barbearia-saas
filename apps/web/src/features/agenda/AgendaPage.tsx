@@ -1,9 +1,8 @@
 import { useMemo, useState } from 'react';
 import { addDays, formatISO, startOfDay, startOfWeek } from 'date-fns';
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SkeletonRows } from '@/components/shared/SkeletonRows';
 import { hasMinRole } from '@/lib/rbac';
 import { useAuthStore } from '@/store/authStore';
@@ -14,24 +13,9 @@ import { AgendaCalendar } from './AgendaCalendar';
 import { NewAppointmentModal } from './NewAppointmentModal';
 import { AppointmentDrawer } from './AppointmentDrawer';
 import { BlockTimeModal } from './BlockTimeModal';
-import { Input } from '@/components/ui/input';
 import { buildAppointmentAlerts } from './appointmentAlerts';
 import { Badge } from '@/components/ui/badge';
-
-const STATUS_FILTER_OPTIONS: { value: string; label: string }[] = [
-  { value: 'all', label: 'Todos os status' },
-  { value: 'draft', label: 'Rascunho' },
-  { value: 'awaiting_confirmation', label: 'Aguardando confirmação' },
-  { value: 'confirmed', label: 'Confirmado' },
-  { value: 'awaiting_payment', label: 'Aguardando pagamento' },
-  { value: 'no_show_pending', label: 'Possível no-show' },
-  { value: 'checked_in', label: 'Check-in' },
-  { value: 'in_service', label: 'Em atendimento' },
-  { value: 'completed', label: 'Concluído' },
-  { value: 'cancelled', label: 'Cancelado' },
-  { value: 'no_show', label: 'No-show' },
-  { value: 'offered', label: 'Ofertado' },
-];
+import { AgendaFiltersBar } from './AgendaFiltersBar';
 
 /** Agenda operacional — dados via API; vista dia ou semana; filtros por profissional e status. */
 export function AgendaPage() {
@@ -160,100 +144,27 @@ export function AgendaPage() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center">
-        <div className="flex flex-wrap items-center gap-1">
-          <Button
-            variant="outline"
-            size="icon"
-            aria-label={calView === 'week' ? 'Semana anterior' : 'Dia anterior'}
-            onClick={() => setCalDate((d) => addDays(d, calView === 'week' ? -7 : -1))}
-          >
-            <ChevronLeft className="size-4" />
-          </Button>
-          <Input
-            type="date"
-            className="w-[160px]"
-            value={formatISO(calDate, { representation: 'date' })}
-            onChange={(e) => {
-              const v = e.target.value;
-              if (v) setCalDate(startOfDay(new Date(`${v}T12:00:00`)));
-            }}
-          />
-          <Button
-            variant="outline"
-            size="icon"
-            aria-label={calView === 'week' ? 'Próxima semana' : 'Próximo dia'}
-            onClick={() => setCalDate((d) => addDays(d, calView === 'week' ? 7 : 1))}
-          >
-            <ChevronRight className="size-4" />
-          </Button>
-          <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => setCalDate(startOfDay(new Date()))}>
-            Hoje
-          </Button>
-          <div className="ml-1 flex gap-0.5 rounded-md border p-0.5">
-            <Button
-              type="button"
-              size="sm"
-              variant={calView === 'day' ? 'secondary' : 'ghost'}
-              className="h-8 px-3"
-              onClick={() => setCalView('day')}
-            >
-              Dia
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant={calView === 'week' ? 'secondary' : 'ghost'}
-              className="h-8 px-3"
-              onClick={() => setCalView('week')}
-            >
-              Semana
-            </Button>
-          </div>
-        </div>
-
-        {lockedProfId ? (
-          <p className="text-sm text-muted-foreground">
-            A visualizar a <span className="font-medium text-foreground">sua agenda</span> (perfil profissional).
-          </p>
-        ) : (
-          <Select value={profFilter} onValueChange={setProfFilter}>
-            <SelectTrigger className="w-[220px]">
-              <SelectValue placeholder="Profissional" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os profissionais</SelectItem>
-              {profissionais.map((p) => (
-                <SelectItem key={p.id} value={p.id}>
-                  {p.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
-
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[220px]">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            {STATUS_FILTER_OPTIONS.map((o) => (
-              <SelectItem key={o.value} value={o.value}>
-                {o.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      <AgendaFiltersBar
+        calDate={calDate}
+        calView={calView}
+        profFilter={profFilter}
+        statusFilter={statusFilter}
+        profissionais={profissionais}
+        lockedProfId={lockedProfId}
+        onDateChange={setCalDate}
+        onViewChange={setCalView}
+        onProfFilterChange={setProfFilter}
+        onStatusFilterChange={setStatusFilter}
+      />
 
       {appointments.some((a) => (alertSummary.get(a.id)?.length ?? 0) > 0) && (
-        <div className="flex flex-wrap gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm dark:border-amber-900/40 dark:bg-amber-950/30">
-          <span className="font-medium text-amber-900 dark:text-amber-100">
+        <div className="flex flex-wrap gap-2 rounded-lg border border-amber-500/30 bg-amber-950/40 px-3 py-2 text-sm">
+          <span className="font-medium text-amber-100">
             Alertas {calView === 'week' ? 'no período' : 'no dia'}:
           </span>
           {appointments.flatMap((a) =>
             (alertSummary.get(a.id) ?? []).map((msg, i) => (
-              <Badge key={`${a.id}-${i}`} variant="outline" className="border-amber-400 text-amber-950 dark:text-amber-50">
+              <Badge key={`${a.id}-${i}`} variant="outline" className="border-amber-500/50 text-amber-50">
                 {a.customer_name ?? 'Cliente'} — {msg}
               </Badge>
             )),

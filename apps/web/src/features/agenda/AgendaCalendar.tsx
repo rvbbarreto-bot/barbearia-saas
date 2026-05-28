@@ -3,6 +3,7 @@ import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
+import './agenda-calendar.css';
 import type { Appointment, AppointmentStatus, CalendarBlock } from '@/types/api';
 
 const localizer = dateFnsLocalizer({
@@ -13,17 +14,31 @@ const localizer = dateFnsLocalizer({
   locales: { 'pt-BR': ptBR },
 });
 
+/** Cores alinhadas ao tema escuro — contraste AA em fundo navy */
 const STATUS_COLOR: Partial<Record<AppointmentStatus, string>> = {
-  awaiting_confirmation: '#94a3b8',
-  confirmed: '#3b82f6',
-  completed: '#22c55e',
-  cancelled: '#ef4444',
-  no_show: '#f97316',
-  offered: '#a855f7',
-  awaiting_payment: '#eab308',
-  no_show_pending: '#fb923c',
-  checked_in: '#0ea5e9',
-  in_service: '#16a34a',
+  awaiting_confirmation: '#64748b',
+  confirmed: '#38bdf8',
+  completed: '#4ade80',
+  cancelled: '#f87171',
+  no_show: '#fb923c',
+  offered: '#c084fc',
+  awaiting_payment: '#facc15',
+  no_show_pending: '#fdba74',
+  checked_in: '#22d3ee',
+  in_service: '#2dd4bf',
+};
+
+const STATUS_LABEL: Partial<Record<AppointmentStatus, string>> = {
+  awaiting_confirmation: 'Aguard. conf.',
+  confirmed: 'Confirmado',
+  completed: 'Concluído',
+  cancelled: 'Cancelado',
+  no_show: 'No-show',
+  offered: 'Ofertado',
+  awaiting_payment: 'Aguard. pag.',
+  no_show_pending: 'Poss. no-show',
+  checked_in: 'Check-in',
+  in_service: 'Em atendimento',
 };
 
 const BLOCK_COLOR = '#64748b';
@@ -117,8 +132,41 @@ export function AgendaCalendar({
   const view = calendarView === 'week' ? Views.WEEK : Views.DAY;
   const views = calendarView === 'week' ? { week: true } : { day: true };
 
+  const legendStatuses = (
+    [
+      'confirmed',
+      'awaiting_confirmation',
+      'checked_in',
+      'in_service',
+      'completed',
+      'cancelled',
+      'no_show',
+    ] as AppointmentStatus[]
+  ).filter((s) => STATUS_COLOR[s]);
+
   return (
-    <div className="rbc-wrapper h-[720px] rounded-xl border bg-card p-4 shadow-sm">
+    <div className="agenda-calendar rbc-wrapper flex flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-sm">
+      <div
+        className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-border pb-3 text-xs text-muted-foreground"
+        aria-label="Legenda de status dos agendamentos"
+      >
+        <span className="font-medium text-foreground">Legenda:</span>
+        {legendStatuses.map((st) => (
+          <span key={st} className="inline-flex items-center gap-1.5">
+            <span
+              className="size-2.5 shrink-0 rounded-sm"
+              style={{ backgroundColor: STATUS_COLOR[st] }}
+              aria-hidden
+            />
+            {STATUS_LABEL[st] ?? st}
+          </span>
+        ))}
+        <span className="inline-flex items-center gap-1.5">
+          <span className="size-2.5 shrink-0 rounded-sm bg-slate-500" aria-hidden />
+          Bloqueio
+        </span>
+      </div>
+      <div className="h-[min(720px,calc(100vh-16rem))] min-h-[480px]">
       <Calendar
         localizer={localizer}
         events={events}
@@ -127,7 +175,7 @@ export function AgendaCalendar({
         views={views}
         onNavigate={onNavigate}
         onView={() => {}}
-        toolbar
+        toolbar={false}
         onSelectEvent={(e) => {
           const ev = e as CalendarEvent;
           if (ev.resource.kind === 'appointment') onSelectAppointment(ev.resource.appointment);
@@ -146,6 +194,7 @@ export function AgendaCalendar({
           noEventsInRange: 'Nenhum evento neste período.',
         }}
       />
+      </div>
     </div>
   );
 }
