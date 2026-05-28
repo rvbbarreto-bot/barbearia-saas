@@ -271,6 +271,21 @@ export interface AuditLogRow {
   created_at: string;
 }
 
+export interface OperationalAuditEventRow {
+  id: string;
+  tenant_id: string;
+  entity_type: string;
+  entity_id: string | null;
+  event_type: string;
+  actor_user_id: string | null;
+  actor_role: string | null;
+  source: string | null;
+  request_id: string | null;
+  correlation_id: string | null;
+  metadata: Record<string, unknown> | null;
+  created_at: string;
+}
+
 // ─── Waitlist ─────────────────────────────────────────────────────────────────
 
 export interface WaitlistEntry {
@@ -332,6 +347,15 @@ export interface OutboxMessageRow {
   destination: string | null;
   payload_summary: { type: string | null; preview: string | null };
   last_error: string | null;
+  error_class:
+    | 'auth'
+    | 'network'
+    | 'timeout'
+    | 'provider'
+    | 'duplicate'
+    | 'not_found'
+    | 'other'
+    | null;
   attempts: number;
   max_attempts: number;
   correlation_id: string | null;

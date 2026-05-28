@@ -110,6 +110,14 @@ VALUES
     '$2b$10$yeVnSfPaHFmBAG3wrKlGFe5p64O0yYj3SU5nIrsCfUngqp/hcocba',
     'attendant',
     true
+  ),
+  (
+    '00000000-0000-0000-0000-000000000001',
+    'Viewer Demo',
+    'viewer@demo.local',
+    '$2b$10$yeVnSfPaHFmBAG3wrKlGFe5p64O0yYj3SU5nIrsCfUngqp/hcocba',
+    'viewer',
+    true
   )
 ON CONFLICT (tenant_id, email) DO UPDATE
 SET

@@ -1,4 +1,5 @@
 import type { PoolClient } from 'pg';
+import { runSweepSafely } from '../../infra/workers/safe-sweep.js';
 import { pool, withTenant } from '../../infra/db/pool.js';
 import { pickOperationalFromSettingsJson } from '../tenantOperational/settings-merge.js';
 import { refreshCustomerRestrictionsAfterNoShow } from './customer-restrictions.service.js';
@@ -41,7 +42,7 @@ async function applyLatenessForTenant(client: PoolClient, tenantId: string): Pro
   }
 }
 
-export async function runLatenessSweepOnce(): Promise<void> {
+async function runLatenessSweep(): Promise<void> {
   const tenants = await pool.query(`SELECT id FROM tenants WHERE status IN ('trial', 'active')`);
   for (const row of tenants.rows as { id: string }[]) {
     try {
@@ -50,6 +51,10 @@ export async function runLatenessSweepOnce(): Promise<void> {
       console.error('[lateness-worker] tenant sweep failed', { tenant_id: row.id, err });
     }
   }
+}
+
+export async function runLatenessSweepOnce(): Promise<void> {
+  await runSweepSafely('lateness-worker', runLatenessSweep);
 }
 
 let latenessTimer: ReturnType<typeof setInterval> | undefined;

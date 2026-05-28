@@ -1,7 +1,8 @@
+import { runSweepSafely } from '../../infra/workers/safe-sweep.js';
 import { pool } from '../../infra/db/pool.js';
 import { expireStaleAppointmentHolds } from './appointment-holds.service.js';
 
-export async function runHoldExpirySweepOnce(): Promise<void> {
+async function runHoldExpirySweep(): Promise<void> {
   const tenants = await pool.query(`SELECT id::text AS id FROM tenants WHERE status IN ('trial', 'active')`);
   for (const row of tenants.rows as { id: string }[]) {
     try {
@@ -10,6 +11,10 @@ export async function runHoldExpirySweepOnce(): Promise<void> {
       console.error('[hold-expiry-worker] tenant sweep failed', { tenant_id: row.id, err });
     }
   }
+}
+
+export async function runHoldExpirySweepOnce(): Promise<void> {
+  await runSweepSafely('hold-expiry-worker', runHoldExpirySweep);
 }
 
 let timer: ReturnType<typeof setInterval> | undefined;

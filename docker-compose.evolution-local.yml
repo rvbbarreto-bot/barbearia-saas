@@ -1,4 +1,5 @@
 # Override local: Evolution API no host (validação piloto / Docker Desktop).
+# Alternativa Compose: profile evolution — ver docker-compose.evolution-stack.yml e scripts/qa-evolution-up.ps1
 # Uso: docker compose -f docker-compose.yml -f docker-compose.evolution-local.yml up -d api n8n
 # EVOLUTION_INSTANCE e EVOLUTION_API_KEY continuam vindos do `.env` (não versionar segredos).
 

@@ -1,6 +1,7 @@
 import { pool, withTenant } from '../../infra/db/pool.js';
 import { parsePagination } from '../../shared/pagination.js';
 import { normalizeOperationalAuditQuery, operationalAuditListQuery } from './operational-audit-query.js';
+import { sanitizeOperationalAuditMetadata } from './sanitize-operational-audit-metadata.js';
 
 export type AuditLogListQuery = Record<string, unknown>;
 
@@ -82,6 +83,10 @@ export async function listOperationalAuditEvents(tenantId: string, rawQuery: Rec
       filters.push(`entity_id = $${idx++}::uuid`);
       params.push(q.entity_id);
     }
+    if (q.actor_user_id) {
+      filters.push(`actor_user_id = $${idx++}::uuid`);
+      params.push(q.actor_user_id);
+    }
     if (q.from) {
       filters.push(`created_at >= $${idx++}::timestamptz`);
       params.push(q.from);
@@ -113,6 +118,11 @@ export async function listOperationalAuditEvents(tenantId: string, rawQuery: Rec
       client.query(`SELECT COUNT(*)::int AS total FROM operational_audit_events ${where}`, params),
     ]);
 
-    return { data: data.rows, total: count.rows[0].total as number, page, limit };
+    const rows = data.rows.map((row: Record<string, unknown>) => ({
+      ...row,
+      metadata: sanitizeOperationalAuditMetadata(row.metadata),
+    }));
+
+    return { data: rows, total: count.rows[0].total as number, page, limit };
   });
 }

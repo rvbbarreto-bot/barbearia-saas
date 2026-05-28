@@ -18,6 +18,7 @@ const API_ERROR_MESSAGES: Record<string, string> = {
   NOT_FOUND: 'Registo não encontrado.',
   VALIDATION_ERROR: 'Dados inválidos. Verifique os campos e tente novamente.',
   INTERNAL_ERROR: 'Não foi possível concluir a operação. Tente novamente ou contacte o suporte.',
+  VEHICLE_PLATE_ALREADY_EXISTS: 'Esta placa já está cadastrada nesta unidade.',
 };
 
 const FALLBACK = 'Não foi possível concluir a operação. Tente novamente ou contacte o suporte.';
@@ -52,6 +53,9 @@ export function getApiErrorMessage(err: unknown, fallback = FALLBACK): string {
     if (status === 403) {
       if (code === 'TENANT_MISMATCH') return API_ERROR_MESSAGES.TENANT_MISMATCH!;
       return API_ERROR_MESSAGES.FORBIDDEN!;
+    }
+    if (status === 502 || status === 503 || status === 504) {
+      return 'Sem ligação ao servidor. Verifique a rede e tente novamente.';
     }
     const msg = typeof data?.message === 'string' ? data.message.trim() : '';
     if (msg && !isUnsafeTechnicalMessage(msg)) {

@@ -35,6 +35,14 @@ describe('getApiErrorMessage', () => {
     expect(getApiErrorMessage(err)).toContain('unidade');
   });
 
+  it('maps VEHICLE_PLATE_ALREADY_EXISTS', () => {
+    const err = new axios.AxiosError('x', 'ERR', {}, {}, {
+      status: 409,
+      data: { error: 'VEHICLE_PLATE_ALREADY_EXISTS', message: 'Placa já cadastrada neste tenant.' },
+    } as never);
+    expect(getApiErrorMessage(err)).toContain('placa');
+  });
+
   it('maps INTERNAL_ERROR without leaking raw message', () => {
     const err = new axios.AxiosError('Request failed', 'ERR', {}, {}, {
       status: 500,

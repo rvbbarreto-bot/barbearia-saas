@@ -1,0 +1,21 @@
+# PR #7 — PILOTO-05 Bloco 1 Outbox
+URL: https://github.com/rvbbarreto-bot/barbearia-saas/pull/7
+Data: 2026-05-17
+
+Base:  piloto-staging-01
+Head:  feature/piloto-staging-05-operacao-gestao-automacao
+HEAD:  a88b191 (5 commits; último commit da branch antes do merge)
+Estado: Open — All checks have passed (8 successful checks)
+Merge:  No conflicts with base branch — Able to merge
+
+Checks (todos success):
+- CI / API — typecheck · lint · test · build (pull_request)
+- CI / API — typecheck · lint · test · build (push)
+- CI / Web — lint · typecheck · test · build (pull_request)
+- CI / Web — lint · typecheck · test · build (push)
+- CI / Security — npm audit (pull_request)
+- CI / Security — npm audit (push)
+- CI / Security — Gitleaks (pull_request)
+- CI / Security — Gitleaks (push)
+
+Print: prints/P10_pr_ci_verde.png (captura página PR com checks verdes)

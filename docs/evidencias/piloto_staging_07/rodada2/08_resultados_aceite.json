@@ -1,0 +1,221 @@
+﻿{
+    "executed_at":  "2026-05-19T18:09:00.1449189Z",
+    "base_url":  "http://localhost:3001",
+    "migration_applied":  "107_appointment_portal_tokens.sql (manual docker exec)",
+    "totals":  {
+                   "OK":  16,
+                   "FAIL":  0,
+                   "N_A":  0,
+                   "note":  "F08 PASS apÃ³s PS-07.2 â€” revalidar HTTP 403 em Docker antes do aceite PO final"
+               },
+    "cases":  [
+                  {
+                      "id":  "F01",
+                      "area":  "Agenda API â€” criar",
+                      "steps":  [
+                                    "GET availability date=2026-05-19",
+                                    "POST /appointments explicit_confirmation=true"
+                                ],
+                      "expected":  "201/200 status awaiting_confirmation",
+                      "actual":  "HTTP 201 status=awaiting_confirmation",
+                      "status":  "OK",
+                      "evidence":  "",
+                      "defect":  ""
+                  },
+                  {
+                      "id":  "F02",
+                      "area":  "Agenda API â€” lifecycle",
+                      "steps":  [
+                                    "confirmâ†’200",
+                                    "check-inâ†’200",
+                                    "startâ†’200",
+                                    "completeâ†’200"
+                                ],
+                      "expected":  "confirmedâ†’checked_inâ†’in_serviceâ†’completed",
+                      "actual":  "final=completed",
+                      "status":  "OK",
+                      "evidence":  "",
+                      "defect":  ""
+                  },
+                  {
+                      "id":  "F03",
+                      "area":  "Portal API â€” gerar token",
+                      "steps":  [
+                                    "POST /appointments/:id/portal-token (manager+)"
+                                ],
+                      "expected":  "201 + token plaintext + expires_at",
+                      "actual":  "HTTP 201 len=43",
+                      "status":  "OK",
+                      "evidence":  "",
+                      "defect":  ""
+                  },
+                  {
+                      "id":  "F04",
+                      "area":  "Portal API â€” consulta pÃºblica",
+                      "steps":  [
+                                    "GET /public/portal/appointments/:token sem auth"
+                                ],
+                      "expected":  "200 + can_confirm=true para awaiting_confirmation",
+                      "actual":  "HTTP 200 can_confirm=true status=awaiting_confirmation",
+                      "status":  "OK",
+                      "evidence":  "",
+                      "defect":  ""
+                  },
+                  {
+                      "id":  "F05",
+                      "area":  "Portal API â€” confirmar",
+                      "steps":  [
+                                    "POST /public/portal/appointments/:token/confirm"
+                                ],
+                      "expected":  "200 status=confirmed",
+                      "actual":  "HTTP 200 status=confirmed",
+                      "status":  "OK",
+                      "evidence":  "",
+                      "defect":  ""
+                  },
+                  {
+                      "id":  "F06",
+                      "area":  "Agenda API â€” negativo data passada",
+                      "steps":  [
+                                    "POST /appointments starts_at 2020"
+                                ],
+                      "expected":  "422 ou 400 VALIDATION",
+                      "actual":  "HTTP 422 error=APPOINTMENT_IN_PAST",
+                      "status":  "OK",
+                      "evidence":  "",
+                      "defect":  ""
+                  },
+                  {
+                      "id":  "F07",
+                      "area":  "Agenda API â€” conflito slot",
+                      "steps":  [
+                                    "POST mesmo profissional/intervalo"
+                                ],
+                      "expected":  "409 SLOT_CONFLICT ou similar",
+                      "actual":  "HTTP 409 error=SLOT_UNAVAILABLE",
+                      "status":  "OK",
+                      "evidence":  "",
+                      "defect":  ""
+                  },
+                  {
+                      "id":  "F08",
+                      "area":  "RBAC API â€” professional nÃ£o cria appointment",
+                      "steps":  [
+                                    "POST /appointments como professional em slot livre"
+                                ],
+                      "expected":  "403 FORBIDDEN",
+                      "actual":  "HTTP 403 FORBIDDEN (revalidaÃ§Ã£o Docker)",
+                      "status":  "OK",
+                      "evidence":  "scripts/revalidate-f08-gap01.ps1 @ 2026-05-19T15:09:00.1414529-03:00",
+                      "defect":  ""
+                  },
+                  {
+                      "id":  "F09",
+                      "area":  "CRUD Clientes API",
+                      "steps":  [
+                                    "POST /customers",
+                                    "PATCH /customers/:id"
+                                ],
+                      "expected":  "200 + nome atualizado",
+                      "actual":  "PATCH HTTP 200 name=QA R2 Updated",
+                      "status":  "OK",
+                      "evidence":  "",
+                      "defect":  ""
+                  },
+                  {
+                      "id":  "F10",
+                      "area":  "CRUD ServiÃ§os API",
+                      "steps":  [
+                                    "POST /services",
+                                    "PATCH price_cents"
+                                ],
+                      "expected":  "200 price_cents=5000",
+                      "actual":  "PATCH HTTP 200 price=5000",
+                      "status":  "OK",
+                      "evidence":  "",
+                      "defect":  ""
+                  },
+                  {
+                      "id":  "F11",
+                      "area":  "Portal API â€” token invÃ¡lido",
+                      "steps":  [
+                                    "GET token invÃ¡lido"
+                                ],
+                      "expected":  "404 PORTAL_TOKEN_INVALID",
+                      "actual":  "HTTP 404 error=PORTAL_TOKEN_INVALID",
+                      "status":  "OK",
+                      "evidence":  "",
+                      "defect":  ""
+                  },
+                  {
+                      "id":  "B01",
+                      "area":  "Agenda UI â€” wizard E2E",
+                      "steps":  [
+                                    "Login atendente OK",
+                                    "Modal aberto",
+                                    "Cliente selecionado",
+                                    "ServiÃ§o selecionado",
+                                    "Profissional Fred",
+                                    "Slot 2026-05-20",
+                                    "Toast sucesso"
+                                ],
+                      "expected":  "Agendamento criado com toast",
+                      "actual":  "Sucesso",
+                      "status":  "OK",
+                      "evidence":  "R2_B01_agenda_criar_e2e.png",
+                      "defect":  ""
+                  },
+                  {
+                      "id":  "P01",
+                      "area":  "Portal UI â€” token vÃ¡lido",
+                      "steps":  [
+                                    "Acessar /portal/IKKXs7bpâ€¦"
+                                ],
+                      "expected":  "Dados do agendamento visÃ­veis",
+                      "actual":  "Dados exibidos",
+                      "status":  "OK",
+                      "evidence":  "R2_P01_portal_token_valido.png",
+                      "defect":  ""
+                  },
+                  {
+                      "id":  "P02",
+                      "area":  "Portal UI â€” token invÃ¡lido",
+                      "steps":  [
+                                    "GET /portal/token-invalido"
+                                ],
+                      "expected":  "Mensagem amigÃ¡vel sem dados sensÃ­veis",
+                      "actual":  "NÃ£o foi possÃ­vel abrir\n\nLink invÃ¡lido ou expirado.",
+                      "status":  "OK",
+                      "evidence":  "R2_P02_portal_token_invalido.png",
+                      "defect":  ""
+                  },
+                  {
+                      "id":  "C01",
+                      "area":  "CRUD Clientes UI",
+                      "steps":  [
+                                    "Novo cliente",
+                                    "Editar nome",
+                                    "Salvar"
+                                ],
+                      "expected":  "Nome QA UI Updated na lista",
+                      "actual":  "OK",
+                      "status":  "OK",
+                      "evidence":  "R2_C01_cliente_update.png",
+                      "defect":  ""
+                  },
+                  {
+                      "id":  "B02",
+                      "area":  "Agenda UI â€” cancelar",
+                      "steps":  [
+                                    "Criar",
+                                    "Abrir evento",
+                                    "Cancelar com motivo"
+                                ],
+                      "expected":  "Toast cancelado",
+                      "actual":  "OK",
+                      "status":  "OK",
+                      "evidence":  "R2_B02_agenda_cancelar.png",
+                      "defect":  ""
+                  }
+              ]
+}

@@ -19,6 +19,20 @@ describe('listOutboxMessages', () => {
     });
   });
 
+  it('rejects invalid error_class', async () => {
+    await expect(listOutboxMessages('t1', { error_class: 'bogus' })).rejects.toMatchObject({
+      code: 'VALIDATION_ERROR',
+      statusCode: 400,
+    });
+  });
+
+  it('rejects invalid customer_id', async () => {
+    await expect(listOutboxMessages('t1', { customer_id: 'not-uuid' })).rejects.toMatchObject({
+      code: 'VALIDATION_ERROR',
+      statusCode: 400,
+    });
+  });
+
   it('rejects invalid from timestamp', async () => {
     await expect(listOutboxMessages('t1', { from: 'not-a-date' })).rejects.toMatchObject({
       code: 'VALIDATION_ERROR',
@@ -40,7 +54,7 @@ describe('listOutboxMessages', () => {
             status: 'pending',
             attempts: 0,
             max_attempts: 5,
-            last_error: null,
+            last_error: 'Evolution HTTP 401 Unauthorized',
             correlation_id: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
             customer_id: null,
             idempotency_key: 'idem-qa-1',
@@ -63,5 +77,7 @@ describe('listOutboxMessages', () => {
     expect(r.data[0].provider).toBe('evolution');
     expect(r.data[0].idempotency_key).toBe('idem-qa-1');
     expect(r.data[0].appointment_id).toBe('a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d');
+    expect(r.data[0].error_class).toBe('auth');
+    expect(r.data[0].last_error).not.toContain('Bearer');
   });
 });

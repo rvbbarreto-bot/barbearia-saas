@@ -43,9 +43,9 @@ export const permissionPolicy = {
     read: 'attendant',
     retry: 'manager',
   },
-  /** Eventos operacionais (`operational_audit_events`) — diagnóstico suporte; metadata sem segredos à escrita. */
+  /** Eventos operacionais (`operational_audit_events`) — gestão+; metadata sanitizada na listagem. */
   operationalAudit: {
-    read: 'attendant',
+    read: 'manager',
   },
   availability: {
     read: 'viewer',
@@ -105,6 +105,10 @@ export const permissionPolicy = {
     /** Totais por profissional — dono/administrador. */
     reportByProfessional: 'tenant_admin',
   },
+  management: {
+    readDashboard: 'manager',
+    createPortalToken: 'manager',
+  },
   recall: {
     readCandidates: 'viewer',
     /** Enfileira recall via outbox — operação sensível. */
@@ -119,6 +123,21 @@ export const permissionPolicy = {
 export type PolicyResource = keyof typeof permissionPolicy;
 export type PolicyAction<R extends PolicyResource> = keyof (typeof permissionPolicy)[R];
 
+/**
+ * Operações de balcão em appointments: o papel `professional` tem nível numérico ≥ attendant,
+ * mas não deve herdar criar/cancelar/remarcar/etc. (decisão PO — GAP-01 / matriz staging 07).
+ */
+const APPOINTMENTS_BALCAO_ACTIONS = new Set<keyof (typeof permissionPolicy)['appointments']>([
+  'create',
+  'confirm',
+  'cancel',
+  'reschedule',
+  'checkIn',
+  'start',
+  'noShow',
+  'walkIn',
+]);
+
 export function hasRequiredRole(role: string | undefined, minRole: keyof typeof roleLevel): boolean {
   if (!role || !(role in roleLevel)) return false;
   return roleLevel[role] >= roleLevel[minRole];
@@ -129,11 +148,15 @@ export function canAccess<R extends PolicyResource>(
   resource: R,
   action: PolicyAction<R>,
 ): boolean {
-  /** No-show manual: balcão/gestão (`attendant`+), não o perfil `professional` (nível ≥ attendant mas papel distinto). */
-  if (resource === 'appointments' && action === 'noShow') {
-    if (!role || !(role in roleLevel)) return false;
-    if (role === 'professional') return false;
-    return hasRequiredRole(role, 'attendant');
+  if (resource === 'appointments') {
+    const balcaoKeys = APPOINTMENTS_BALCAO_ACTIONS as ReadonlySet<string>;
+    if (balcaoKeys.has(String(action))) {
+      if (!role || !(role in roleLevel)) return false;
+      if (role === 'professional') return false;
+      const apptAction = action as keyof (typeof permissionPolicy)['appointments'];
+      const requiredRole = permissionPolicy.appointments[apptAction] as keyof typeof roleLevel;
+      return hasRequiredRole(role, requiredRole);
+    }
   }
   const requiredRole = permissionPolicy[resource][action] as keyof typeof roleLevel;
   return hasRequiredRole(role, requiredRole);

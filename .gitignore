@@ -111,3 +111,13 @@ QA_PACKAGE_*.zip
 **/*.LOCAL_IMPORT.json
 docs/evidencias/**/Evidências.docx
 docs/evidencias/**/Evidencias.docx
+
+# ── Artefactos locais fora do escopo (não versionar) ──
+_codex_*_docx_media/
+docs/estudo_arquitetura_saas.pdf
+docs/revisao_fostec_hardening_barbearia_saas.pdf
+docs/evidencias/piloto_staging_04/
+
+# ── QA piloto — tokens e artefactos sensíveis ──
+**/_portal_token.txt
+**/rodada*/_portal_token.txt

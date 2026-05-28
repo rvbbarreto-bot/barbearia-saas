@@ -12,6 +12,7 @@ import {
   Wallet,
   Percent,
   Inbox,
+  BarChart3,
 } from 'lucide-react';
 import { ROLE_LEVEL } from '@/lib/rbac';
 
@@ -33,8 +34,10 @@ export const APP_NAV: AppNavItem[] = [
   { to: '/servicos', label: 'Serviços', icon: Scissors, minRole: 'manager' },
   { to: '/profissionais', label: 'Profissionais', icon: UserCircle, minRole: 'manager' },
   { to: '/lista-espera', label: 'Lista de espera', icon: ListOrdered, minRole: 'attendant' },
+  { to: '/gestao/dashboard', label: 'Gestão', icon: BarChart3, minRole: 'manager' },
   { to: '/operacao/financeiro', label: 'Financeiro', icon: Wallet, minRole: 'manager' },
   { to: '/operacao/mensagens', label: 'Mensagens', icon: Inbox, minRole: 'attendant' },
+  { to: '/operacao/auditoria', label: 'Auditoria operacional', icon: ClipboardList, minRole: 'manager' },
   { to: '/operacao/comissao', label: 'Comissões', icon: Percent, minRole: 'manager' },
   { to: '/auditoria', label: 'Auditoria', icon: ClipboardList, minRole: 'tenant_admin' },
   { to: '/configuracoes', label: 'Configurações', icon: Settings, minRole: 'manager' },

@@ -1,0 +1,10 @@
+.venv/
+results/
+reports/robot-output/
+evidence/screenshots/*
+evidence/traces/*
+evidence/videos/*
+!evidence/**/.gitkeep
+__pycache__/
+*.pyc
+pabot_results/

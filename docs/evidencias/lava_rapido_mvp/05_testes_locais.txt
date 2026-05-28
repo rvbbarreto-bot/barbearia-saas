@@ -1,0 +1,26 @@
+# Testes locais — Lava Rápido MVP
+
+Atualizado após correções PO (OpenAPI, arrive, cancel, checklist, integração).
+
+## API
+
+npm run typecheck — OK
+npm run build — OK
+npm test -- src/modules/vehicles src/modules/carWash — 13 passed (unit; integração skip sem DATABASE_URL local)
+
+## CI (PR #10, SHA b3da14c)
+
+342 tests API (341 passed + integrações com DB no runner)
+65 tests Web — OK
+
+## Novos testes
+
+- apps/api/src/modules/carWash/car-wash.integration.test.ts
+- apps/api/src/modules/vehicles/vehicles.integration.test.ts
+- apps/api/src/modules/carWash/stages.test.ts
+- apps/api/src/modules/vehicles/schemas.test.ts (checklist obrigatório)
+
+## Comandos integração local
+
+cd apps/api
+DATABASE_URL=... JWT_SECRET=... REDIS_URL=... npm test -- src/modules/carWash/car-wash.integration.test.ts
