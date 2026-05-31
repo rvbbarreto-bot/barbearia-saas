@@ -2,7 +2,7 @@
 
 **Data:** 2026-05-27  
 **Base:** `origin/piloto-staging-01` (pós merge PR #14)  
-**Branch de trabalho:** `feature/ps08-sprint2-hardening`  
+**Branch de trabalho:** `feature/ps08-4-evolution-compose` (PS-08.4 + PS-08.5 na mesma linha)  
 **PO / Tech Lead:** retomada pós Sprint 1 P1
 
 ---
@@ -60,8 +60,8 @@ node scripts/qa-browser/run-doc10.mjs
 
 ## 5. Próximo card PO (Sprint 2 P2 — após merge hardening)
 
-1. **PS-08.4** — profile Evolution `:8081`
-2. **PS-08.5** — `scripts/n8n-import-piloto-workflows.ps1`
+1. **PS-08.4** — profile Evolution `:8081` *(código na branch; QA C35–C36 pendente Docker)*
+2. **PS-08.5** — `scripts/n8n-import-piloto-workflows.ps1` *(implementado; QA C34 pendente n8n up)*
 3. **PS-08.9** — job CI browser smoke
 
 Referência: `docs/evidencias/piloto_staging_07/12_demandas_po_proxima_release_fabrica.md` §3–4.

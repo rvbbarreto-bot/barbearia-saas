@@ -70,7 +70,20 @@ PowerShell -ExecutionPolicy Bypass -File scripts/audit-n8n-workflows.ps1
 | HTTP **401** Unauthorized | API key inválida ou instância errada | Ajustar `EVOLUTION_API_KEY` no `.env` (pendência de credencial, não do workflow) |
 | `QA_WHATSAPP_NUMBER invalido` | Formato | Usar `55` + DDD + número (10–11 dígitos) |
 
-## Importação staging (UI)
+## Importação piloto automatizada (PS-08.5)
+
+```powershell
+docker compose up -d n8n
+# n8n UI :5679 → Settings → n8n API → Create API Key
+$env:N8N_API_KEY = 'n8n_api_...'
+.\scripts\n8n-import-piloto-workflows.ps1
+```
+
+Importa os 4 JSON de `docs/n8n/` (fallback `n8n/workflows/`), força **`active=false`**, remove `pinData`, upsert por nome.
+
+Validação prévia: `node scripts/n8n-validate-workflow-import.mjs`
+
+## Importação staging (UI — alternativa manual)
 
 1. Aceder `https://<N8N_HOST>` (basic auth em `.env.staging`).
 2. Importar workflows de `n8n/workflows/` **um a um**.
