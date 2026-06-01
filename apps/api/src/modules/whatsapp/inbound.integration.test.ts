@@ -140,6 +140,9 @@ describe('POST /webhooks/whatsapp/inbound (integration)', () => {
     expect(result.tenantId).toBe(tenantId);
     expect(result.customerId).toBeTruthy();
     expect(result.messageId).toBeTruthy();
+    expect(result.conversationContext.message_count).toBeGreaterThanOrEqual(1);
+    expect(result.conversationContext.session_text).toContain(body.message);
+    expect(result.agentDispatch.dispatch_token).toBe(result.messageId);
 
     const c = await pool.connect();
     try {

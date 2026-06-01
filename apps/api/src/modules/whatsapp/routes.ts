@@ -7,7 +7,10 @@ import {
   processInboundWebhook,
 } from './inbound.service.js';
 
+import { agentDispatchRoutes } from './agent-dispatch.routes.js';
+
 export async function whatsappRoutes(app: FastifyInstance) {
+  await agentDispatchRoutes(app);
   app.post('/webhooks/whatsapp/inbound', async (request, reply) => {
 
     // ── Headers obrigatórios / opcionais ──────────────────────────────────
@@ -91,6 +94,8 @@ export async function whatsappRoutes(app: FastifyInstance) {
         tenantId: result.tenantId,
         customerId: result.customerId,
         messageId: result.messageId,
+        conversationContext: result.conversationContext,
+        agentDispatch: result.agentDispatch,
       });
 
     } catch (err) {

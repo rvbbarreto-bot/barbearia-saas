@@ -4,9 +4,10 @@
   "nodes": [
     {
       "id": "wh-trigger",
-      "name": "Webhook Evolution Inbound",
+      "name": "EvolutionInbound",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
+      "webhookId": "f47ac10b-58cc-4372-a567-0e02b2c3d101",
       "position": [
         0,
         0
@@ -31,7 +32,51 @@
       ],
       "notes": "Aceita payload na raiz ou em body (Webhook n8n). Filtra messages.upsert, descarta fromMe e @g.us. Sem tenant no corpo.",
       "parameters": {
-        "jsCode": "const envelope = $json ?? {};\n\nconst outer = envelope.body !== undefined ? envelope.body : envelope;\nconst bodyRaw = typeof outer === 'string' ? (() => { try { return JSON.parse(outer); } catch (_) { return {}; } })() : outer;\nconst body =\n  typeof bodyRaw === 'string'\n    ? (() => {\n        try {\n          return JSON.parse(bodyRaw);\n        } catch (_) {\n          return {};\n        }\n      })()\n    : bodyRaw ?? {};\n\nconst ev = body.event ?? body.type ?? '';\nif (ev !== 'messages.upsert') return [];\n\nconst data = body.data ?? {};\nconst key = data.key ?? {};\nif (key.fromMe === true) return [];\n\nconst remoteJid = String(key.remoteJid ?? '');\nif (!remoteJid || remoteJid.endsWith('@g.us')) return [];\n\nconst msg = data.message ?? {};\nconst text = String(\n  msg.conversation ||\n    msg.extendedTextMessage?.text ||\n    msg.imageMessage?.caption ||\n    msg.videoMessage?.caption ||\n    msg.documentMessage?.caption ||\n    msg.buttonsResponseMessage?.selectedDisplayText ||\n    ''\n).trim();\nif (!text) return [];\n\nconst phone = remoteJid.replace('@s.whatsapp.net', '').replace(/\\D/g, '');\nif (!phone || phone.length < 8) return [];\n\nconst providerMessageId = key.id ?? null;\nconst ts = data.messageTimestamp ?? data.message?.messageTimestamp ?? null;\n\nfunction instStr(v) {\n  if (v == null || v === '') return null;\n  if (typeof v === 'object') {\n    const x = v.instanceName ?? v.name ?? v.instanceId ?? v.id;\n    if (x == null || x === '') return null;\n    return String(x).trim();\n  }\n  return String(v).trim();\n}\n\nconst candidates = [\n  instStr(body.instance),\n  instStr(envelope.instance),\n  instStr(body.instanceName),\n  instStr(data.instanceName),\n  instStr(data.instanceId),\n  typeof body.sender === 'object'\n    ? instStr(body.sender?.instance ?? body.sender?.instanceId)\n    : null,\n  body.session != null ? String(body.session).trim() : null,\n].filter(Boolean);\n\nconst instanceIdentifier = candidates[0] ?? null;\nif (!instanceIdentifier) {\n  console.log('[router] descartado: sem instance_name/instance_id derivável');\n  return [];\n}\n\nconst correlationId = $execution?.id ? String($execution.id) : `n8n-${Date.now()}`;\n\nconst instanceKey = instanceIdentifier;\n\nreturn [{\n  json: {\n    provider: 'evolution',\n    provider_message_id: providerMessageId,\n    phone,\n    text,\n    timestamp: ts,\n    push_name: data.pushName ?? null,\n    instance_key: instanceKey,\n    instance_name: candidates.find((c) => c && !/^\\d+$/.test(c)) ?? instanceKey,\n    instance_id_hint: (/^\\d+$/.test(instanceKey)) ? instanceKey : (data.instanceId ? String(data.instanceId) : null),\n    instance: instanceKey,\n    correlation_id: correlationId,\n    raw_event: body\n  }\n}];\n"
+        "mode": "runOnceForAllItems",
+        "jsCode": "const envelope = $json ?? {};\r\n\r\nconst outer = envelope.body !== undefined ? envelope.body : envelope;\r\nconst bodyRaw = typeof outer === 'string' ? (() => { try { return JSON.parse(outer); } catch (_) { return {}; } })() : outer;\r\nconst body =\r\n  typeof bodyRaw === 'string'\r\n    ? (() => {\r\n        try {\r\n          return JSON.parse(bodyRaw);\r\n        } catch (_) {\r\n          return {};\r\n        }\r\n      })()\r\n    : bodyRaw ?? {};\r\n\r\nconst ev = body.event ?? body.type ?? '';\r\nif (ev !== 'messages.upsert') return [];\r\n\r\nconst data = body.data ?? {};\r\nconst key = data.key ?? {};\r\nif (key.fromMe === true) return [];\r\n\r\nconst remoteJid = String(key.remoteJid ?? '');\r\nif (!remoteJid || remoteJid.endsWith('@g.us')) return [];\r\n\r\nconst msg = data.message ?? {};\r\nlet contentType = 'text';\r\nlet text = String(\r\n  msg.conversation ||\r\n    msg.extendedTextMessage?.text ||\r\n    msg.imageMessage?.caption ||\r\n    msg.videoMessage?.caption ||\r\n    msg.documentMessage?.caption ||\r\n    msg.buttonsResponseMessage?.selectedDisplayText ||\r\n    ''\r\n).trim();\r\n\r\nlet mediaUrl = null;\r\nconst audio = msg.audioMessage ?? msg.pttMessage ?? null;\r\nif (audio) {\r\n  contentType = 'audio';\r\n  mediaUrl =\r\n    audio.url ??\r\n    audio.directPath ??\r\n    (audio.mediaKey && audio.mediaKeyUrl) ??\r\n    null;\r\n  if (!text) {\r\n    text = '[mensagem de voz]';\r\n  }\r\n}\r\n\r\nif (!text) return [];\r\n\r\nconst phone = remoteJid.replace('@s.whatsapp.net', '').replace(/\\D/g, '');\r\nif (!phone || phone.length < 8) return [];\r\n\r\nconst providerMessageId = key.id ?? null;\r\nconst ts = data.messageTimestamp ?? data.message?.messageTimestamp ?? null;\r\n\r\nfunction instStr(v) {\r\n  if (v == null || v === '') return null;\r\n  if (typeof v === 'object') {\r\n    const x = v.instanceName ?? v.name ?? v.instanceId ?? v.id;\r\n    if (x == null || x === '') return null;\r\n    return String(x).trim();\r\n  }\r\n  return String(v).trim();\r\n}\r\n\r\nconst candidates = [\r\n  instStr(body.instance),\r\n  instStr(envelope.instance),\r\n  instStr(body.instanceName),\r\n  instStr(data.instanceName),\r\n  instStr(data.instanceId),\r\n  typeof body.sender === 'object'\r\n    ? instStr(body.sender?.instance ?? body.sender?.instanceId)\r\n    : null,\r\n  body.session != null ? String(body.session).trim() : null,\r\n].filter(Boolean);\r\n\r\nconst instanceIdentifier = candidates[0] ?? null;\r\nif (!instanceIdentifier) {\r\n  console.log('[router] descartado: sem instance_name/instance_id derivável');\r\n  return [];\r\n}\r\n\r\nconst correlationId = $execution?.id ? String($execution.id) : `n8n-${Date.now()}`;\r\n\r\nconst instanceKey = instanceIdentifier;\r\n\r\nreturn [{\r\n  json: {\r\n    provider: 'evolution',\r\n    provider_message_id: providerMessageId,\r\n    phone,\r\n    text,\r\n    content_type: contentType,\r\n    media_url: mediaUrl,\r\n    timestamp: ts,\r\n    push_name: data.pushName ?? null,\r\n    instance_key: instanceKey,\r\n    instance_name: candidates.find((c) => c && !/^\\d+$/.test(c)) ?? instanceKey,\r\n    instance_id_hint: (/^\\d+$/.test(instanceKey)) ? instanceKey : (data.instanceId ? String(data.instanceId) : null),\r\n    instance: instanceKey,\r\n    correlation_id: correlationId,\r\n    raw_event: body\r\n  }\r\n}];\r\n"
+      }
+    },
+    {
+      "id": "core-http",
+      "name": "POST Core API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        540,
+        0
+      ],
+      "continueOnFail": true,
+      "notes": "HTTP Request nativo (sem sandbox Code). Headers: x-webhook-token via CORE_WEBHOOK_TOKEN, x-webhook-instance, x-correlation-id.",
+      "parameters": {
+        "method": "POST",
+        "url": "={{ String($env.API_BASE_URL || '').replace(/\\/$/, '') + '/webhooks/whatsapp/inbound' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "x-webhook-instance",
+              "value": "={{ $json.instance }}"
+            },
+            {
+              "name": "x-correlation-id",
+              "value": "={{ $json.correlation_id }}"
+            },
+            {
+              "name": "x-webhook-token",
+              "value": "={{ $env.CORE_WEBHOOK_TOKEN }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ phone: $json.phone, name: $json.push_name, message: $json.text, external_message_id: $json.provider_message_id, ...( $json.content_type ? { message_type: $json.content_type } : {} ), ...( $json.media_url ? { media_url: $json.media_url } : {} ) }) }}",
+        "options": {
+          "timeout": "={{ Number($env.API_TIMEOUT_MS) || 15000 }}"
+        }
       }
     },
     {
@@ -40,12 +85,13 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        540,
+        820,
         0
       ],
-      "notes": "POST Core API sem modulo crypto embutido. x-webhook-token + x-webhook-instance + x-correlation-id. Timeout via Promise (API_TIMEOUT_MS). Se N8N_HMAC_SECRET estiver definido, retorna config_error — use tenant com token ou proxy HMAC.",
+      "notes": "Classifica resposta do POST Core API (agent/duplicate/error/config). Sem HTTP no Code node — evita falha de rede no sandbox n8n 1.91.",
       "parameters": {
-        "jsCode": "const norm = $input.first().json;\n\nfunction stop(route, enrichment, apiStatus, parsed, diag) {\n  return [{\n    json: {\n      route,\n      api_status: apiStatus ?? null,\n      normalized: norm,\n      enrichment: enrichment || {},\n      core_response: parsed ?? null,\n      ...(diag && typeof diag === 'object' ? { diag } : {}),\n    },\n  }];\n}\n\nasync function fetchWithTimeout(url, init, ms) {\n  return new Promise((resolve, reject) => {\n    const t = setTimeout(() => reject(new Error('FETCH_TIMEOUT')), ms);\n    fetch(url, init)\n      .then((r) => {\n        clearTimeout(t);\n        resolve(r);\n      })\n      .catch((e) => {\n        clearTimeout(t);\n        reject(e);\n      });\n  });\n}\n\nconst baseUrlRaw = String($env.API_BASE_URL || '').replace(/\\/$/, '');\nif (!baseUrlRaw) {\n  console.log('[router] API_BASE_URL ausente');\n  return stop('config_error', {}, null, null, { error_hint: 'API_BASE_URL' });\n}\n\nconst webhookToken = String($env.N8N_WEBHOOK_TOKEN || '').trim();\nif (!webhookToken) {\n  console.log('[router] N8N_WEBHOOK_TOKEN ausente no container n8n');\n  return stop('config_error', {}, null, null, { error_hint: 'N8N_WEBHOOK_TOKEN' });\n}\n\nconst hmacSecret = String($env.N8N_HMAC_SECRET || '').trim();\nif (hmacSecret.length > 0) {\n  console.log('[router] N8N_HMAC_SECRET definido — este workflow versionado envia só x-webhook-token (sem crypto no Code node). Use tenant com token ou proxy que assine HMAC.');\n  return stop('config_error', {}, null, null, { error_hint: 'HMAC_requires_external_signer' });\n}\n\nconst url = `${baseUrlRaw}/webhooks/whatsapp/inbound`;\n\nconst coreBodyObj = {\n  phone: norm.phone,\n  name: norm.push_name ?? null,\n  message: norm.text,\n  external_message_id: norm.provider_message_id ?? null,\n};\n\nconst bodyJson = JSON.stringify(coreBodyObj);\n\nconst headers = {\n  'Content-Type': 'application/json',\n  'x-webhook-instance': String(norm.instance),\n  'x-correlation-id': String(norm.correlation_id),\n  'x-webhook-token': webhookToken,\n};\n\nlet timeoutMs = parseInt(String($env.API_TIMEOUT_MS || '15000'), 10);\nif (!Number.isFinite(timeoutMs) || timeoutMs < 1000) timeoutMs = 15000;\nif (timeoutMs > 120000) timeoutMs = 120000;\n\nlet resp;\ntry {\n  resp = await fetchWithTimeout(url, { method: 'POST', headers, body: bodyJson }, timeoutMs);\n} catch (e) {\n  const msg = e && e.message ? String(e.message) : String(e);\n  console.log('[router] fetch falhou:', msg);\n  console.log('[router] ctx', JSON.stringify({ instance: norm.instance, correlation_id: norm.correlation_id }));\n  if (msg.includes('FETCH_TIMEOUT')) {\n    return stop('error', {}, 408, { error: 'TIMEOUT' }, { error_hint: 'timeout' });\n  }\n  return stop('error', {}, null, null, { error_hint: 'network' });\n}\n\nlet parsed = null;\nconst rawTxt = await resp.text();\ntry {\n  parsed = rawTxt ? JSON.parse(rawTxt) : null;\n} catch (_) {\n  parsed = { raw: rawTxt };\n}\n\nconst logSafe = {\n  instance: norm.instance,\n  correlation_id: norm.correlation_id,\n  status: resp.status,\n  code: parsed && parsed.error ? parsed.error : null,\n};\n\nif (!resp.ok) {\n  console.log('[router] Core HTTP erro |', JSON.stringify(logSafe));\n  return stop('error', {}, resp.status, parsed, { http_error: true });\n}\n\nif (parsed && parsed.duplicate === true) {\n  console.log('[router] duplicate |', JSON.stringify(logSafe));\n  return stop('duplicate', {}, resp.status, parsed);\n}\n\nif (!parsed || parsed.ok !== true) {\n  console.log('[router] Core resposta inesperada |', JSON.stringify(logSafe));\n  return stop('error', {}, resp.status, parsed);\n}\n\nreturn [{\n  json: {\n    route: 'agent',\n    api_status: resp.status,\n    normalized: norm,\n    enrichment: {\n      tenant_id: parsed.tenantId ?? null,\n      customer_id: parsed.customerId ?? null,\n      message_id: parsed.messageId ?? null,\n      correlation_id: norm.correlation_id,\n    },\n    core_response: parsed,\n  },\n}];\n"
+        "mode": "runOnceForAllItems",
+        "jsCode": "const norm = $('Filtrar e Normalizar').first().json;\r\nconst raw = $input.first().json ?? {};\r\n\r\nfunction stop(route, enrichment, apiStatus, parsed, diag) {\r\n  return [{\r\n    json: {\r\n      route,\r\n      api_status: apiStatus ?? null,\r\n      normalized: norm,\r\n      enrichment: enrichment || {},\r\n      core_response: parsed ?? null,\r\n      ...(diag && typeof diag === 'object' ? { diag } : {}),\r\n    },\r\n  }];\r\n}\r\n\r\nconst baseUrlRaw = String($env.API_BASE_URL || '').replace(/\\/$/, '');\r\nif (!baseUrlRaw) {\r\n  return stop('config_error', {}, null, null, { error_hint: 'API_BASE_URL' });\r\n}\r\n\r\nconst webhookToken = String($env.CORE_WEBHOOK_TOKEN || $env.N8N_WEBHOOK_TOKEN || '').trim();\r\nif (!webhookToken) {\r\n  return stop('config_error', {}, null, null, { error_hint: 'CORE_WEBHOOK_TOKEN' });\r\n}\r\n\r\nconst hmacSecret = String($env.N8N_HMAC_SECRET || '').trim();\r\nif (hmacSecret.length > 0) {\r\n  return stop('config_error', {}, null, null, { error_hint: 'HMAC_requires_external_signer' });\r\n}\r\n\r\nfunction unwrapBody(x) {\r\n  if (!x || typeof x !== 'object') return {};\r\n  if (x.body && typeof x.body === 'object') return x.body;\r\n  if (typeof x.body === 'string') {\r\n    try {\r\n      return x.body ? JSON.parse(x.body) : {};\r\n    } catch (_) {\r\n      return { raw: x.body };\r\n    }\r\n  }\r\n  return x;\r\n}\r\n\r\nlet parsed = unwrapBody(raw);\r\n\r\nlet statusCode =\r\n  typeof raw.statusCode === 'number'\r\n    ? raw.statusCode\r\n    : typeof raw.error?.statusCode === 'number'\r\n      ? raw.error.statusCode\r\n      : null;\r\n\r\n// HTTP Request v4 devolve JSON da Core no root (sem statusCode) em 2xx\r\nif (statusCode === null && parsed && typeof parsed === 'object') {\r\n  if (parsed.ok === true || parsed.duplicate === true) {\r\n    statusCode = 200;\r\n  } else if (parsed.error) {\r\n    statusCode = 400;\r\n  }\r\n}\r\n\r\nif (raw.error && (statusCode === null || statusCode >= 400)) {\r\n  const msg = raw.error.message ? String(raw.error.message) : String(raw.error);\r\n  return stop('error', {}, statusCode, parsed, { error_hint: 'network', error_message: msg });\r\n}\r\n\r\nif (statusCode === null || statusCode >= 400) {\r\n  return stop('error', {}, statusCode, parsed, { http_error: true });\r\n}\r\n\r\nif (parsed && parsed.duplicate === true) {\r\n  return stop('duplicate', {}, statusCode, parsed);\r\n}\r\n\r\nif (!parsed || parsed.ok !== true) {\r\n  return stop('error', {}, statusCode, parsed);\r\n}\r\n\r\nreturn [{\r\n  json: {\r\n    route: 'agent',\r\n    api_status: statusCode,\r\n    normalized: norm,\r\n    enrichment: {\r\n      tenant_id: parsed.tenantId ?? null,\r\n      customer_id: parsed.customerId ?? null,\r\n      message_id: parsed.messageId ?? null,\r\n      correlation_id: norm.correlation_id,\r\n      conversation_context: parsed.conversationContext ?? null,\r\n      agent_dispatch: parsed.agentDispatch ?? null,\r\n    },\r\n    core_response: parsed,\r\n  },\r\n}];\r\n"
       }
     },
     {
@@ -54,7 +100,7 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        820,
+        1080,
         0
       ],
       "notes": "Apenas route=agent chama Workflow 02. Erro/dup não disparam agente (sem spam/loop).",
@@ -85,18 +131,21 @@
       "id": "call-agent",
       "name": "Chamar Agente IA",
       "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1,
+      "typeVersion": 1.2,
       "position": [
-        1120,
+        1340,
         -120
       ],
-      "notes": "Opção B: definir N8N_WORKFLOW_02_ID no container n8n após import, ou substituir placeholder no editor. Segundo workflow deve estar importado.",
+      "notes": "Execute Workflow 02 por ID fixo (typeVersion 1.2 + __rl). typeVersion 1 passava objeto inteiro como id.",
       "parameters": {
+        "operation": "call_workflow",
+        "source": "database",
         "workflowId": {
           "__rl": true,
-          "value": "={{ String($env.N8N_WORKFLOW_02_ID || '').trim() || 'SUBSTITUIR_PELO_ID_DO_WORKFLOW_02' }}",
+          "value": "l0zOd4CUKvdFA6HD",
           "mode": "id"
         },
+        "mode": "once",
         "options": {
           "waitForSubWorkflow": false
         }
@@ -108,14 +157,14 @@
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
       "position": [
-        1120,
+        1340,
         120
       ],
       "notes": "Fluxo terminado por erro/config/duplicate ou filtro inicial — sem execuções adicionais."
     }
   ],
   "connections": {
-    "Webhook Evolution Inbound": {
+    "EvolutionInbound": {
       "main": [
         [
           {
@@ -127,6 +176,17 @@
       ]
     },
     "Filtrar e Normalizar": {
+      "main": [
+        [
+          {
+            "node": "POST Core API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST Core API": {
       "main": [
         [
           {
@@ -170,7 +230,7 @@
   "settings": {
     "executionOrder": "v1",
     "saveManualExecutions": true,
-    "saveDataSuccessExecution": "first",
+    "saveDataSuccessExecution": "all",
     "saveDataErrorExecution": "all",
     "callerPolicy": "workflowsFromSameOwner",
     "errorWorkflow": ""
@@ -179,7 +239,7 @@
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "barbearia-saas-v4",
-    "description": "Inbound Evolution → Core API. Code node compatível com sandbox n8n 1.91 (sem crypto embutido). Opção B: Execute Workflow 02 quando route=agent. active=false."
+    "description": "Inbound Evolution → Core API via HTTP Request node + roteamento Code. Opção B: Execute Workflow 02 quando route=agent. active=false."
   },
   "tags": [
     {

@@ -149,6 +149,17 @@ export async function processRow(row: OutboxRow): Promise<void> {
         [row.id, JSON.stringify(result.providerResponse)],
       );
     });
+
+    if (row.customer_id && text) {
+      const { appendConversationTurn } = await import(
+        '../../modules/whatsapp/conversation-session.redis.js'
+      );
+      await appendConversationTurn(row.tenant_id, row.customer_id, {
+        direction: 'out',
+        body: text,
+        at: new Date().toISOString(),
+      });
+    }
   } else {
     const newAttempts = row.attempts + 1;
     const isDead = newAttempts >= row.max_attempts;

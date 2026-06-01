@@ -9,6 +9,8 @@ export const inboundBodySchema = z.object({
   message: z.string().min(1),
   external_message_id: z.string().min(1).optional().nullable(),
   tenant_id: z.unknown().optional(),
+  message_type: z.enum(['text', 'audio']).optional(),
+  media_url: z.string().min(1).optional().nullable(),
 });
 
 export type InboundBody = z.infer<typeof inboundBodySchema>;

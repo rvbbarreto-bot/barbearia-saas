@@ -21,6 +21,12 @@ import { writeOperationalAuditEvent } from '../../shared/operational-audit.js';
 import { recordInboundOptOutIfNeeded } from '../notificationJobs/inboundOptOut.js';
 import { verifySha256WebhookSignature } from '../../shared/webhook-hmac.js';
 import type { InboundBody } from './inbound.schemas.js';
+import {
+  resolveConversationContext,
+  type ConversationContext,
+} from './conversation-context.service.js';
+import { appendConversationTurn } from './conversation-session.redis.js';
+import { registerAgentDispatch, type AgentDispatch } from './agent-dispatch.service.js';
 
 export type { InboundBody } from './inbound.schemas.js';
 export { inboundBodySchema } from './inbound.schemas.js';
@@ -46,7 +52,15 @@ type IntegrationRow = {
 };
 
 export type InboundResult =
-  | { ok: true; duplicate: false; messageId: string; customerId: string; tenantId: string }
+  | {
+      ok: true;
+      duplicate: false;
+      messageId: string;
+      customerId: string;
+      tenantId: string;
+      conversationContext: ConversationContext;
+      agentDispatch: AgentDispatch;
+    }
   | { ok: true; duplicate: true };
 
 // ── HMAC ──────────────────────────────────────────────────────────────────────
@@ -147,6 +161,23 @@ export async function processInboundWebhook(
   // ── 4. Persistência dentro do contexto do tenant (RLS) ────────────────────
   let customerId!: string;
   let messageId!: string;
+  let conversationContext!: ConversationContext;
+  let agentDispatch!: AgentDispatch;
+
+  let messageBody = body.message;
+  if (
+    body.message_type === 'audio' &&
+    body.media_url &&
+    (messageBody === '[mensagem de voz]' || messageBody.length < 3)
+  ) {
+    const { isAudioTranscribeEnabled, transcribeAudioFromUrl } = await import(
+      './audio-transcribe.service.js'
+    );
+    if (isAudioTranscribeEnabled()) {
+      const transcript = await transcribeAudioFromUrl(body.media_url);
+      if (transcript) messageBody = transcript;
+    }
+  }
 
   await withTenant(tenantId, async (client) => {
     // 4a. Upsert customer
@@ -170,11 +201,12 @@ export async function processInboundWebhook(
       [
         tenantId,
         customerId,
-        body.message,
+        messageBody,
         JSON.stringify({
-          type:     'text',
-          text:     body.message,
+          type: body.message_type ?? 'text',
+          text: messageBody,
           provider: PROVIDER,
+          ...(body.media_url ? { media_url: body.media_url } : {}),
         }),
         body.external_message_id ?? null,
       ],
@@ -227,7 +259,25 @@ export async function processInboundWebhook(
         instance_key: ctx.instanceKey,
       },
     });
+
+    await appendConversationTurn(tenantId, customerId, {
+      direction: 'in',
+      body: messageBody,
+      at: new Date().toISOString(),
+    });
+
+    conversationContext = await resolveConversationContext(client, tenantId, customerId);
   });
 
-  return { ok: true, duplicate: false, messageId, customerId, tenantId };
+  agentDispatch = await registerAgentDispatch(tenantId, customerId, messageId);
+
+  return {
+    ok: true,
+    duplicate: false,
+    messageId,
+    customerId,
+    tenantId,
+    conversationContext,
+    agentDispatch,
+  };
 }
