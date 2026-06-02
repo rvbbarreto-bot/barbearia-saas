@@ -93,12 +93,16 @@ if (-not $qaPhone) {
   $qaPhone = Normalize-Phone (Invoke-Psql "SELECT phone FROM customers WHERE id='00000000-0000-4000-8000-000000004031' LIMIT 1;")
 }
 
-if ($qaPhone -and $ownerPhone -and ($qaPhone -eq $ownerPhone)) {
+if (-not $SkipPromptSend -and $qaPhone -and $ownerPhone -and ($qaPhone -eq $ownerPhone)) {
   Write-Host ''
   Write-Host 'BLOCKED - QA_WHATSAPP_NUMBER e o mesmo numero da instancia Barbearia (owner).'
   Write-Host 'Use OUTRO celular fisico para enviar as 6 mensagens ao WhatsApp Business.'
   Write-Host 'Depois: .\scripts\qa-evolution-booking-multiturn-e2e.ps1 -SkipPromptSend -PollSeconds 600'
   exit 2
+}
+
+if ($SkipPromptSend -and $qaPhone -and $ownerPhone -and ($qaPhone -eq $ownerPhone)) {
+  Write-Host '  [INFO] SkipPromptSend: monitorando inbound de qualquer celular (owner=QA no .env).'
 }
 
 if (-not $qaPhone) {
