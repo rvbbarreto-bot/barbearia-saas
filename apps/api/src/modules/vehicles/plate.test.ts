@@ -15,6 +15,7 @@ describe('normalizePlate', () => {
   it('retorna null para vazio', () => {
     expect(normalizePlate('')).toBeNull();
     expect(normalizePlate(undefined)).toBeNull();
+    expect(normalizePlate('   ')).toBeNull();
   });
 });
 
@@ -40,5 +41,17 @@ describe('formatVehicleLabel', () => {
     expect(formatVehicleLabel({ plate: 'ABC1D23', brand: 'Honda', model: 'Civic', color: 'Prata' })).toContain(
       'ABC1D23',
     );
+  });
+
+  it('label retorna apenas placa quando não há modelo', () => {
+    expect(formatVehicleLabel({ plate: 'ABC1D23', brand: 'Honda' })).toBe('ABC1D23 · Honda');
+  });
+
+  it('label retorna apenas modelo com cor', () => {
+    expect(formatVehicleLabel({ model: 'Civic', color: 'Prata' })).toBe('Civic (Prata)');
+  });
+
+  it('label retorna Veículo quando não há dados suficientes', () => {
+    expect(formatVehicleLabel({})).toBe('Veículo');
   });
 });

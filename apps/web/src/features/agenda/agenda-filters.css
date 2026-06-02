@@ -1,0 +1,67 @@
+/**
+ * Filtros da Agenda — tema escuro (date picker nativo + controles)
+ */
+
+.agenda-filters {
+  --agenda-filter-bg: oklch(0.18 0.06 245);
+  --agenda-filter-input: oklch(0.22 0.04 245);
+  --agenda-filter-border: oklch(0.28 0.04 248);
+}
+
+.agenda-filters .agenda-date-input {
+  color-scheme: dark;
+  background-color: var(--agenda-filter-input);
+  border-color: var(--agenda-filter-border);
+  color: oklch(0.95 0 0);
+}
+
+.agenda-filters .agenda-date-input::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.85;
+  filter: invert(0.9) brightness(1.1);
+}
+
+.agenda-filters .agenda-date-input:hover {
+  border-color: oklch(0.79 0.12 183 / 0.45);
+}
+
+.agenda-filters .agenda-select-trigger {
+  background-color: var(--agenda-filter-input);
+  border-color: var(--agenda-filter-border);
+  color: oklch(0.95 0 0);
+}
+
+.agenda-filters .agenda-select-trigger:hover {
+  background-color: oklch(0.24 0.05 245);
+  border-color: oklch(0.79 0.12 183 / 0.35);
+}
+
+.agenda-filters .agenda-nav-btn {
+  border-color: var(--agenda-filter-border);
+  background-color: var(--agenda-filter-input);
+  color: oklch(0.87 0 0);
+}
+
+.agenda-filters .agenda-nav-btn:hover {
+  background-color: oklch(0.24 0.05 245);
+  color: oklch(1 0 0);
+}
+
+.agenda-filters .agenda-view-toggle {
+  border-color: var(--agenda-filter-border);
+  background-color: oklch(0.16 0.05 245);
+}
+
+.agenda-filters .agenda-view-toggle [data-active='true'] {
+  background-color: oklch(0.79 0.12 183);
+  color: oklch(0.12 0.05 248);
+}
+
+.agenda-filters .agenda-view-toggle [data-active='false'] {
+  color: oklch(0.72 0 0);
+}
+
+.agenda-filters .agenda-view-toggle [data-active='false']:hover {
+  background-color: oklch(0.22 0.05 245);
+  color: oklch(0.95 0 0);
+}

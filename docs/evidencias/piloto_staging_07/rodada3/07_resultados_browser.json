@@ -1,0 +1,136 @@
+{
+  "executed_at": "2026-05-26T23:13:19.507Z",
+  "base_url": "http://localhost:3001",
+  "stack": "Web Docker :3001 (healthy) + n8n :5679 (healthy) + API :3000; Vite :5173 usado na Rodada 3",
+  "vertical_lava_rapido": "car_wash (SQL tenant_settings + data QA 2026-06-16)",
+  "totals": {
+    "OK": 17,
+    "FAIL": 0,
+    "PEND": 1,
+    "BLOCKED": 1
+  },
+  "results": [
+    {
+      "id": "P07_01",
+      "scenario": "Login admin (pos-auth dashboard)",
+      "status": "OK",
+      "evidence": "prints/P07_01_login_admin.png"
+    },
+    {
+      "id": "P07_02",
+      "scenario": "Agenda barbearia",
+      "status": "OK",
+      "evidence": "prints/P07_02_agenda_barbearia.png"
+    },
+    {
+      "id": "P07_03",
+      "scenario": "Cliente 360",
+      "status": "OK",
+      "evidence": "prints/P07_03_cliente_360.png"
+    },
+    {
+      "id": "P07_04",
+      "scenario": "Dashboard gestao",
+      "status": "OK",
+      "note": "Revalidado doc10 browser",
+      "evidence": "prints/P07_04_dashboard_gestao.png"
+    },
+    {
+      "id": "P07_05",
+      "scenario": "Veiculos (C8/C21)",
+      "status": "OK",
+      "evidence": "prints/P07_05_veiculos.png"
+    },
+    {
+      "id": "P07_06",
+      "scenario": "Agenda lava-rapido com veiculo (C11)",
+      "status": "OK",
+      "note": "Data 2026-06-16; vehicle_id no evento",
+      "evidence": "prints/P07_06_agenda_lava_rapido_veiculo.png"
+    },
+    {
+      "id": "P07_07",
+      "scenario": "Patio lava-rapido (C13)",
+      "status": "OK",
+      "note": "FSM doc10 auto",
+      "evidence": "prints/P07_07b_patio_fsm_doc10.png"
+    },
+    {
+      "id": "P07_08",
+      "scenario": "Checklist entrada (C14)",
+      "status": "OK",
+      "note": "Checklist salvo com sucesso (toast)",
+      "evidence": "prints/P07_08_checklist_lava_rapido.png"
+    },
+    {
+      "id": "P07_09",
+      "scenario": "Outbox operacional",
+      "status": "OK",
+      "evidence": "prints/P07_09_outbox.png"
+    },
+    {
+      "id": "P07_10",
+      "scenario": "Auditoria operacional",
+      "status": "OK",
+      "evidence": "prints/P07_10_auditoria.png"
+    },
+    {
+      "id": "P07_11",
+      "scenario": "Financeiro",
+      "status": "OK",
+      "evidence": "prints/P07_11_financeiro.png"
+    },
+    {
+      "id": "P07_12",
+      "scenario": "Comissoes",
+      "status": "OK",
+      "evidence": "prints/P07_12_comissao.png"
+    },
+    {
+      "id": "P07_13",
+      "scenario": "Lista espera",
+      "status": "OK",
+      "evidence": "prints/P07_13_waitlist.png",
+      "note": "Nova entrada doc10"
+    },
+    {
+      "id": "P07_14",
+      "scenario": "Portal token valido",
+      "status": "OK",
+      "evidence": "prints/P07_14_portal_token_valido.png"
+    },
+    {
+      "id": "P07_15",
+      "scenario": "Portal token invalido",
+      "status": "OK",
+      "evidence": "prints/P07_15_portal_token_invalido.png"
+    },
+    {
+      "id": "P07_16",
+      "scenario": "n8n workflows",
+      "status": "PEND",
+      "note": "Import workflows manual §7.2",
+      "evidence": "prints/P07_16_n8n_workflows_importados.png"
+    },
+    {
+      "id": "P07_17",
+      "scenario": "n8n smoke Evolution",
+      "status": "BLOCKED",
+      "note": "Evolution :8081",
+      "evidence": ""
+    },
+    {
+      "id": "P07_18",
+      "scenario": "Forbidden atendente /gestao/dashboard",
+      "status": "OK",
+      "evidence": "prints/P07_18_forbidden.png"
+    },
+    {
+      "id": "C07",
+      "scenario": "Labels vertical car_wash no menu",
+      "status": "OK",
+      "note": "Veiculos, Patio, Boxes/equipes visiveis"
+    }
+  ],
+  "qa_senior_doc10": "2026-05-26T23:13:19.508Z"
+}

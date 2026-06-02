@@ -14,7 +14,7 @@ export async function getCustomerOverview(tenantId: string, customerId: string) 
 
     const appointments = await client.query(
       `SELECT a.id::text AS id, a.status::text AS status, a.starts_at::text AS starts_at,
-              a.ends_at::text AS ends_at, a.correlation_id,
+              a.ends_at::text AS ends_at,
               s.name AS service_name, p.name AS professional_name
          FROM appointments a
          LEFT JOIN services s ON s.tenant_id = a.tenant_id AND s.id = a.service_id
@@ -36,8 +36,14 @@ export async function getCustomerOverview(tenantId: string, customerId: string) 
     );
 
     const outbox = await client.query(
-      `SELECT id::text, status::text, channel, template_key, created_at::text, correlation_id,
-              last_error, appointment_id::text
+      `SELECT id::text,
+              status::text,
+              channel,
+              created_at::text,
+              correlation_id,
+              last_error,
+              payload->>'template_key' AS template_key,
+              payload->>'appointment_id' AS appointment_id
          FROM message_outbox
         WHERE tenant_id = $1 AND customer_id = $2
         ORDER BY created_at DESC
@@ -46,12 +52,17 @@ export async function getCustomerOverview(tenantId: string, customerId: string) 
     );
 
     const audit = await client.query(
-      `SELECT id::text, action, entity, entity_id::text, created_at::text, correlation_id
+      `SELECT id::text,
+              event_type AS action,
+              entity_type AS entity,
+              entity_id::text,
+              created_at::text,
+              correlation_id
          FROM operational_audit_events
         WHERE tenant_id = $1
           AND (
-            (entity = 'customer' AND entity_id = $2::uuid)
-            OR metadata->>'customer_id' = $2
+            (entity_type = 'customer' AND entity_id = $2::uuid)
+            OR metadata->>'customer_id' = $2::text
           )
         ORDER BY created_at DESC
         LIMIT 30`,
@@ -73,7 +84,7 @@ export async function getCustomerOverview(tenantId: string, customerId: string) 
     const vertical = await loadTenantVerticalContextWithClient(client, tenantId);
     if (vertical.vertical === 'car_wash') {
       const v = await client.query(
-        `SELECT id::text, plate, model, color, active, created_at::text
+        `SELECT id::text, plate, model, color, is_active AS active, created_at::text
            FROM customer_vehicles
           WHERE tenant_id = $1 AND customer_id = $2
           ORDER BY created_at DESC`,

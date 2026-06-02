@@ -15,6 +15,16 @@
     "db:migrate": "node ./scripts/migrate-docker.mjs",
     "db:migrate:dry-run": "node ./scripts/migrate-docker.mjs --dry-run",
     "db:migrate:seed": "node ./scripts/migrate-docker.mjs --seed",
-    "db:migrate:backfill": "node ./scripts/backfill-migrations-registry.mjs"
+    "db:migrate:backfill": "node ./scripts/backfill-migrations-registry.mjs",
+    "test:api:unit": "npm run test:unit --prefix apps/api",
+    "test:api:integration": "npm test --prefix apps/api",
+    "test:api:coverage:ps06": "npm run test:coverage:ps06 --prefix apps/api",
+    "test:web": "npm test --prefix apps/web",
+    "test:web:coverage": "npm run test:coverage --prefix apps/web",
+    "test:robot:nightly": "powershell -ExecutionPolicy Bypass -File ./scripts/qa-robot-nightly.ps1",
+    "test:e2e": "powershell -ExecutionPolicy Bypass -File ./scripts/qa-e2e-suite.ps1 -Headless",
+    "test:e2e:headed": "powershell -ExecutionPolicy Bypass -File ./scripts/qa-e2e-suite.ps1",
+    "test:e2e:smoke": "powershell -ExecutionPolicy Bypass -File ./scripts/qa-e2e-suite.ps1 -Headless -Tags smoke",
+    "test:e2e:legacy": "powershell -ExecutionPolicy Bypass -File ./scripts/qa-e2e-run.ps1"
   }
 }

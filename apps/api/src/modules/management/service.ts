@@ -194,12 +194,17 @@ async function loadRecentErrors(client: PoolClient, tenantId: string) {
     created_at: string;
     correlation_id: string | null;
   }>(
-    `SELECT id::text, action, entity, entity_id::text, created_at::text, correlation_id
+    `SELECT id::text,
+            event_type AS action,
+            entity_type AS entity,
+            entity_id::text,
+            created_at::text,
+            correlation_id
        FROM operational_audit_events
       WHERE tenant_id = $1
         AND (
-          action ILIKE '%ERROR%'
-          OR action ILIKE '%FAILED%'
+          event_type ILIKE '%ERROR%'
+          OR event_type ILIKE '%FAILED%'
           OR metadata->>'severity' = 'error'
         )
       ORDER BY created_at DESC

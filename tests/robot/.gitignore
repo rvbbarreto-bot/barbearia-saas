@@ -1,0 +1,9 @@
+.venv/
+results/report.html
+results/log.html
+results/output.xml
+results/playwright-log.txt
+results/browser/
+results/pabot_results/
+*.pyc
+__pycache__/
