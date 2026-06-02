@@ -314,6 +314,56 @@ function patchWf(wf) {
 
 
 
+  const profileNodeName = 'Perfil cliente Core API';
+
+  const profile = byName(profileNodeName);
+
+  const customerOverviewPath =
+
+    "/api/v1/customers/{{ String($('Preparar contexto inbound').first().json.inbound?.customer_id || $('Preparar contexto inbound').first().json.enrichment?.customer_id || '').trim() }}/overview";
+
+
+
+  if (profile) {
+
+    profile.continueOnFail = true;
+
+    profile.position = [385, 0];
+
+    profile.parameters.url = `={{$env.API_BASE_URL}}${customerOverviewPath}`;
+
+  } else {
+
+    wf.nodes.push(
+
+      httpGetNode(
+
+        'get-customer-profile',
+
+        profileNodeName,
+
+        customerOverviewPath,
+
+        [385, 0],
+
+        {
+
+          optional: true,
+
+          notes:
+
+            'Overview do cliente (ultimo agendamento, servicos). continueOnFail se sem customer_id.',
+
+        },
+
+      ),
+
+    );
+
+  }
+
+
+
   wf.nodes.push(
 
     codeNode(
@@ -366,7 +416,7 @@ function patchWf(wf) {
 
       route,
 
-      'criar só com intent + UUIDs + data válidos; senão outbound.',
+      'criar só com intent + UUIDs + data/hora + ready_to_book confirmado; senão outbound.',
 
     ),
 
@@ -440,69 +490,35 @@ function patchWf(wf) {
 
     agent.position = [560, 0];
 
-    agent.parameters.text = `={{ (() => {
+    const systemMsg = fs
 
-  const ctx = $('Montar contexto agente').first().json || {};
+      .readFileSync(
 
-  const inb = ctx.inbound || {};
+        path.join(root, 'scripts/n8n-snippets/02_ai_agent_system_message.txt'),
 
-  const cat = ctx.catalog || {};
+        'utf8',
 
-  const def = ctx.defaults || {};
+      )
 
-  return [
+      .trim();
 
-    'Ultima mensagem: ' + String(inb.message || ''),
+    const userPromptBody = fs
 
-  'Historico da sessao (todas as mensagens recentes):',
+      .readFileSync(
 
-  String(inb.session_text || inb.message || ''),
+        path.join(root, 'scripts/n8n-snippets/02_ai_agent_user_prompt.body.js'),
 
-    'Telefone: ' + String(inb.phone || ''),
+        'utf8',
 
-    'customer_id: ' + String(inb.customer_id || def.customer_id || ''),
+      )
 
-    'Servicos (use id UUID exato): ' + JSON.stringify(cat.services || []).slice(0, 4000),
+      .trim();
 
-    'Profissionais (use id UUID exato): ' + JSON.stringify(cat.professionals || []).slice(0, 2000),
-
-    'Agendamentos proximos 7d: ' + JSON.stringify(cat.appointments_next_7d || []).slice(0, 2000),
-
-    '',
-
-    'Regras:',
-
-    '- CONVERSA MULTI-TURNO: use TODO o historico; nao ignore mensagens anteriores.',
-
-    '- Saudacao so (Boa tarde/Oi): intent=informacao_empresa, resposta cordial, SEM criar_agendamento.',
-
-    '- Agendar so quando o historico tiver servico + data (ex. amanha) + horario se informado.',
-
-    '- NUNCA mencione erro de autenticacao/API ao cliente.',
-
-    '- Para agendar: intent=criar_agendamento com professional_id, service_id, appointment_date (YYYY-MM-DD), appointment_time (HH:mm).',
-
-    '- Se cliente pedir corte/barba sem UUID, escolha do catalogo (ex. Corte masculino).',
-
-    '- Se faltar data, use amanha (YYYY-MM-DD) quando cliente disser amanha/amanha no historico.',
-
-    '- Se so tiver duvida de horarios: intent=consultar_horarios com response_text util.',
-
-    '- atendimento_humano apenas se pedido explicito de humano.',
-
-    '',
-
-    'Retorne JSON na raiz: intent, professional_id, service_id, appointment_date, appointment_time, customer_id, response_text, appointment_payload.',
-
-  ].join('\\n');
-
-})() }}`;
+    agent.parameters.text = `={{ (() => {\n${userPromptBody}\n})() }}`;
 
     agent.parameters.options = {
 
-      systemMessage:
-
-        'Responda somente JSON valido, sem markdown. Use UUIDs do catalogo. Nunca invente IDs.',
+      systemMessage: systemMsg,
 
     };
 
@@ -686,6 +702,14 @@ function patchWf(wf) {
     },
 
     'Contexto agenda Core API': {
+
+      main: [[{ node: profileNodeName, type: 'main', index: 0 }]],
+
+    },
+
+
+
+    [profileNodeName]: {
 
       main: [[{ node: 'Montar contexto agente', type: 'main', index: 0 }]],
 

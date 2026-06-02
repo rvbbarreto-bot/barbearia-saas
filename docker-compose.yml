@@ -121,6 +121,15 @@ services:
       # Deve corresponder ao webhook_token do tenant na tabela tenants
       # Default alinhado ao seed demo (`database/seeds/001_demo.sql`). Sobrescreva em `.env` em ambientes reais.
       N8N_WEBHOOK_TOKEN: ${N8N_WEBHOOK_TOKEN:-demo_webhook_token_change_me}
+      # Alias legível no Code node (n8n bloqueia prefixo N8N_* em $env no sandbox 1.91+)
+      CORE_WEBHOOK_TOKEN: ${N8N_WEBHOOK_TOKEN:-demo_webhook_token_change_me}
+      # Workflow 02 — JWT tenant-scoped (header x-tenant-id nos nos HTTP)
+      CORE_API_TENANT_ID: ${CORE_API_TENANT_ID:-00000000-0000-0000-0000-000000000001}
+      CORE_API_LOGIN_EMAIL: ${CORE_API_LOGIN_EMAIL:-admin@demo.local}
+      CORE_API_LOGIN_PASSWORD: ${CORE_API_LOGIN_PASSWORD:-admin12345}
+      QA_DEFAULT_CUSTOMER_ID: ${QA_DEFAULT_CUSTOMER_ID:-00000000-0000-4000-8000-000000004031}
+      QA_DEFAULT_SERVICE_ID: ${QA_DEFAULT_SERVICE_ID:-00000000-0000-4000-8000-000000004021}
+      QA_DEFAULT_PROFESSIONAL_ID: ${QA_DEFAULT_PROFESSIONAL_ID:-00000000-0000-4000-8000-000000004012}
       N8N_HMAC_SECRET: ${N8N_HMAC_SECRET:-}
       N8N_BASE_URL: ${N8N_BASE_URL:-http://localhost:5679}
       N8N_WORKFLOW_02_ID: ${N8N_WORKFLOW_02_ID:-}
@@ -174,7 +183,8 @@ services:
 
   evolution:
     profiles: ["evolution"]
-    image: atendai/evolution-api:v2.2.3
+    # atendai/evolution-api:v2.2.3 (Feb/2025) — EOL; Baileys falha handshake em 2026. Usar evoapicloud oficial.
+    image: ${EVOLUTION_IMAGE:-evoapicloud/evolution-api:v2.3.7}
     container_name: barbearia-evolution
     depends_on:
       evolution-postgres:
@@ -190,6 +200,14 @@ services:
       DATABASE_CONNECTION_CLIENT_NAME: barbearia_evolution_v2
       CACHE_REDIS_ENABLED: "false"
       CACHE_LOCAL_ENABLED: "true"
+      # Baileys/WA Web — versão embutida na imagem (Feb/2025) fica obsoleta; pin dinâmico via .env
+      # Obter valor atual: .\scripts\qa-evolution-wa-version.ps1
+      CONFIG_SESSION_PHONE_VERSION: ${EVOLUTION_WA_WEB_VERSION:-2.2413.51}
+      CONFIG_SESSION_PHONE_CLIENT: ${EVOLUTION_WA_PHONE_CLIENT:-Evolution API}
+      CONFIG_SESSION_PHONE_NAME: ${EVOLUTION_WA_PHONE_NAME:-Chrome}
+      LOG_BAILEYS: ${EVOLUTION_LOG_BAILEYS:-warn}
+      WEBSOCKET_ENABLED: ${EVOLUTION_WEBSOCKET_ENABLED:-true}
+      DOCKER_ENV: "true"
     volumes:
       - evolution_instances:/evolution/instances
     healthcheck:
