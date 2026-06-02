@@ -2,7 +2,7 @@
   "name": "SaaS Barbearia - 02 Agente Agenda Multi-Tenant",
   "active": false,
   "meta": {
-    "templateCredsSetupCompleted": false,
+    "templateCredsSetupCompleted": true,
     "description": "Remediação DEV/QA: sem chamada Evolution direta; GET /availability antes de POST /appointments; resposta WhatsApp via POST /integrations/outbound/whatsapp-text (outbox). Manter Active=false até validação formal. Credencial HTTP: Bearer + x-tenant-id do JWT (nunca tenant_id no corpo)."
   },
   "nodes": [
@@ -12,94 +12,125 @@
       "name": "When Executed by Another Workflow",
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1,
-      "position": [0, 0]
+      "position": [
+        0,
+        0
+      ]
     },
     {
       "parameters": {
         "url": "={{$env.API_BASE_URL}}/api/v1/appointments?from={{$now}}&to={{$now.plus({days:7})}}",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
-        "options": {}
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-tenant-id",
+              "value": "={{ String($env.CORE_API_TENANT_ID || '00000000-0000-0000-0000-000000000001').trim() }}"
+            }
+          ]
+        }
       },
       "id": "get-context",
       "name": "Contexto agenda Core API",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [220, 0],
-      "notes": "Opcional — contexto read-only. Não substitui GET /availability antes de criar."
+      "position": [
+        330,
+        0
+      ],
+      "continueOnFail": true,
+      "notes": "Opcional — contexto read-only. continueOnFail: JWT expira (15m); agente usa inbound do WF01. Renovar: node scripts/setup-n8n-workflow-02-core-credential.mjs",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "barbearia-core-api-jwt-001",
+          "name": "Barbearia Core API - Bearer JWT"
+        }
+      }
     },
     {
       "parameters": {
         "promptType": "define",
-        "text": "Você é o agente de agendamento multi-tenant. O tenant vem exclusivamente do JWT/cabeçalhos HTTP da Core API — nunca confies em tenant_id no payload bruto. Antes de criar agendamento, a orquestração chama GET /api/v1/availability. Retorne JSON na raiz com: intent (consultar_horarios|criar_agendamento|cancelar|informacao_empresa|atendimento_humano), professional_id, service_id, appointment_date (YYYY-MM-DD), customer_id, response_text, appointment_payload (objeto válido para POST /api/v1/appointments quando intent=criar_agendamento).",
-        "options": {}
+        "text": "={{ (() => {\n\n  const ctx = $('Montar contexto agente').first().json || {};\n\n  const inb = ctx.inbound || {};\n\n  const cat = ctx.catalog || {};\n\n  const def = ctx.defaults || {};\n\n  return [\n\n    'Ultima mensagem: ' + String(inb.message || ''),\n\n  'Historico da sessao (todas as mensagens recentes):',\n\n  String(inb.session_text || inb.message || ''),\n\n    'Telefone: ' + String(inb.phone || ''),\n\n    'customer_id: ' + String(inb.customer_id || def.customer_id || ''),\n\n    'Servicos (use id UUID exato): ' + JSON.stringify(cat.services || []).slice(0, 4000),\n\n    'Profissionais (use id UUID exato): ' + JSON.stringify(cat.professionals || []).slice(0, 2000),\n\n    'Agendamentos proximos 7d: ' + JSON.stringify(cat.appointments_next_7d || []).slice(0, 2000),\n\n    '',\n\n    'Regras:',\n\n    '- CONVERSA MULTI-TURNO: use TODO o historico; nao ignore mensagens anteriores.',\n\n    '- Saudacao so (Boa tarde/Oi): intent=informacao_empresa, resposta cordial, SEM criar_agendamento.',\n\n    '- Agendar so quando o historico tiver servico + data (ex. amanha) + horario se informado.',\n\n    '- NUNCA mencione erro de autenticacao/API ao cliente.',\n\n    '- Para agendar: intent=criar_agendamento com professional_id, service_id, appointment_date (YYYY-MM-DD), appointment_time (HH:mm).',\n\n    '- Se cliente pedir corte/barba sem UUID, escolha do catalogo (ex. Corte masculino).',\n\n    '- Se faltar data, use amanha (YYYY-MM-DD) quando cliente disser amanha/amanha no historico.',\n\n    '- Se so tiver duvida de horarios: intent=consultar_horarios com response_text util.',\n\n    '- atendimento_humano apenas se pedido explicito de humano.',\n\n    '',\n\n    'Retorne JSON na raiz: intent, professional_id, service_id, appointment_date, appointment_time, customer_id, response_text, appointment_payload.',\n\n  ].join('\\n');\n\n})() }}",
+        "options": {
+          "systemMessage": "Responda somente JSON valido, sem markdown. Use UUIDs do catalogo. Nunca invente IDs."
+        }
       },
       "id": "agent",
       "name": "Agente IA Agendamento",
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 1.7,
-      "position": [480, 0]
-    },
-    {
-      "parameters": {
-        "jsCode": "const root = $input.first().json || {};\nconst out = root.output ?? root.json ?? root;\nreturn [{\n  json: {\n    intent: String(out.intent ?? root.intent ?? '').trim(),\n    professional_id: out.professional_id ?? root.professional_id,\n    service_id: out.service_id ?? root.service_id,\n    appointment_date: out.appointment_date ?? out.date ?? root.appointment_date,\n    customer_id: out.customer_id ?? root.enrichment?.customer_id ?? root.customer_id,\n    response_text: String(out.response_text ?? root.response_text ?? ''),\n    appointment_payload: out.appointment_payload ?? root.appointment_payload ?? {}\n  }\n}];"
-      },
-      "id": "norm",
-      "name": "Normalizar saida IA",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [720, 0],
-      "notes": "Campos esperados na saída do agente estão documentados em docs/N8N_WORKFLOW_02_ENDPOINTS.md"
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "string": [
-            {
-              "value1": "={{$json.intent}}",
-              "operation": "equals",
-              "value2": "criar_agendamento"
-            }
-          ]
-        }
-      },
-      "id": "if-create",
-      "name": "Intencao criar",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
-      "position": [940, 0]
+      "position": [
+        560,
+        0
+      ]
     },
     {
       "parameters": {
         "url": "={{$env.API_BASE_URL}}/api/v1/availability?professional_id={{$json.professional_id}}&service_id={{$json.service_id}}&date={{$json.appointment_date}}",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
-        "options": {}
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-tenant-id",
+              "value": "={{ String($env.CORE_API_TENANT_ID || '00000000-0000-0000-0000-000000000001').trim() }}"
+            }
+          ]
+        }
       },
       "id": "http-availability",
       "name": "GET disponibilidade Core API",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1160, -120],
-      "notes": "Obrigatório antes de criar agendamento. Query validada pela API (RLS + engine de slots)."
+      "position": [
+        1160,
+        -120
+      ],
+      "notes": "Obrigatório antes de criar agendamento. Query validada pela API (RLS + engine de slots).",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "barbearia-core-api-jwt-001",
+          "name": "Barbearia Core API - Bearer JWT"
+        }
+      },
+      "continueOnFail": true
     },
     {
       "parameters": {
         "conditions": {
-          "number": [
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
             {
-              "value1": "={{ Array.isArray($json.slots) ? $json.slots.length : 0 }}",
-              "operation": "larger",
-              "value2": 0
+              "id": "slots-count",
+              "leftValue": "={{ ($json.slots || []).filter((s) => s && s.starts_at && s.ends_at).length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
             }
-          ]
-        }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
       },
       "id": "if-slots",
       "name": "Ha slots livres",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1380, -120]
+      "position": [
+        1380,
+        -120
+      ]
     },
     {
       "parameters": {
@@ -109,14 +140,33 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify($('Normalizar saida IA').item.json.appointment_payload) }}",
-        "options": {}
+        "jsonBody": "={{ JSON.stringify($json.appointment_payload || {}) }}",
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-tenant-id",
+              "value": "={{ String($env.CORE_API_TENANT_ID || '00000000-0000-0000-0000-000000000001').trim() }}"
+            }
+          ]
+        }
       },
       "id": "create-appt",
       "name": "Criar agendamento Core API",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1600, -200]
+      "position": [
+        1820,
+        -200
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "barbearia-core-api-jwt-001",
+          "name": "Barbearia Core API - Bearer JWT"
+        }
+      },
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -126,47 +176,500 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ customer_id: $('Normalizar saida IA').item.json.customer_id, text: $('Normalizar saida IA').item.json.response_text || 'Atualizacao', correlation_id: $execution.id, idempotency_key: 'n8n-02-' + $execution.id }) }}",
-        "options": {}
+        "jsonBody": "={{ JSON.stringify({ customer_id: $('Rotear fluxo').first().json.customer_id, text: $('Rotear fluxo').first().json.response_text || 'Atualizacao', correlation_id: 'n8n-wf02-' + String($execution.id), idempotency_key: 'n8n-02-' + String($execution.id) }) }}",
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-tenant-id",
+              "value": "={{ String($env.CORE_API_TENANT_ID || '00000000-0000-0000-0000-000000000001').trim() }}"
+            }
+          ]
+        }
       },
       "id": "outbox-text",
       "name": "Enfileirar resposta WhatsApp outbox",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1820, -40],
-      "notes": "message_outbox via Core API — sem Evolution direto."
+      "position": [
+        1820,
+        -40
+      ],
+      "notes": "message_outbox via Core API — sem Evolution direto.",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "barbearia-core-api-jwt-001",
+          "name": "Barbearia Core API - Bearer JWT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "route-criar",
+              "leftValue": "={{ $json._route }}",
+              "rightValue": "criar",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-route-criar",
+      "name": "Rota criar?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1160,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "id": "openai-lm-barbearia",
+      "name": "OpenAI Chat Model Barbearia",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        480,
+        200
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "barbearia-openai-api-001",
+          "name": "Barbearia OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const root = $input.first().json ?? {};\r\nconst parent = $('Preparar contexto inbound').first().json ?? {};\r\nconst inbound = parent.inbound ?? {};\r\nlet catalog = { services: [], professionals: [] };\r\nlet defaults = {};\r\ntry {\r\n  const ctx = $('Montar contexto agente').first().json ?? {};\r\n  catalog = ctx.catalog ?? catalog;\r\n  defaults = ctx.defaults ?? {};\r\n} catch (_) {\r\n  /* legado */\r\n}\r\n\r\nconst UUID_RE =\r\n  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;\r\nconst okUuid = (v) => typeof v === 'string' && UUID_RE.test(v.trim());\r\n\r\nconst sessionText = String(inbound.session_text ?? inbound.message ?? '').trim();\r\n\r\nfunction parseAgentPayload(raw) {\r\n  if (raw == null) return {};\r\n  let v = raw;\r\n  if (typeof v === 'string') {\r\n    const s = v.trim().replace(/^```json\\s*/i, '').replace(/^```\\s*/i, '').replace(/\\s*```$/i, '');\r\n    try {\r\n      v = JSON.parse(s);\r\n    } catch (_) {\r\n      return {};\r\n    }\r\n  }\r\n  if (v && typeof v === 'object' && typeof v.output === 'string') {\r\n    return parseAgentPayload(v.output);\r\n  }\r\n  return v && typeof v === 'object' ? v : {};\r\n}\r\n\r\nfunction resolveFromCatalog(value, list, nameKeys = ['name', 'title']) {\r\n  if (okUuid(value)) return value.trim();\r\n  const q = String(value ?? '')\r\n    .toLowerCase()\r\n    .normalize('NFD')\r\n    .replace(/[\\u0300-\\u036f]/g, '');\r\n  if (!q) return null;\r\n  for (const item of list) {\r\n    const id = item.id;\r\n    if (!okUuid(id)) continue;\r\n    for (const k of nameKeys) {\r\n      const n = String(item[k] ?? '')\r\n        .toLowerCase()\r\n        .normalize('NFD')\r\n        .replace(/[\\u0300-\\u036f]/g, '');\r\n      if (!n) continue;\r\n      if (n.includes(q) || q.includes(n)) return id;\r\n    }\r\n  }\r\n  return null;\r\n}\r\n\r\nfunction todayIsoDate() {\r\n  return new Date().toISOString().slice(0, 10);\r\n}\r\n\r\nfunction tomorrowIsoDate() {\r\n  const d = new Date();\r\n  d.setUTCDate(d.getUTCDate() + 1);\r\n  return d.toISOString().slice(0, 10);\r\n}\r\n\r\nfunction isIsoDate(value) {\r\n  return /^\\d{4}-\\d{2}-\\d{2}$/.test(String(value ?? ''));\r\n}\r\n\r\n/** \"Amanhã\" no histórico vence data da IA; rejeita datas passadas. */\r\nfunction resolveAppointmentDate(rawDate, sessionText) {\r\n  if (/amanha|amanhã/i.test(sessionText)) {\r\n    return tomorrowIsoDate();\r\n  }\r\n  const candidate = rawDate ?? null;\r\n  if (!isIsoDate(candidate)) return null;\r\n  if (candidate < todayIsoDate()) return null;\r\n  return candidate;\r\n}\r\n\r\nfunction parseTimeHint(text) {\r\n  const m = String(text).match(/\\b(\\d{1,2})\\s*[:h]\\s*(\\d{2})\\b/i);\r\n  if (!m) return null;\r\n  const h = Math.min(23, parseInt(m[1], 10));\r\n  const min = Math.min(59, parseInt(m[2], 10));\r\n  return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;\r\n}\r\n\r\nconst schedulingCue =\r\n  /agendar|hor[aá]rio|marcar|corte|barba|amanh[aã]|\\d{1,2}\\s*[:h]\\s*\\d{2}/i.test(sessionText);\r\n\r\nconst out = parseAgentPayload(root.output ?? root.json ?? root);\r\n\r\nconst defaultCustomer = String(\r\n  defaults.customer_id ?? $env.QA_DEFAULT_CUSTOMER_ID ?? '00000000-0000-4000-8000-000000004031',\r\n).trim();\r\n\r\nconst customer_id =\r\n  (okUuid(out.customer_id) ? out.customer_id.trim() : null) ??\r\n  inbound.customer_id ??\r\n  parent.enrichment?.customer_id ??\r\n  parent.core_response?.customerId ??\r\n  defaultCustomer;\r\n\r\nlet professional_id =\r\n  out.professional_id ??\r\n  out.professional ??\r\n  resolveFromCatalog(out.professional_name, catalog.professionals ?? []);\r\nif (!okUuid(professional_id) && schedulingCue && okUuid(defaults.professional_id)) {\r\n  professional_id = defaults.professional_id;\r\n}\r\n\r\nlet service_id =\r\n  out.service_id ?? out.service ?? resolveFromCatalog(out.service_name, catalog.services ?? []);\r\nif (!okUuid(service_id) && schedulingCue && okUuid(defaults.service_id)) {\r\n  service_id = defaults.service_id;\r\n}\r\n\r\nconst appointment_date = resolveAppointmentDate(\r\n  out.appointment_date ?? out.date ?? null,\r\n  sessionText,\r\n);\r\n\r\nlet appointment_time = out.appointment_time ?? out.time ?? parseTimeHint(sessionText);\r\n\r\nlet intent = String(out.intent ?? '').trim();\r\nif (!intent) {\r\n  if (/^(oi|ol[aá]|bom dia|boa tarde|boa noite)\\b/i.test(String(inbound.message ?? '')) && !schedulingCue) {\r\n    intent = 'informacao_empresa';\r\n  } else if (schedulingCue && okUuid(service_id) && okUuid(professional_id)) {\r\n    intent = /agendar|marcar/i.test(sessionText) ? 'criar_agendamento' : 'consultar_horarios';\r\n  } else {\r\n    intent = 'consultar_horarios';\r\n  }\r\n}\r\n\r\nlet response_text = String(\r\n  out.response_text ?? 'Recebemos sua mensagem. Em breve retornamos o contato.',\r\n);\r\nif (/autentica|authorization|unauthorized|401|403/i.test(response_text)) {\r\n  response_text =\r\n    'Recebemos sua mensagem. Para agendar, informe o servico (ex.: corte masculino), dia e horario preferido.';\r\n}\r\n\r\nconst appointment_payload =\r\n  out.appointment_payload && typeof out.appointment_payload === 'object'\r\n    ? out.appointment_payload\r\n    : {};\r\n\r\nreturn [\r\n  {\r\n    json: {\r\n      intent,\r\n      professional_id: okUuid(professional_id) ? professional_id : null,\r\n      service_id: okUuid(service_id) ? service_id : null,\r\n      appointment_date: isIsoDate(appointment_date) ? appointment_date : null,\r\n      appointment_time,\r\n      customer_id,\r\n      response_text,\r\n      appointment_payload,\r\n      inbound,\r\n      session_text: sessionText,\r\n    },\r\n  },\r\n];\r\n"
+      },
+      "id": "norm",
+      "name": "Normalizar saida IA",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        0
+      ],
+      "notes": "Parse JSON do agente + customer_id"
+    },
+    {
+      "parameters": {
+        "url": "={{$env.API_BASE_URL}}/api/v1/services",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-tenant-id",
+              "value": "={{ String($env.CORE_API_TENANT_ID || '00000000-0000-0000-0000-000000000001').trim() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "get-services",
+      "name": "Catalogo servicos Core API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        220,
+        -80
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "barbearia-core-api-jwt-001",
+          "name": "Barbearia Core API - Bearer JWT"
+        }
+      },
+      "notes": "Catálogo para o agente mapear service_id (continueOnFail).",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "url": "={{$env.API_BASE_URL}}/api/v1/professionals",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-tenant-id",
+              "value": "={{ String($env.CORE_API_TENANT_ID || '00000000-0000-0000-0000-000000000001').trim() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "get-professionals",
+      "name": "Catalogo profissionais Core API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        220,
+        80
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "barbearia-core-api-jwt-001",
+          "name": "Barbearia Core API - Bearer JWT"
+        }
+      },
+      "notes": "Catálogo para o agente mapear professional_id (continueOnFail).",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "payload-starts",
+              "leftValue": "={{ ($json.appointment_payload && $json.appointment_payload.starts_at) || $json.starts_at || '' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "name": "filter.operator.notEmpty"
+              }
+            },
+            {
+              "id": "payload-ends",
+              "leftValue": "={{ ($json.appointment_payload && $json.appointment_payload.ends_at) || $json.ends_at || '' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "name": "filter.operator.notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-payload-valid",
+      "name": "Payload agendamento valido?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1610,
+        -200
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "/** Preserva payload WF01 + contexto multi-mensagem da sessão WhatsApp. */\r\nconst t = $input.first().json ?? {};\r\nconst enrichment = t.enrichment ?? {};\r\nconst normalized = t.normalized ?? {};\r\nconst core = t.core_response ?? {};\r\nconst conv = enrichment.conversation_context ?? t.conversation_context ?? {};\r\n\r\nconst sessionText = String(\r\n  conv.session_text ?? conv.sessionText ?? normalized.text ?? '',\r\n).trim();\r\nconst lastMessage = String(normalized.text ?? '').trim();\r\n\r\nreturn [\r\n  {\r\n    json: {\r\n      ...t,\r\n      enrichment,\r\n      normalized,\r\n      core_response: core,\r\n      conversation_context: conv,\r\n      inbound: {\r\n        phone: normalized.phone ?? null,\r\n        message: lastMessage,\r\n        session_text: sessionText || lastMessage,\r\n        recent_messages: Array.isArray(conv.recent_messages) ? conv.recent_messages : [],\r\n        customer_id: enrichment.customer_id ?? core.customerId ?? null,\r\n        tenant_id: enrichment.tenant_id ?? core.tenantId ?? null,\r\n        message_id: enrichment.message_id ?? core.messageId ?? null,\r\n      },\r\n    },\r\n  },\r\n];\r\n"
+      },
+      "id": "prep-inbound",
+      "name": "Preparar contexto inbound",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        110,
+        0
+      ],
+      "notes": "Propaga enrichment/normalized do workflow 01."
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "/** Monta contexto limpo para o agente (sem vazar erros HTTP 401/403 ao cliente). */\nconst prep = $('Preparar contexto inbound').first().json ?? {};\nconst inbound = prep.inbound ?? {};\n\nfunction unwrapList(payload) {\n  if (!payload || typeof payload !== 'object') return [];\n  if (Array.isArray(payload)) return payload;\n  if (Array.isArray(payload.data)) return payload.data;\n  if (Array.isArray(payload.items)) return payload.items;\n  return [];\n}\n\nfunction isHttpErrorShape(o) {\n  if (!o || typeof o !== 'object') return false;\n  const msg = String(o.message ?? o.error ?? '').toLowerCase();\n  const status = o.statusCode ?? o.status;\n  return (\n    status === 401 ||\n    status === 403 ||\n    msg.includes('unauthorized') ||\n    msg.includes('authorization failed') ||\n    msg.includes('forbidden')\n  );\n}\n\nfunction safeApiSlice(nodeName) {\n  try {\n    const row = $(nodeName).first().json;\n    if (!row || isHttpErrorShape(row)) return { ok: false, data: [] };\n    return { ok: true, data: unwrapList(row) };\n  } catch (_) {\n    return { ok: false, data: [] };\n  }\n}\n\nconst services = safeApiSlice('Catalogo servicos Core API');\nconst professionals = safeApiSlice('Catalogo profissionais Core API');\nconst appointments = safeApiSlice('Contexto agenda Core API');\n\nconst catalog = {\n  services: services.data.map((s) => ({\n    id: s.id,\n    name: s.name ?? s.title,\n    duration_minutes: s.duration_minutes ?? s.durationMinutes,\n  })),\n  professionals: professionals.data.map((p) => ({\n    id: p.id,\n    name: p.name ?? p.display_name ?? p.displayName,\n  })),\n  appointments_next_7d: appointments.data.slice(0, 30),\n  api_errors: {\n    services: !services.ok,\n    professionals: !professionals.ok,\n    appointments: !appointments.ok,\n  },\n};\n\nconst defaultProfessional = String(\n  $env.QA_DEFAULT_PROFESSIONAL_ID || '00000000-0000-4000-8000-000000004012',\n).trim();\nconst defaultService = String(\n  $env.QA_DEFAULT_SERVICE_ID || '00000000-0000-4000-8000-000000004021',\n).trim();\n\nreturn [\n  {\n    json: {\n      inbound,\n      enrichment: prep.enrichment ?? {},\n      normalized: prep.normalized ?? {},\n      core_response: prep.core_response ?? {},\n      catalog,\n      defaults: {\n        professional_id: defaultProfessional,\n        service_id: defaultService,\n        customer_id: String(\n          $env.QA_DEFAULT_CUSTOMER_ID || '00000000-0000-4000-8000-000000004031',\n        ).trim(),\n      },\n    },\n  },\n];\n"
+      },
+      "id": "build-agent-ctx",
+      "name": "Montar contexto agente",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ],
+      "notes": "Catálogo + inbound sem vazar 401 ao LLM."
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const j = $input.first().json ?? {};\r\nconst UUID_RE =\r\n  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;\r\nconst okUuid = (v) => typeof v === 'string' && UUID_RE.test(v.trim());\r\nconst dateOk = /^\\d{4}-\\d{2}-\\d{2}$/.test(String(j.appointment_date ?? ''));\r\n\r\n// Só cria agendamento com intenção explícita + dados completos (evita erro na 1ª mensagem \"Boa tarde\").\r\nconst route =\r\n  j.intent === 'criar_agendamento' &&\r\n  okUuid(j.professional_id) &&\r\n  okUuid(j.service_id) &&\r\n  dateOk\r\n    ? 'criar'\r\n    : 'outbound';\r\n\r\nreturn [{ json: { ...j, _route: route } }];\r\n"
+      },
+      "id": "route-flow",
+      "name": "Rotear fluxo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        940,
+        0
+      ],
+      "notes": "criar só com intent + UUIDs + data válidos; senão outbound."
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "/** Une rota (intent/UUIDs) com resposta de /availability para os nos seguintes. */\nconst route = $('Rotear fluxo').first().json ?? {};\nconst avail = $input.first().json ?? {};\nconst raw =\n  avail.slots ??\n  avail.data?.slots ??\n  avail.body?.slots ??\n  [];\nconst slots = (Array.isArray(raw) ? raw : [])\n  .map((s) => ({\n    starts_at: s?.starts_at ?? s?.startsAt ?? null,\n    ends_at: s?.ends_at ?? s?.endsAt ?? null,\n  }))\n  .filter((s) => s.starts_at && s.ends_at);\n\nreturn [\n  {\n    json: {\n      ...route,\n      slots,\n      availability: avail,\n    },\n  },\n];\n"
+      },
+      "id": "merge-route-avail",
+      "name": "Unir rota e disponibilidade",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1280,
+        -120
+      ],
+      "notes": "Propaga UUIDs + slots no mesmo item."
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "/** Monta POST /appointments — escolhe slot (preferência de horário se informada). */\nconst row = $input.first().json ?? {};\nconst slots = Array.isArray(row.slots) ? row.slots : [];\n\nif (!slots.length) {\n  return [\n    {\n      json: {\n        ...row,\n        appointment_payload: null,\n        response_text:\n          row.response_text ||\n          'No momento nao temos horarios livres para essa data. Quer tentar outro dia?',\n      },\n    },\n  ];\n}\n\nfunction pickSlot(list, preferred) {\n  if (!preferred || !/^\\d{2}:\\d{2}$/.test(preferred)) return list[0];\n  const [ph, pm] = preferred.split(':').map((x) => parseInt(x, 10));\n  let best = list[0];\n  let bestDiff = Number.MAX_SAFE_INTEGER;\n  for (const s of list) {\n    const d = new Date(s.starts_at);\n    const diff = Math.abs(d.getUTCHours() * 60 + d.getUTCMinutes() - (ph * 60 + pm));\n    if (diff < bestDiff) {\n      bestDiff = diff;\n      best = s;\n    }\n  }\n  return best;\n}\n\nconst slot = pickSlot(slots, row.appointment_time);\nconst execId = String($execution.id);\nconst payload = {\n  customer_id: row.customer_id,\n  professional_id: row.professional_id,\n  service_id: row.service_id,\n  starts_at: slot.starts_at,\n  ends_at: slot.ends_at,\n  source: 'whatsapp',\n  explicit_confirmation: true,\n  idempotency_key: `n8n-wf02-appt-${execId}`,\n  notes: 'Agendamento via agente WhatsApp (WF02)',\n};\n\nreturn [{ json: { ...row, ...payload, appointment_payload: payload } }];\n"
+      },
+      "id": "build-appt-payload",
+      "name": "Montar payload agendamento",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1500,
+        -200
+      ],
+      "notes": "Primeiro slot availability -> POST /appointments."
     }
   ],
   "connections": {
     "When Executed by Another Workflow": {
-      "main": [[{ "node": "Contexto agenda Core API", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Preparar contexto inbound",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar contexto inbound": {
+      "main": [
+        [
+          {
+            "node": "Catalogo servicos Core API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Catalogo servicos Core API": {
+      "main": [
+        [
+          {
+            "node": "Catalogo profissionais Core API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Catalogo profissionais Core API": {
+      "main": [
+        [
+          {
+            "node": "Contexto agenda Core API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Contexto agenda Core API": {
-      "main": [[{ "node": "Agente IA Agendamento", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Montar contexto agente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar contexto agente": {
+      "main": [
+        [
+          {
+            "node": "Agente IA Agendamento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Agente IA Agendamento": {
-      "main": [[{ "node": "Normalizar saida IA", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Normalizar saida IA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Normalizar saida IA": {
-      "main": [[{ "node": "Intencao criar", "type": "main", "index": 0 }]]
-    },
-    "Intencao criar": {
       "main": [
-        [{ "node": "GET disponibilidade Core API", "type": "main", "index": 0 }],
-        [{ "node": "Enfileirar resposta WhatsApp outbox", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Rotear fluxo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rotear fluxo": {
+      "main": [
+        [
+          {
+            "node": "Rota criar?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rota criar?": {
+      "main": [
+        [
+          {
+            "node": "GET disponibilidade Core API",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Enfileirar resposta WhatsApp outbox",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "GET disponibilidade Core API": {
-      "main": [[{ "node": "Ha slots livres", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Unir rota e disponibilidade",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Unir rota e disponibilidade": {
+      "main": [
+        [
+          {
+            "node": "Ha slots livres",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Ha slots livres": {
       "main": [
-        [{ "node": "Criar agendamento Core API", "type": "main", "index": 0 }],
-        [{ "node": "Enfileirar resposta WhatsApp outbox", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Montar payload agendamento",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Enfileirar resposta WhatsApp outbox",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar payload agendamento": {
+      "main": [
+        [
+          {
+            "node": "Payload agendamento valido?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Payload agendamento valido?": {
+      "main": [
+        [
+          {
+            "node": "Criar agendamento Core API",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Enfileirar resposta WhatsApp outbox",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Criar agendamento Core API": {
-      "main": [[{ "node": "Enfileirar resposta WhatsApp outbox", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Enfileirar resposta WhatsApp outbox",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model Barbearia": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Agente IA Agendamento",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
     }
   }
 }

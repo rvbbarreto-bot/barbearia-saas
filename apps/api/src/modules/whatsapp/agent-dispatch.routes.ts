@@ -7,7 +7,7 @@ import { resolveConversationContext } from './conversation-context.service.js';
 import { withTenant } from '../../infra/db/pool.js';
 
 const querySchema = z.object({
-  tenant_id: z.string().uuid(),
+  tenant_id: z.string().min(32),
   customer_id: z.string().uuid(),
   dispatch_token: z.string().uuid(),
 });

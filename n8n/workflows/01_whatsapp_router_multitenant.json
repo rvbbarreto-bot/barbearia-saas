@@ -73,7 +73,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ phone: $json.phone, name: $json.push_name, message: $json.text, external_message_id: $json.provider_message_id, ...( $json.content_type ? { message_type: $json.content_type } : {} ), ...( $json.media_url ? { media_url: $json.media_url } : {} ) }) }}",
+        "jsonBody": "={{ JSON.stringify({ phone: $json.phone, name: $json.push_name, message: $json.text, external_message_id: $json.provider_message_id, ...($json.content_type ? { message_type: $json.content_type } : {}), ...($json.media_url ? { media_url: $json.media_url } : {}) }) }}",
         "options": {
           "timeout": "={{ Number($env.API_TIMEOUT_MS) || 15000 }}"
         }
@@ -135,11 +135,11 @@
         1200,
         80
       ],
-      "notes": "Aguarda WHATSAPP_AGENT_DEBOUNCE_MS na Core antes de confirmar dispatch.",
+      "notes": "Debounce em segundos (wait_ms da API / 1000). n8n Wait 1.1 ignora unit ms.",
       "parameters": {
         "resume": "timeInterval",
-        "amount": "={{ $json.core_response.agentDispatch.wait_ms }}",
-        "unit": "ms"
+        "amount": "={{ Math.max(1, Math.ceil(Number($json.core_response?.agentDispatch?.wait_ms || 2500) / 1000)) }}",
+        "unit": "seconds"
       }
     },
     {
@@ -154,7 +154,7 @@
       "continueOnFail": true,
       "parameters": {
         "method": "GET",
-        "url": "={{ String($env.API_BASE_URL || '').replace(/\\/$/, '') + '/webhooks/whatsapp/agent-dispatch?tenant_id=' + encodeURIComponent($('Registrar Core API + Roteamento').first().json.enrichment.tenant_id) + '&customer_id=' + encodeURIComponent($('Registrar Core API + Roteamento').first().json.enrichment.customer_id) + '&dispatch_token=' + encodeURIComponent($('Registrar Core API + Roteamento').first().json.core_response.agentDispatch.dispatch_token) }}",
+        "url": "={{ String($env.API_BASE_URL || '').replace(/\\/$/, '') + '/webhooks/whatsapp/agent-dispatch?tenant_id=' + encodeURIComponent($('Registrar Core API + Roteamento').first().json.core_response.tenantId) + '&customer_id=' + encodeURIComponent($('Registrar Core API + Roteamento').first().json.core_response.customerId) + '&dispatch_token=' + encodeURIComponent($('Registrar Core API + Roteamento').first().json.core_response.agentDispatch.dispatch_token) }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [

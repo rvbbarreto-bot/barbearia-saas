@@ -167,6 +167,7 @@ const PUBLIC_PATHS = [
   '/auth/forgot-password',
   '/auth/reset-password',
   '/webhooks/whatsapp/inbound',
+  '/webhooks/whatsapp/agent-dispatch',
   '/webhooks/payments/pix',
   '/api/v1/public/portal',
 ];

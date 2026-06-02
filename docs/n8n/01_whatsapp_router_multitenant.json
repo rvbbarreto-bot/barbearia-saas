@@ -73,7 +73,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ phone: $json.phone, name: $json.push_name, message: $json.text, external_message_id: $json.provider_message_id, ...( $json.content_type ? { message_type: $json.content_type } : {} ), ...( $json.media_url ? { media_url: $json.media_url } : {} ) }) }}",
+        "jsonBody": "={{ JSON.stringify({ phone: $json.phone, name: $json.push_name, message: $json.text, external_message_id: $json.provider_message_id, ...($json.content_type ? { message_type: $json.content_type } : {}), ...($json.media_url ? { media_url: $json.media_url } : {}) }) }}",
         "options": {
           "timeout": "={{ Number($env.API_TIMEOUT_MS) || 15000 }}"
         }

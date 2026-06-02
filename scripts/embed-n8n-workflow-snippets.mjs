@@ -12,35 +12,78 @@ const root = path.join(__dirname, '..');
 const snippet = (name) =>
   fs.readFileSync(path.join(root, 'scripts', 'n8n-snippets', name), 'utf8');
 
+function readDotEnv(key) {
+  const envPath = path.join(root, '.env');
+  if (!fs.existsSync(envPath)) return null;
+  for (const line of fs.readFileSync(envPath, 'utf8').split(/\r?\n/)) {
+    const m = line.match(new RegExp(`^\\s*${key}\\s*=\\s*(.*)$`));
+    if (m) return m[1].trim().replace(/^["']|["']$/g, '');
+  }
+  return null;
+}
+
 function patch01(j) {
   const filter = snippet('01_whatsapp_router_filter.code.js');
-  const register = snippet('01_whatsapp_router_register.code.js');
+  const route = snippet('01_whatsapp_router_route.code.js');
+  const wf02Id = readDotEnv('N8N_WORKFLOW_02_ID') || 'l0zOd4CUKvdFA6HD';
   for (const n of j.nodes) {
-    if (n.name === 'Filtrar e Normalizar') n.parameters.jsCode = filter;
+    if (n.name === 'Filtrar e Normalizar') {
+      n.parameters.jsCode = filter;
+      n.parameters.mode = 'runOnceForAllItems';
+    }
     if (n.name === 'Registrar Core API + Roteamento') {
-      n.parameters.jsCode = register;
+      n.parameters.jsCode = route;
+      n.parameters.mode = 'runOnceForAllItems';
       n.notes =
-        'POST Core API sem modulo crypto embutido. x-webhook-token + x-webhook-instance + x-correlation-id. ' +
-        'Timeout via Promise (API_TIMEOUT_MS). Se N8N_HMAC_SECRET estiver definido, retorna config_error — use tenant com token ou proxy HMAC.';
+        'Classifica resposta do POST Core API (agent/duplicate/error/config). Sem HTTP no Code node — evita falha de rede no sandbox n8n 1.91.';
     }
     if (n.name === 'Filtrar e Normalizar') {
       n.notes =
         'Aceita payload na raiz ou em body (Webhook n8n). Filtra messages.upsert, descarta fromMe e @g.us. Sem tenant no corpo.';
     }
-    if (n.name === 'Chamar Agente IA') {
-      n.parameters.workflowId = {
-        __rl: true,
-        value:
-          "={{ String($env.N8N_WORKFLOW_02_ID || '').trim() || 'SUBSTITUIR_PELO_ID_DO_WORKFLOW_02' }}",
-        mode: 'id',
+    if (n.name === 'EvolutionInbound') {
+      n.webhookId = 'f47ac10b-58cc-4372-a567-0e02b2c3d101';
+    }
+    if (n.name === 'POST Core API') {
+      n.parameters.jsonBody =
+        "={{ JSON.stringify({ phone: $json.phone, name: $json.push_name, message: $json.text, external_message_id: $json.provider_message_id, ...($json.content_type ? { message_type: $json.content_type } : {}), ...($json.media_url ? { media_url: $json.media_url } : {}) }) }}";
+    }
+    if (n.name === 'GET Confirmar dispatch') {
+      n.parameters.url =
+        "={{ String($env.API_BASE_URL || '').replace(/\\/$/, '') + '/webhooks/whatsapp/agent-dispatch?tenant_id=' + encodeURIComponent($('Registrar Core API + Roteamento').first().json.core_response.tenantId) + '&customer_id=' + encodeURIComponent($('Registrar Core API + Roteamento').first().json.core_response.customerId) + '&dispatch_token=' + encodeURIComponent($('Registrar Core API + Roteamento').first().json.core_response.agentDispatch.dispatch_token) }}";
+    }
+    if (n.name === 'Wait debounce agente') {
+      n.parameters = {
+        resume: 'timeInterval',
+        amount:
+          '={{ Math.max(1, Math.ceil(Number($json.core_response?.agentDispatch?.wait_ms || 2500) / 1000)) }}',
+        unit: 'seconds',
       };
       n.notes =
-        'Opção B: definir N8N_WORKFLOW_02_ID no container n8n após import, ou substituir placeholder no editor. Segundo workflow deve estar importado.';
+        'Debounce em segundos (wait_ms da API / 1000). n8n Wait 1.1 ignora unit ms.';
+    }
+    if (n.name === 'Chamar Agente IA') {
+      n.typeVersion = 1.2;
+      n.parameters = {
+        operation: 'call_workflow',
+        source: 'database',
+        workflowId: {
+          __rl: true,
+          value: wf02Id,
+          mode: 'id',
+        },
+        mode: 'once',
+        options: {
+          waitForSubWorkflow: false,
+        },
+      };
+      n.notes =
+        'Execute Workflow 02 por ID fixo (typeVersion 1.2 + __rl). typeVersion 1 passava objeto inteiro como id.';
     }
   }
   j.meta = j.meta || {};
   j.meta.description =
-    'Inbound Evolution → Core API. Code node compatível com sandbox n8n 1.91 (sem crypto embutido). Opção B: Execute Workflow 02 quando route=agent. active=false.';
+    'Inbound Evolution → Core API via HTTP Request node + roteamento Code. Opção B: Execute Workflow 02 quando route=agent. active=false.';
   return j;
 }
 
